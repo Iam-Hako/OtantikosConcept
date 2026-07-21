@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Product, SiteSettings, INITIAL_PRODUCTS, DEFAULT_SITE_SETTINGS } from "@/data/mockData";
 import { SiteTexts, DEFAULT_SITE_TEXTS } from "@/data/siteTexts";
 
@@ -53,10 +53,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserProfile | null>(null);
   const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
 
-  // Senkron İlk Yükleme (Sayfa Yenilenirken Eski Metinlerin Yanıp Sönmesini Engellemek İçin)
+  // State'ler SUNUCUDAN gelen veri ile senkronize edilecek
+  // localStorage sadece ilk yüklemede flash'ı engellemek için kullanılır
   const [settings, setSettings] = useState<SiteSettings>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("otantikos_permanent_settings");
+      const saved = localStorage.getItem("otantikos_cache_settings");
       if (saved) {
         try { return JSON.parse(saved); } catch (e) {}
       }
@@ -66,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [siteTexts, setSiteTexts] = useState<SiteTexts>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("otantikos_permanent_texts");
+      const saved = localStorage.getItem("otantikos_cache_texts");
       if (saved) {
         try { return JSON.parse(saved); } catch (e) {}
       }
@@ -76,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [products, setProducts] = useState<Product[]>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("otantikos_permanent_products");
+      const saved = localStorage.getItem("otantikos_cache_products");
       if (saved) {
         try { return JSON.parse(saved); } catch (e) {}
       }
@@ -84,57 +85,89 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return INITIAL_PRODUCTS;
   });
 
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Global Sunucu Verisini Çek ve Senkronize Et
-  const fetchGlobalData = async () => {
+  // ========================
+  // SUNUCU HER ZAMAN TEK KAYNAK!
+  // Tüm veriler API'den çekilir ve localStorage sadece cache olarak kullanılır
+  // ========================
+  const fetchGlobalData = useCallback(async () => {
     try {
       const res = await fetch("/api/site-data");
       const data = await res.json();
       if (data.success && data.data) {
-        if (data.data.products && data.data.products.length > 0) {
-          const savedPermProducts = localStorage.getItem("otantikos_permanent_products");
-          if (!savedPermProducts) {
-            setProducts(data.data.products);
-          }
+        // ÜRÜNLER - Sunucu her zaman öncelikli
+        if (data.data.products) {
+          setProducts(data.data.products);
+          localStorage.setItem("otantikos_cache_products", JSON.stringify(data.data.products));
         }
+        // METİNLER - Sunucu her zaman öncelikli
         if (data.data.siteTexts) {
-          const savedPermTexts = localStorage.getItem("otantikos_permanent_texts");
-          if (!savedPermTexts) {
-            setSiteTexts(data.data.siteTexts);
-          }
+          setSiteTexts(data.data.siteTexts);
+          localStorage.setItem("otantikos_cache_texts", JSON.stringify(data.data.siteTexts));
         }
+        // AYARLAR - Sunucu her zaman öncelikli
         if (data.data.siteSettings) {
-          const savedPermSettings = localStorage.getItem("otantikos_permanent_settings");
-          if (!savedPermSettings) {
-            setSettings(data.data.siteSettings);
-          }
+          setSettings(data.data.siteSettings);
+          localStorage.setItem("otantikos_cache_settings", JSON.stringify(data.data.siteSettings));
         }
-        if (data.data.registeredUsers && data.data.registeredUsers.length > 0) {
-          setRegisteredUsers(data.data.registeredUsers);
+        // KULLANICILAR - Sunucu her zaman öncelikli
+        if (data.data.registeredUsers) {
+          // Geçersiz kullanıcıları temizle (isimsiz, e-postasız hayalet kayıtlar)
+          const cleanUsers = data.data.registeredUsers.filter(
+            (u: RegisteredUser) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
+          );
+          setRegisteredUsers(cleanUsers);
         }
       }
     } catch (err) {
       console.error("Global data fetch error:", err);
     }
-  };
+  }, []);
 
-  const syncGlobal = async (action: string, payload: any) => {
+  const syncGlobal = async (action: string, payload: any): Promise<void> => {
     try {
-      await fetch("/api/site-data", {
+      const res = await fetch("/api/site-data", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, payload }),
       });
+      const data = await res.json();
+      // Sunucudan dönen güncel veriyi hemen uygula
+      if (data.success && data.data) {
+        if (data.data.products) {
+          setProducts(data.data.products);
+          localStorage.setItem("otantikos_cache_products", JSON.stringify(data.data.products));
+        }
+        if (data.data.siteTexts) {
+          setSiteTexts(data.data.siteTexts);
+          localStorage.setItem("otantikos_cache_texts", JSON.stringify(data.data.siteTexts));
+        }
+        if (data.data.siteSettings) {
+          setSettings(data.data.siteSettings);
+          localStorage.setItem("otantikos_cache_settings", JSON.stringify(data.data.siteSettings));
+        }
+        if (data.data.registeredUsers) {
+          const cleanUsers = data.data.registeredUsers.filter(
+            (u: RegisteredUser) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
+          );
+          setRegisteredUsers(cleanUsers);
+        }
+      }
     } catch (err) {
       console.error("Global sync error:", err);
     }
   };
 
   useEffect(() => {
-    try {
-      fetchGlobalData();
+    // Eski localStorage key'lerini temizle (migration)
+    localStorage.removeItem("otantikos_permanent_products");
+    localStorage.removeItem("otantikos_permanent_texts");
+    localStorage.removeItem("otantikos_permanent_settings");
 
+    // Sunucudan veri çek
+    fetchGlobalData();
+
+    // Kullanıcı oturumunu localStorage'dan yükle
+    try {
       const savedUser = localStorage.getItem("otantikos_user");
       if (savedUser) {
         const parsedUser = JSON.parse(savedUser);
@@ -154,10 +187,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (e) {
       console.error("AuthContext loading error:", e);
-    } finally {
-      setIsLoaded(true);
     }
-  }, []);
+  }, [fetchGlobalData]);
 
   const login = (emailInput: string, passInput: string) => {
     const cleanEmail = (emailInput || "").trim().toLowerCase();
@@ -271,40 +302,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateSettings = (newSettings: SiteSettings) => {
     setSettings(newSettings);
-    localStorage.setItem("otantikos_permanent_settings", JSON.stringify(newSettings));
+    localStorage.setItem("otantikos_cache_settings", JSON.stringify(newSettings));
     syncGlobal("update-settings", newSettings);
   };
 
   const updateSiteTexts = (newTexts: SiteTexts) => {
     setSiteTexts(newTexts);
-    localStorage.setItem("otantikos_permanent_texts", JSON.stringify(newTexts));
+    localStorage.setItem("otantikos_cache_texts", JSON.stringify(newTexts));
     syncGlobal("update-texts", newTexts);
   };
 
   const addProduct = (prod: Product) => {
     const updated = [prod, ...products];
     setProducts(updated);
-    localStorage.setItem("otantikos_permanent_products", JSON.stringify(updated));
+    localStorage.setItem("otantikos_cache_products", JSON.stringify(updated));
     syncGlobal("update-products", updated);
   };
 
   const deleteProduct = (id: string) => {
     const updated = products.filter((p) => p.id !== id);
     setProducts(updated);
-    localStorage.setItem("otantikos_permanent_products", JSON.stringify(updated));
+    localStorage.setItem("otantikos_cache_products", JSON.stringify(updated));
     syncGlobal("update-products", updated);
   };
 
   const updateProduct = (updatedProd: Product) => {
     const updated = products.map((p) => (p.id === updatedProd.id ? updatedProd : p));
     setProducts(updated);
-    localStorage.setItem("otantikos_permanent_products", JSON.stringify(updated));
+    localStorage.setItem("otantikos_cache_products", JSON.stringify(updated));
     syncGlobal("update-products", updated);
   };
 
   const updateUserRole = (userId: string, newRole: "admin" | "user") => {
     const updated = registeredUsers.map((u) => (u.id === userId ? { ...u, role: newRole } : u));
     setRegisteredUsers(updated);
+    // Sunucuya hem rol değişikliğini hem de tam kullanıcı listesini gönder
     syncGlobal("update-user-role", { userId, role: newRole });
 
     if (user && user.id === userId) {
@@ -316,6 +348,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithGoogle = (name: string, email: string) => {
     const cleanEmail = (email || "").toLowerCase().trim();
+    if (!cleanEmail) return { success: false };
+
     const existing = registeredUsers.find((u) => u?.email?.toLowerCase() === cleanEmail);
     let userRole: "admin" | "user" = cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? "admin" : "user";
     let displayName = cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? HARDCODED_ADMIN.name : name;
@@ -332,7 +366,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: `usr-${Date.now()}`,
         email: cleanEmail,
         password: "google-auth-pwd",
-        name: displayName,
+        name: displayName || "Google Kullanıcısı",
         role: userRole,
         createdAt: new Date().toISOString(),
       };
@@ -344,7 +378,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userProfile: UserProfile = {
       id: existing ? existing.id : `usr-g-${Date.now()}`,
       email: cleanEmail,
-      name: displayName,
+      name: displayName || "Google Kullanıcısı",
       role: userRole,
       createdAt: new Date().toISOString(),
     };

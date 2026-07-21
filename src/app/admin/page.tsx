@@ -391,6 +391,9 @@ export default function AdminDashboard() {
               <p className="text-xs text-[#7C6354] mt-1">
                 Kayıtlı kullanıcılar arasında arama yapabilir, istediğiniz kullanıcılara <strong>Admin (Yönetici)</strong> yetkisi verebilir veya yetkilerini kaldırabilirsiniz.
               </p>
+              <p className="text-[10px] text-emerald-700 mt-1 font-semibold">
+                Toplam Kayıtlı Kullanıcı: {registeredUsers.filter(u => u?.name && u?.email && u.name.trim() !== "" && u.email.trim() !== "").length}
+              </p>
             </div>
 
             {/* Kullanıcı Arama Çubuğu */}
@@ -414,11 +417,12 @@ export default function AdminDashboard() {
                   <th className="py-3 px-4">E-Posta Adresi</th>
                   <th className="py-3 px-4">Mevcut Rolü</th>
                   <th className="py-3 px-4">Kayıt Tarihi</th>
+                  <th className="py-3 px-4">Kullanıcı ID</th>
                   <th className="py-3 px-4 text-right">Yetki İşlemi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E6DCD3]">
-                {/* Sabit Ana Admin: Haktan Fetih Durmuş (chessvip11@gmail.com) */}
+                {/* Sabit Ana Admin: Haktan Fetih Durmuş */}
                 <tr className="bg-amber-50/40">
                   <td className="py-3.5 px-4 font-bold text-[#3E2E28] flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-[#C86D51]" /> Haktan Fetih Durmuş
@@ -426,20 +430,26 @@ export default function AdminDashboard() {
                   <td className="py-3.5 px-4 font-mono text-[#7C6354]">chessvip11@gmail.com</td>
                   <td className="py-3.5 px-4">
                     <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
-                      Süper Admin / Developer
+                      Süper Admin / Geliştirici
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-[#7C6354]">Sistem Tanımlı</td>
+                  <td className="py-3.5 px-4 text-[10px] text-[#7C6354] font-mono">usr-admin-primary</td>
                   <td className="py-3.5 px-4 text-right font-bold text-gray-400 text-[10px]">Ana Geliştirici</td>
                 </tr>
 
-                {/* Kayıtlı Diğer Kullanıcılar (Filtreli) */}
+                {/* Kayıtlı Diğer Kullanıcılar (Hayalet kullanıcılar kesinlikle filtreleniyor) */}
                 {registeredUsers
                   .filter(
                     (u) =>
-                      u?.email?.toLowerCase() !== "chessvip11@gmail.com" &&
-                      (u?.name?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-                        u?.email?.toLowerCase().includes(userSearchQuery.toLowerCase()))
+                      u &&
+                      u.email &&
+                      u.email.trim() !== "" &&
+                      u.name &&
+                      u.name.trim() !== "" &&
+                      u.email.toLowerCase() !== "chessvip11@gmail.com" &&
+                      (u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+                        u.email.toLowerCase().includes(userSearchQuery.toLowerCase()))
                   )
                   .map((u) => (
                     <tr key={u.id} className="hover:bg-[#F8F5F0]/50 transition">
@@ -459,6 +469,7 @@ export default function AdminDashboard() {
                       <td className="py-3.5 px-4 text-[#7C6354]">
                         {new Date(u.createdAt).toLocaleDateString("tr-TR")}
                       </td>
+                      <td className="py-3.5 px-4 text-[10px] text-[#7C6354] font-mono">{u.id}</td>
                       <td className="py-3.5 px-4 text-right">
                         {u.role === "admin" ? (
                           <button
@@ -466,7 +477,7 @@ export default function AdminDashboard() {
                               updateUserRole(u.id, "user");
                               showNotify(`${u.name} kullanıcısının admin yetkisi kaldırıldı.`);
                             }}
-                            className="px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-xs font-semibold flex items-center gap-1 ml-auto"
+                            className="px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-xs font-semibold flex items-center gap-1 ml-auto btn-press"
                           >
                             <UserMinus className="w-3.5 h-3.5" /> Admin Yetkisini Al
                           </button>
@@ -476,7 +487,7 @@ export default function AdminDashboard() {
                               updateUserRole(u.id, "admin");
                               showNotify(`${u.name} kullanıcısına Admin yetkisi verildi!`);
                             }}
-                            className="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg text-xs font-semibold flex items-center gap-1 ml-auto shadow-sm"
+                            className="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg text-xs font-semibold flex items-center gap-1 ml-auto shadow-sm btn-press"
                           >
                             <UserCheck className="w-3.5 h-3.5" /> Admin Yap (Yetkilendir)
                           </button>

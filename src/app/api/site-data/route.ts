@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { store } from "@/lib/serverStore";
 
 export async function GET() {
+  // Hayalet kullanıcıları her GET'te temizle
+  store.registeredUsers = store.registeredUsers.filter(
+    (u) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
+  );
+
   return NextResponse.json({
     success: true,
     data: {
@@ -34,13 +39,21 @@ export async function POST(request: Request) {
         u.id === userId ? { ...u, role } : u
       );
     } else if (action === "register-user") {
-      const existing = store.registeredUsers.find(
-        (u) => u.email.toLowerCase() === payload.email.toLowerCase()
-      );
-      if (!existing) {
-        store.registeredUsers.push(payload);
+      // Sadece geçerli kullanıcıları kaydet (ismi ve e-postası dolu)
+      if (payload && payload.email && payload.email.trim() !== "" && payload.name && payload.name.trim() !== "") {
+        const existing = store.registeredUsers.find(
+          (u) => u?.email?.toLowerCase() === payload.email.toLowerCase()
+        );
+        if (!existing) {
+          store.registeredUsers.push(payload);
+        }
       }
     }
+
+    // Hayalet kullanıcıları temizle
+    store.registeredUsers = store.registeredUsers.filter(
+      (u) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
+    );
 
     return NextResponse.json({
       success: true,

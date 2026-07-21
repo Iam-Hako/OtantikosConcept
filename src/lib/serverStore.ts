@@ -32,6 +32,20 @@ const g = global as unknown as { __otantikos_global_store?: GlobalStore };
 
 if (!g.__otantikos_global_store) {
   g.__otantikos_global_store = globalStore;
+} else {
+  // Sunucu yeniden başlatıldıysa, admin kullanıcısının hep mevcut olduğundan emin ol
+  const existingStore = g.__otantikos_global_store;
+  const hasAdmin = existingStore.registeredUsers.some(
+    (u) => u?.email?.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()
+  );
+  if (!hasAdmin) {
+    existingStore.registeredUsers.push(defaultAdminUser);
+  }
+
+  // Hayalet kullanıcıları temizle (ismi veya e-postası boş olanlar)
+  existingStore.registeredUsers = existingStore.registeredUsers.filter(
+    (u) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
+  );
 }
 
 export const store = g.__otantikos_global_store;
