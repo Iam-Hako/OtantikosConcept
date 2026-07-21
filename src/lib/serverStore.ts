@@ -13,30 +13,29 @@ export interface GlobalStore {
   registeredUsers: RegisteredUser[];
 }
 
-const defaultAdminUser: RegisteredUser = {
+export const defaultAdminUser: RegisteredUser = {
   id: "usr-admin-primary",
   email: HARDCODED_ADMIN.email,
   password: HARDCODED_ADMIN.password,
   name: HARDCODED_ADMIN.name,
   role: "admin",
-  createdAt: new Date().toISOString(),
+  createdAt: "2026-07-21T00:00:00.000Z",
   ipAddress: "127.0.0.1 (Yönetici)",
   lastLoginLocation: "Türkiye / İstanbul",
-  lastLoginDate: new Date().toISOString(),
+  lastLoginDate: "2026-07-21T00:00:00.000Z",
 };
 
 const getStoreFilePath = () => {
   return path.join(process.cwd(), "src", "data", "persistentStore.json");
 };
 
-const loadStoreFromDisk = (): GlobalStore => {
+export const loadStoreFromDisk = (): GlobalStore => {
   try {
     const filePath = getStoreFilePath();
     if (fs.existsSync(filePath)) {
       const content = fs.readFileSync(filePath, "utf-8");
       const parsed = JSON.parse(content);
       if (parsed && typeof parsed === "object") {
-        // Deep merge siteTexts with DEFAULT_SITE_TEXTS to guarantee no missing fields
         const mergedTexts: SiteTexts = {
           header: { ...DEFAULT_SITE_TEXTS.header, ...(parsed.siteTexts?.header || {}) },
           hero: { ...DEFAULT_SITE_TEXTS.hero, ...(parsed.siteTexts?.hero || {}) },
@@ -52,22 +51,22 @@ const loadStoreFromDisk = (): GlobalStore => {
           footer: { ...DEFAULT_SITE_TEXTS.footer, ...(parsed.siteTexts?.footer || {}) },
         };
 
-        const usersList: RegisteredUser[] = Array.isArray(parsed.registeredUsers)
+        let usersList: RegisteredUser[] = Array.isArray(parsed.registeredUsers)
           ? parsed.registeredUsers.filter(
               (u: RegisteredUser) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
             )
           : [defaultAdminUser];
 
-        // Guarantee primary admin user exists
         const hasAdmin = usersList.some(
           (u) => u.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()
         );
+
         if (!hasAdmin) {
           usersList.unshift(defaultAdminUser);
         }
 
         return {
-          products: parsed.products || INITIAL_PRODUCTS,
+          products: parsed.products && parsed.products.length > 0 ? parsed.products : INITIAL_PRODUCTS,
           siteTexts: mergedTexts,
           siteSettings: { ...DEFAULT_SITE_SETTINGS, ...(parsed.siteSettings || {}) },
           supportChats: parsed.supportChats || {},
@@ -76,7 +75,7 @@ const loadStoreFromDisk = (): GlobalStore => {
       }
     }
   } catch (e) {
-    console.error("Failed to load persistent store from disk:", e);
+    console.error("Failed to load store from disk:", e);
   }
 
   return {
@@ -95,16 +94,14 @@ export const saveStoreToDisk = (storeData: GlobalStore) => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
+
+    // Ensure primary admin is always preserved in stored JSON
+    if (!storeData.registeredUsers.some(u => u.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
+      storeData.registeredUsers.unshift(defaultAdminUser);
+    }
+
     fs.writeFileSync(filePath, JSON.stringify(storeData, null, 2), "utf-8");
   } catch (e) {
-    console.error("Failed to save persistent store to disk:", e);
+    console.error("Failed to save store to disk:", e);
   }
 };
-
-const g = global as unknown as { __otantikos_global_store?: GlobalStore };
-
-if (!g.__otantikos_global_store) {
-  g.__otantikos_global_store = loadStoreFromDisk();
-}
-
-export const store = g.__otantikos_global_store;

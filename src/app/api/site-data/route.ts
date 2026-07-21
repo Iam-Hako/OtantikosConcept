@@ -1,30 +1,45 @@
 import { NextResponse } from "next/server";
-import { store, saveStoreToDisk } from "@/lib/serverStore";
+import { loadStoreFromDisk, saveStoreToDisk, defaultAdminUser } from "@/lib/serverStore";
 
 export async function GET() {
-  // Hayalet kullanıcıları her GET'te temizle
+  const store = loadStoreFromDisk();
+
+  // Hayalet kullanıcıları temizle ve primary admin garantisi ver
   store.registeredUsers = store.registeredUsers.filter(
     (u) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
   );
 
-  return NextResponse.json({
-    success: true,
-    data: {
-      products: store.products,
-      siteTexts: store.siteTexts,
-      siteSettings: store.siteSettings,
-      supportChats: store.supportChats,
-      registeredUsers: store.registeredUsers,
+  if (!store.registeredUsers.some((u) => u.email.toLowerCase() === defaultAdminUser.email.toLowerCase())) {
+    store.registeredUsers.unshift(defaultAdminUser);
+  }
+
+  return NextResponse.json(
+    {
+      success: true,
+      data: {
+        products: store.products,
+        siteTexts: store.siteTexts,
+        siteSettings: store.siteSettings,
+        supportChats: store.supportChats,
+        registeredUsers: store.registeredUsers,
+      },
     },
-  });
+    {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    }
+  );
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { action, payload } = body;
+    const store = loadStoreFromDisk();
 
-    // İstek atan istemcinin IP adresini ve lokasyonunu yakala
     const clientIp =
       request.headers.get("x-forwarded-for")?.split(",")[0] ||
       request.headers.get("x-real-ip") ||
@@ -66,7 +81,6 @@ export async function POST(request: Request) {
           };
           store.registeredUsers.push(newUserWithMetadata);
         } else {
-          // Varolan kullanıcının IP ve son girişini güncelle
           store.registeredUsers = store.registeredUsers.map((u) =>
             u.email.toLowerCase() === payload.email.toLowerCase()
               ? {
@@ -86,19 +100,32 @@ export async function POST(request: Request) {
       (u) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
     );
 
-    // Tüm değişiklikleri diske kalıcı yaz
+    if (!store.registeredUsers.some((u) => u.email.toLowerCase() === defaultAdminUser.email.toLowerCase())) {
+      store.registeredUsers.unshift(defaultAdminUser);
+    }
+
+    // Diske doğrudan veritabanı yazımı yap
     saveStoreToDisk(store);
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        products: store.products,
-        siteTexts: store.siteTexts,
-        siteSettings: store.siteSettings,
-        supportChats: store.supportChats,
-        registeredUsers: store.registeredUsers,
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          products: store.products,
+          siteTexts: store.siteTexts,
+          siteSettings: store.siteSettings,
+          supportChats: store.supportChats,
+          registeredUsers: store.registeredUsers,
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      }
+    );
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

@@ -64,102 +64,48 @@ const defaultAdminUser: RegisteredUser = {
   createdAt: "2026-07-21T00:00:00.000Z",
   ipAddress: "127.0.0.1 (Yönetici)",
   lastLoginLocation: "Türkiye / İstanbul",
-  lastLoginDate: new Date().toISOString(),
+  lastLoginDate: "2026-07-21T00:00:00.000Z",
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([defaultAdminUser]);
-
-  const [settings, setSettings] = useState<SiteSettings>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("otantikos_cache_settings");
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
-      }
-    }
-    return DEFAULT_SITE_SETTINGS;
-  });
-
-  const [siteTexts, setSiteTexts] = useState<SiteTexts>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("otantikos_cache_texts");
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
-      }
-    }
-    return DEFAULT_SITE_TEXTS;
-  });
-
-  const [products, setProducts] = useState<Product[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("otantikos_cache_products");
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
-      }
-    }
-    return INITIAL_PRODUCTS;
-  });
-
-  // Master Local Storage Backup Sync
-  const saveMasterBackup = (prods: Product[], texts: SiteTexts, setts: SiteSettings, users: RegisteredUser[]) => {
-    try {
-      if (typeof window !== "undefined") {
-        localStorage.setItem("otantikos_cache_products", JSON.stringify(prods));
-        localStorage.setItem("otantikos_cache_texts", JSON.stringify(texts));
-        localStorage.setItem("otantikos_cache_settings", JSON.stringify(setts));
-        localStorage.setItem("otantikos_cache_users", JSON.stringify(users));
-      }
-    } catch (e) {}
-  };
+  const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
+  const [siteTexts, setSiteTexts] = useState<SiteTexts>(DEFAULT_SITE_TEXTS);
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
 
   // ========================
-  // SUNUCU VERİSİNİ ÇEK VE LOCAL MASTER SAVER İLE BİRLEŞTİR
+  // %100 SUNUCU TEMELLİ VERİ ÇEKME (SERVER-DRIVEN DATA ENGINE)
   // ========================
   const fetchGlobalData = useCallback(async () => {
     try {
-      const res = await fetch("/api/site-data", { cache: "no-store" });
+      const res = await fetch("/api/site-data", {
+        cache: "no-store",
+        headers: { "Pragma": "no-cache" },
+      });
       const data = await res.json();
       if (data.success && data.data) {
-        // 1. ÜRÜNLER
         if (data.data.products && Array.isArray(data.data.products)) {
           setProducts(data.data.products);
-          localStorage.setItem("otantikos_cache_products", JSON.stringify(data.data.products));
         }
-
-        // 2. METİNLER
         if (data.data.siteTexts) {
-          const merged = { ...DEFAULT_SITE_TEXTS, ...data.data.siteTexts };
-          setSiteTexts(merged);
-          localStorage.setItem("otantikos_cache_texts", JSON.stringify(merged));
+          setSiteTexts({ ...DEFAULT_SITE_TEXTS, ...data.data.siteTexts });
         }
-
-        // 3. AYARLAR
         if (data.data.siteSettings) {
           setSettings(data.data.siteSettings);
-          localStorage.setItem("otantikos_cache_settings", JSON.stringify(data.data.siteSettings));
         }
-
-        // 4. KULLANICILAR (Her zaman defaultAdminUser mevcut olmalıdır)
-        let incomingUsers: RegisteredUser[] = Array.isArray(data.data.registeredUsers)
-          ? data.data.registeredUsers.filter(
-              (u: RegisteredUser) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
-            )
-          : [];
-
-        const hasAdmin = incomingUsers.some(
-          (u) => u.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()
-        );
-
-        if (!hasAdmin) {
-          incomingUsers = [defaultAdminUser, ...incomingUsers];
+        if (data.data.registeredUsers && Array.isArray(data.data.registeredUsers)) {
+          let cleanUsers = data.data.registeredUsers.filter(
+            (u: RegisteredUser) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
+          );
+          if (!cleanUsers.some((u: RegisteredUser) => u.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
+            cleanUsers = [defaultAdminUser, ...cleanUsers];
+          }
+          setRegisteredUsers(cleanUsers);
         }
-
-        setRegisteredUsers(incomingUsers);
-        localStorage.setItem("otantikos_cache_users", JSON.stringify(incomingUsers));
       }
     } catch (err) {
-      console.error("Global data fetch error:", err);
+      console.error("Server API fetch error:", err);
     }
   }, []);
 
@@ -172,16 +118,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       const data = await res.json();
       if (data.success && data.data) {
-        if (data.data.products) {
-          setProducts(data.data.products);
-        }
-        if (data.data.siteTexts) {
-          const merged = { ...DEFAULT_SITE_TEXTS, ...data.data.siteTexts };
-          setSiteTexts(merged);
-        }
-        if (data.data.siteSettings) {
-          setSettings(data.data.siteSettings);
-        }
+        if (data.data.products) setProducts(data.data.products);
+        if (data.data.siteTexts) setSiteTexts({ ...DEFAULT_SITE_TEXTS, ...data.data.siteTexts });
+        if (data.data.siteSettings) setSettings(data.data.siteSettings);
         if (data.data.registeredUsers) {
           let cleanUsers = data.data.registeredUsers.filter(
             (u: RegisteredUser) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
@@ -193,18 +132,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     } catch (err) {
-      console.error("Global sync error:", err);
+      console.error("Server API sync error:", err);
     }
   };
 
   useEffect(() => {
-    // Sayfa açıldığında sunucu verilerini çek
+    // Sayfa yüklendiğinde doğrudan SUNUCUDAN veri çek
     fetchGlobalData();
 
-    // 2.5 saniyede bir canlı senkronizasyon yap
+    // 2 saniyede bir doğrudan SUNUCUDAN güncel verileri sorgula (Canlı Sunucu Polling)
     const timer = setInterval(() => {
       fetchGlobalData();
-    }, 2500);
+    }, 2000);
 
     try {
       const savedUser = localStorage.getItem("otantikos_user");
@@ -216,10 +155,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             email: HARDCODED_ADMIN.email,
             name: HARDCODED_ADMIN.name,
             role: "admin",
-            createdAt: parsedUser.createdAt || "2026-07-21T00:00:00.000Z",
+            createdAt: "2026-07-21T00:00:00.000Z",
           };
           setUser(freshAdmin);
-          localStorage.setItem("otantikos_user", JSON.stringify(freshAdmin));
         } else {
           setUser(parsedUser);
         }
@@ -320,8 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       lastLoginDate: new Date().toISOString(),
     };
 
-    const updatedUsers = [...registeredUsers, newUserRecord];
-    setRegisteredUsers(updatedUsers);
+    // Sunucuya doğrudan yeni kullanıcıyı kaydet
     syncGlobal("register-user", newUserRecord);
 
     const userProfile: UserProfile = {
@@ -343,42 +280,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateSettings = (newSettings: SiteSettings) => {
-    setSettings(newSettings);
-    localStorage.setItem("otantikos_cache_settings", JSON.stringify(newSettings));
     syncGlobal("update-settings", newSettings);
   };
 
   const updateSiteTexts = (newTexts: SiteTexts) => {
-    const merged = { ...siteTexts, ...newTexts };
-    setSiteTexts(merged);
-    localStorage.setItem("otantikos_cache_texts", JSON.stringify(merged));
-    syncGlobal("update-texts", merged);
+    syncGlobal("update-texts", newTexts);
   };
 
   const addProduct = (prod: Product) => {
     const updated = [prod, ...products];
-    setProducts(updated);
-    localStorage.setItem("otantikos_cache_products", JSON.stringify(updated));
     syncGlobal("update-products", updated);
   };
 
   const deleteProduct = (id: string) => {
     const updated = products.filter((p) => p.id !== id);
-    setProducts(updated);
-    localStorage.setItem("otantikos_cache_products", JSON.stringify(updated));
     syncGlobal("update-products", updated);
   };
 
   const updateProduct = (updatedProd: Product) => {
     const updated = products.map((p) => (p.id === updatedProd.id ? updatedProd : p));
-    setProducts(updated);
-    localStorage.setItem("otantikos_cache_products", JSON.stringify(updated));
     syncGlobal("update-products", updated);
   };
 
   const updateUserRole = (userId: string, newRole: "admin" | "user") => {
-    const updated = registeredUsers.map((u) => (u.id === userId ? { ...u, role: newRole } : u));
-    setRegisteredUsers(updated);
     syncGlobal("update-user-role", { userId, role: newRole });
 
     if (user && user.id === userId) {
@@ -389,14 +313,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUserPassword = (userId: string, newPass: string) => {
-    const updated = registeredUsers.map((u) => (u.id === userId ? { ...u, password: newPass } : u));
-    setRegisteredUsers(updated);
     syncGlobal("update-user-password", { userId, newPassword: newPass });
   };
 
   const deleteUser = (userId: string) => {
-    const updated = registeredUsers.filter((u) => u.id !== userId);
-    setRegisteredUsers(updated);
     syncGlobal("delete-user", { userId });
   };
 
@@ -427,8 +347,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         lastLoginLocation: "Türkiye / İstanbul",
         lastLoginDate: new Date().toISOString(),
       };
-      const updatedList = [...registeredUsers, newUser];
-      setRegisteredUsers(updatedList);
       syncGlobal("register-user", newUser);
     }
 
