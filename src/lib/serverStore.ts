@@ -114,10 +114,6 @@ export const fetchCloudStoreFromNetwork = async (): Promise<GlobalStore> => {
 };
 
 export const fetchCloudStore = async (): Promise<GlobalStore> => {
-  if (inMemoryStoreCache) {
-    fetchCloudStoreFromNetwork().catch(() => {});
-    return inMemoryStoreCache;
-  }
   return fetchCloudStoreFromNetwork();
 };
 
