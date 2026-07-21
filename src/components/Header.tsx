@@ -82,20 +82,20 @@ export default function Header() {
             </Link>
 
             {/* Masaüstü Navigasyon Linkleri */}
-            <nav className="hidden md:flex flex-1 justify-center space-x-8 lg:space-x-12 xl:space-x-16 text-sm font-medium text-[#3E2E28] px-6">
-              <Link href="/" className="hover:text-[#C86D51] transition">
+            <nav className="hidden md:flex flex-1 justify-center items-center gap-x-4 lg:gap-x-8 xl:gap-x-10 text-sm font-medium text-[#3E2E28] px-4">
+              <Link href="/" className="hover:text-[#C86D51] transition whitespace-nowrap">
                 {siteTexts?.header?.navHome || "Ana Sayfa"}
               </Link>
-              <Link href="/urunler" className="hover:text-[#C86D51] transition">
+              <Link href="/urunler" className="hover:text-[#C86D51] transition whitespace-nowrap">
                 {siteTexts?.header?.navAllProducts || "Tüm Ürünler"}
               </Link>
-              <Link href="/kategori/bijuteri-taki" className="hover:text-[#C86D51] transition">
+              <Link href="/kategori/bijuteri-taki" className="hover:text-[#C86D51] transition whitespace-nowrap">
                 Bijuteri & Takı
               </Link>
-              <Link href="/kategori/hediyelik-esya" className="hover:text-[#C86D51] transition">
+              <Link href="/kategori/hediyelik-esya" className="hover:text-[#C86D51] transition whitespace-nowrap">
                 Hediyelik Eşya
               </Link>
-              <Link href="/kategori/trend-oyuncak-squishy" className="hover:text-[#C86D51] transition">
+              <Link href="/kategori/trend-oyuncak-squishy" className="hover:text-[#C86D51] transition whitespace-nowrap">
                 Trend Oyuncak & Squishy
               </Link>
 
@@ -103,7 +103,7 @@ export default function Header() {
               {isAdmin && (
                 <Link
                   href="/admin"
-                  className="text-xs bg-[#C86D51] text-white px-3.5 py-1.5 rounded-full hover:bg-[#B05B41] transition font-semibold flex items-center gap-1 shadow-sm"
+                  className="text-xs bg-[#C86D51] text-white px-3 py-1 rounded-full hover:bg-[#B05B41] transition font-semibold flex items-center gap-1 shadow-sm whitespace-nowrap"
                 >
                   <ShieldAlert className="w-3.5 h-3.5" /> Site Yönetimi
                 </Link>
