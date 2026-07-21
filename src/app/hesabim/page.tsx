@@ -51,12 +51,6 @@ export default function AccountPage() {
     }
   };
 
-  const handleFillAdmin = () => {
-    setEmail(HARDCODED_ADMIN.email);
-    setPassword(HARDCODED_ADMIN.password);
-    setIsLoginView(true);
-  };
-
   // Eğer Kullanıcı Zaten Giriş Yapmışsa Hesabım Ekranını Göster
   if (user) {
     return (
@@ -232,16 +226,6 @@ export default function AccountPage() {
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
-
-        {/* Hızlı Admin Doldur Butonu */}
-        <div className="pt-2 text-center border-t border-[#E6DCD3] space-y-2">
-          <button
-            onClick={handleFillAdmin}
-            className="w-full py-2 bg-[#EAE0D5] text-[#3E2E28] text-xs font-bold rounded-xl hover:bg-[#C86D51] hover:text-white transition flex items-center justify-center gap-2"
-          >
-            <KeyRound className="w-4 h-4 text-[#C86D51]" /> Admin Bilgilerini Otomatik Doldur
-          </button>
-        </div>
 
       </div>
     </div>
