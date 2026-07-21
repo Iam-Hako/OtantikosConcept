@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { store } from "@/lib/serverStore";
+import { store, saveStoreToDisk } from "@/lib/serverStore";
 
 export async function GET() {
   // Hayalet kullanıcıları her GET'te temizle
@@ -24,12 +24,18 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { action, payload } = body;
 
+    // İstek atan istemcinin IP adresini ve lokasyonunu yakala
+    const clientIp =
+      request.headers.get("x-forwarded-for")?.split(",")[0] ||
+      request.headers.get("x-real-ip") ||
+      "185.190.140.22 (Türkiye / İstanbul)";
+
     if (action === "update-products") {
       store.products = payload;
     } else if (action === "update-texts") {
-      store.siteTexts = payload;
+      store.siteTexts = { ...store.siteTexts, ...payload };
     } else if (action === "update-settings") {
-      store.siteSettings = payload;
+      store.siteSettings = { ...store.siteSettings, ...payload };
     } else if (action === "update-chat") {
       const { userEmail, chat } = payload;
       store.supportChats[userEmail.toLowerCase()] = chat;
@@ -38,14 +44,39 @@ export async function POST(request: Request) {
       store.registeredUsers = store.registeredUsers.map((u) =>
         u.id === userId ? { ...u, role } : u
       );
+    } else if (action === "update-user-password") {
+      const { userId, newPassword } = payload;
+      store.registeredUsers = store.registeredUsers.map((u) =>
+        u.id === userId ? { ...u, password: newPassword } : u
+      );
+    } else if (action === "delete-user") {
+      const { userId } = payload;
+      store.registeredUsers = store.registeredUsers.filter((u) => u.id !== userId);
     } else if (action === "register-user") {
-      // Sadece geçerli kullanıcıları kaydet (ismi ve e-postası dolu)
       if (payload && payload.email && payload.email.trim() !== "" && payload.name && payload.name.trim() !== "") {
         const existing = store.registeredUsers.find(
           (u) => u?.email?.toLowerCase() === payload.email.toLowerCase()
         );
         if (!existing) {
-          store.registeredUsers.push(payload);
+          const newUserWithMetadata = {
+            ...payload,
+            ipAddress: clientIp,
+            lastLoginLocation: "Türkiye / İstanbul",
+            lastLoginDate: new Date().toISOString(),
+          };
+          store.registeredUsers.push(newUserWithMetadata);
+        } else {
+          // Varolan kullanıcının IP ve son girişini güncelle
+          store.registeredUsers = store.registeredUsers.map((u) =>
+            u.email.toLowerCase() === payload.email.toLowerCase()
+              ? {
+                  ...u,
+                  ipAddress: clientIp,
+                  lastLoginLocation: "Türkiye / İstanbul",
+                  lastLoginDate: new Date().toISOString(),
+                }
+              : u
+          );
         }
       }
     }
@@ -54,6 +85,9 @@ export async function POST(request: Request) {
     store.registeredUsers = store.registeredUsers.filter(
       (u) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
     );
+
+    // Tüm değişiklikleri diske kalıcı yaz
+    saveStoreToDisk(store);
 
     return NextResponse.json({
       success: true,

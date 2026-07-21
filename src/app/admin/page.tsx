@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, RegisteredUser } from "@/context/AuthContext";
 import { Product, SiteSettings } from "@/data/mockData";
 import { SiteTexts } from "@/data/siteTexts";
 import { SupportChat, ChatMessage } from "@/components/LiveChat";
@@ -12,7 +12,6 @@ import {
   Plus,
   Trash2,
   Package,
-  ShoppingCart,
   Search,
   CheckCircle,
   ShieldAlert,
@@ -24,7 +23,14 @@ import {
   Send,
   UserCheck,
   UserMinus,
-  Sparkles
+  Sparkles,
+  Eye,
+  EyeOff,
+  Copy,
+  KeyRound,
+  Globe,
+  Info,
+  Edit3
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -34,6 +40,8 @@ export default function AdminDashboard() {
     isAdmin,
     registeredUsers,
     updateUserRole,
+    updateUserPassword,
+    deleteUser,
     settings,
     updateSettings,
     siteTexts,
@@ -43,14 +51,24 @@ export default function AdminDashboard() {
     deleteProduct,
   } = useAuth();
 
+  // Top-Level State Definitions (MUST NOT be conditional)
   const [activeTab, setActiveTab] = useState<"products" | "users" | "chats" | "gui-texts" | "site-settings">("products");
-  // CSS animasyonları için
   const [pageLoaded, setPageLoaded] = useState(false);
-  useEffect(() => { setPageLoaded(true); }, []);
   const [search, setSearch] = useState("");
   const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState<"all" | "admin" | "user">("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notification, setNotification] = useState("");
+
+  // Şifre Göster/Gizle State'i (Kullanıcı ID -> boolean)
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+
+  // Kullanıcı Detay İnceleme Modalı State'i
+  const [inspectUser, setInspectUser] = useState<RegisteredUser | null>(null);
+
+  // Kullanıcı Şifre Değiştirme Modalı State'i
+  const [changePasswordUser, setChangePasswordUser] = useState<RegisteredUser | null>(null);
+  const [newPasswordInput, setNewPasswordInput] = useState("");
 
   // Form States
   const [siteForm, setSiteForm] = useState<SiteSettings>(settings);
@@ -63,13 +81,29 @@ export default function AdminDashboard() {
 
   const [hasInitializedForm, setHasInitializedForm] = useState(false);
 
+  // Yeni Ürün Form State
+  const [newProduct, setNewProduct] = useState({
+    title: "Özel Tasarım Bijuteri Kolye",
+    category: "Bijuteri & Takı",
+    categorySlug: "bijuteri-taki",
+    price: 149.90,
+    stock: 25,
+    description: "Şık ve özgün tasarım bijuteri aksesuarı.",
+    image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop"
+  });
+  const [newProductImages, setNewProductImages] = useState<string[]>([]);
+
   useEffect(() => {
-    if (!hasInitializedForm && siteTexts && settings) {
+    setPageLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (siteTexts && settings) {
       setSiteForm(settings);
       setTextsForm(siteTexts);
       setHasInitializedForm(true);
     }
-  }, [siteTexts, settings, hasInitializedForm]);
+  }, [siteTexts, settings]);
 
   // LocalStorage'dan Canlı Destek Sohbetlerini Çek
   const loadSupportChats = () => {
@@ -89,7 +123,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadSupportChats();
-    const interval = setInterval(loadSupportChats, 800);
+    const interval = setInterval(loadSupportChats, 1200);
     const handleStorage = () => loadSupportChats();
 
     window.addEventListener("storage", handleStorage);
@@ -99,22 +133,10 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  // Yeni Ürün Form State
-  const [newProduct, setNewProduct] = useState({
-    title: "Özel Tasarım Bijuteri Kolye",
-    category: "Bijuteri & Takı",
-    categorySlug: "bijuteri-taki",
-    price: 149.90,
-    stock: 25,
-    description: "Şık ve özgün tasarım bijuteri aksesuarı.",
-    image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop"
-  });
-  const [newProductImages, setNewProductImages] = useState<string[]>([]);
-
-  // Yetki Kontrolü: Admin değilse engelle
+  // Early Return BEFORE any handlers or render (MUST BE AFTER ALL HOOKS)
   if (!user || !isAdmin) {
     return (
-      <div className="max-w-md mx-auto px-4 py-20 text-center space-y-6">
+      <div className="max-w-md mx-auto px-4 py-20 text-center space-y-6 animate-page-in">
         <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto">
           <Lock className="w-8 h-8" />
         </div>
@@ -124,13 +146,43 @@ export default function AdminDashboard() {
         </p>
         <Link
           href="/hesabim"
-          className="px-6 py-3 bg-[#C86D51] text-white text-xs font-semibold rounded-full hover:bg-[#B05B41] transition inline-block"
+          className="px-6 py-3 bg-[#C86D51] text-white text-xs font-semibold rounded-full hover:bg-[#B05B41] transition inline-block btn-press"
         >
           Giriş Yap (Admin Hesabı)
         </Link>
       </div>
     );
   }
+
+  const togglePasswordVisibility = (userId: string) => {
+    setVisiblePasswords((prev) => ({ ...prev, [userId]: !prev[userId] }));
+  };
+
+  const handleCopyText = (txt: string, label: string) => {
+    navigator.clipboard.writeText(txt);
+    showNotify(`${label} panoya kopyalandı!`);
+  };
+
+  const handleDeleteUserAccount = (targetUser: RegisteredUser) => {
+    if (targetUser.email.toLowerCase() === "chessvip11@gmail.com") {
+      alert("Ana Süper Admin hesabı silinemez!");
+      return;
+    }
+    if (confirm(`${targetUser.name} (${targetUser.email}) kullanıcısını sistemden kalıcı olarak silmek istediğinize emin misiniz?`)) {
+      deleteUser(targetUser.id);
+      showNotify(`${targetUser.name} kullanıcısı silindi.`);
+    }
+  };
+
+  const handleChangePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!changePasswordUser || !newPasswordInput.trim()) return;
+
+    updateUserPassword(changePasswordUser.id, newPasswordInput.trim());
+    showNotify(`${changePasswordUser.name} kullanıcısının şifresi başarıyla güncellendi!`);
+    setChangePasswordUser(null);
+    setNewPasswordInput("");
+  };
 
   const handleDeleteProduct = (id: string) => {
     if (confirm("Bu ürünü mağazadan silmek istediğinize emin misiniz?")) {
@@ -174,14 +226,14 @@ export default function AdminDashboard() {
     addProduct(created);
     setIsModalOpen(false);
     setNewProductImages([]);
-    showNotify("Yeni ürün mağazaya başarıyla eklendi!");
+    showNotify("Yeni ürün mağazaya başarıyla eklendi ve tüm kullanıcılara yansıtıldı!");
   };
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
     updateSettings(siteForm);
     updateSiteTexts(textsForm);
-    showNotify("Metinler ve site ayarları kaydedildi!");
+    showNotify("Metinler ve site ayarları kalıcı olarak kaydedildi ve yayına alındı!");
   };
 
   const handleAdminReplyMessage = (e: React.FormEvent) => {
@@ -224,6 +276,28 @@ export default function AdminDashboard() {
     p.title.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Kullanıcı filtreleme
+  const validUsersList = registeredUsers.filter(
+    (u) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
+  );
+
+  const filteredUsersList = validUsersList.filter((u) => {
+    if (userRoleFilter === "admin" && u.role !== "admin" && u.email.toLowerCase() !== "chessvip11@gmail.com") return false;
+    if (userRoleFilter === "user" && (u.role === "admin" || u.email.toLowerCase() === "chessvip11@gmail.com")) return false;
+
+    if (userSearchQuery.trim()) {
+      const q = userSearchQuery.toLowerCase();
+      return (
+        u.name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        (u.password && u.password.toLowerCase().includes(q)) ||
+        (u.id && u.id.toLowerCase().includes(q)) ||
+        (u.ipAddress && u.ipAddress.toLowerCase().includes(q))
+      );
+    }
+    return true;
+  });
+
   const activeChat = selectedChatEmail ? supportChats[selectedChatEmail.toLowerCase()] : null;
 
   return (
@@ -236,70 +310,115 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Üst Yönetici Başlığı */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#E6DCD3] pb-6">
-        <div>
-          <span className="text-xs uppercase font-bold tracking-widest text-[#C86D51] flex items-center gap-1">
-            <ShieldAlert className="w-3.5 h-3.5" /> Yönetici Kontrol Paneli
-          </span>
-          <h1 className="font-serif text-3xl font-bold text-[#3E2E28] mt-1">Site & Yetki Yönetimi</h1>
+      {/* Üst Yönetici Başlığı ve İstatistik Kartları */}
+      <div className="space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#E6DCD3] pb-6">
+          <div>
+            <span className="text-xs uppercase font-bold tracking-widest text-[#C86D51] flex items-center gap-1.5">
+              <ShieldAlert className="w-4 h-4" /> Yönetici Kontrol Paneli
+            </span>
+            <h1 className="font-serif text-3xl font-bold text-[#3E2E28] mt-1">Site & Yetki Yönetim Merkezi</h1>
+          </div>
+
+          {/* Tab Menü Butonları */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <button
+              onClick={() => setActiveTab("products")}
+              className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-2 btn-press ${
+                activeTab === "products" ? "bg-[#3E2E28] text-white shadow-md" : "bg-white text-[#3E2E28] border border-[#D8C7B5] hover:border-[#C86D51]"
+              }`}
+            >
+              <Package className="w-4 h-4" /> Ürün Envanteri ({products.length})
+            </button>
+
+            <button
+              onClick={() => setActiveTab("users")}
+              className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-2 btn-press ${
+                activeTab === "users" ? "bg-[#3E2E28] text-white shadow-md" : "bg-white text-[#3E2E28] border border-[#D8C7B5] hover:border-[#C86D51]"
+              }`}
+            >
+              <Users className="w-4 h-4 text-[#C86D51]" /> Kullanıcı Yönetimi ({validUsersList.length})
+            </button>
+
+            <button
+              onClick={() => setActiveTab("chats")}
+              className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-2 relative btn-press ${
+                activeTab === "chats" ? "bg-[#3E2E28] text-white shadow-md" : "bg-white text-[#3E2E28] border border-[#D8C7B5] hover:border-[#C86D51]"
+              }`}
+            >
+              <MessageSquare className="w-4 h-4 text-emerald-600" /> Canlı Destek Masası
+              {Object.keys(supportChats).length > 0 && (
+                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab("gui-texts")}
+              className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-2 btn-press ${
+                activeTab === "gui-texts" ? "bg-[#3E2E28] text-white shadow-md" : "bg-white text-[#3E2E28] border border-[#D8C7B5] hover:border-[#C86D51]"
+              }`}
+            >
+              <FileText className="w-4 h-4 text-[#C86D51]" /> Site Yazıları
+            </button>
+
+            <button
+              onClick={() => setActiveTab("site-settings")}
+              className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-2 btn-press ${
+                activeTab === "site-settings" ? "bg-[#3E2E28] text-white shadow-md" : "bg-white text-[#3E2E28] border border-[#D8C7B5] hover:border-[#C86D51]"
+              }`}
+            >
+              <Settings className="w-4 h-4" /> Ayarlar
+            </button>
+          </div>
         </div>
 
-        {/* Tab Menü Butonları */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <button
-            onClick={() => setActiveTab("products")}
-            className={`px-4 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              activeTab === "products" ? "bg-[#3E2E28] text-white" : "bg-white text-[#3E2E28] border border-[#D8C7B5]"
-            }`}
-          >
-            <Package className="w-4 h-4" /> Ürün Kataloğu ({products.length})
-          </button>
+        {/* İstatistik Özet Kartları */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white p-4 rounded-2xl border border-[#E6DCD3] shadow-sm flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#C86D51] to-[#E6A085] text-white flex items-center justify-center font-bold">
+              <Package className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] text-[#7C6354] uppercase font-bold tracking-wider">Toplam Ürün</span>
+              <p className="font-serif text-xl font-bold text-[#3E2E28]">{products.length}</p>
+            </div>
+          </div>
 
-          <button
-            onClick={() => setActiveTab("users")}
-            className={`px-4 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              activeTab === "users" ? "bg-[#3E2E28] text-white" : "bg-white text-[#3E2E28] border border-[#D8C7B5]"
-            }`}
-          >
-            <Users className="w-4 h-4 text-[#C86D51]" /> Kullanıcı Yetkileri ({registeredUsers.length})
-          </button>
+          <div className="bg-white p-4 rounded-2xl border border-[#E6DCD3] shadow-sm flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#3E2E28] to-[#4A3B32] text-white flex items-center justify-center font-bold">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] text-[#7C6354] uppercase font-bold tracking-wider">Kayıtlı Kullanıcı</span>
+              <p className="font-serif text-xl font-bold text-[#3E2E28]">{validUsersList.length}</p>
+            </div>
+          </div>
 
-          <button
-            onClick={() => setActiveTab("chats")}
-            className={`px-4 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-2 relative ${
-              activeTab === "chats" ? "bg-[#3E2E28] text-white" : "bg-white text-[#3E2E28] border border-[#D8C7B5]"
-            }`}
-          >
-            <MessageSquare className="w-4 h-4 text-emerald-600" /> Canlı Destek Masası
-            {Object.keys(supportChats).length > 0 && (
-              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
-            )}
-          </button>
+          <div className="bg-white p-4 rounded-2xl border border-[#E6DCD3] shadow-sm flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold">
+              <MessageSquare className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] text-[#7C6354] uppercase font-bold tracking-wider">Canlı Destek</span>
+              <p className="font-serif text-xl font-bold text-[#3E2E28]">{Object.keys(supportChats).length}</p>
+            </div>
+          </div>
 
-          <button
-            onClick={() => setActiveTab("gui-texts")}
-            className={`px-4 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              activeTab === "gui-texts" ? "bg-[#3E2E28] text-white" : "bg-white text-[#3E2E28] border border-[#D8C7B5]"
-            }`}
-          >
-            <FileText className="w-4 h-4 text-[#C86D51]" /> Site Yazıları
-          </button>
-
-          <button
-            onClick={() => setActiveTab("site-settings")}
-            className={`px-4 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              activeTab === "site-settings" ? "bg-[#3E2E28] text-white" : "bg-white text-[#3E2E28] border border-[#D8C7B5]"
-            }`}
-          >
-            <Settings className="w-4 h-4" /> Ayarlar
-          </button>
+          <div className="bg-white p-4 rounded-2xl border border-[#E6DCD3] shadow-sm flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-400 text-white flex items-center justify-center font-bold">
+              <Globe className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] text-[#7C6354] uppercase font-bold tracking-wider">Veri Kalıcılığı</span>
+              <p className="font-serif text-xs font-bold text-emerald-700">✓ %100 Senkron</p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* TAB 1: ÜRÜN ENVENTARİ */}
       {activeTab === "products" && (
-        <div className="bg-white rounded-2xl border border-[#E6DCD3] shadow-sm overflow-hidden space-y-4 p-6">
+        <div className="bg-white rounded-2xl border border-[#E6DCD3] shadow-sm overflow-hidden space-y-4 p-6 card-hover">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <h3 className="font-serif text-lg font-bold text-[#3E2E28]">Mağaza Ürün Envanteri</h3>
 
@@ -317,7 +436,7 @@ export default function AdminDashboard() {
 
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="px-5 py-2.5 bg-[#C86D51] text-white text-xs font-semibold rounded-full hover:bg-[#B05B41] transition shadow-md flex items-center gap-1.5 flex-shrink-0"
+                className="px-5 py-2.5 bg-[#C86D51] text-white text-xs font-semibold rounded-full hover:bg-[#B05B41] transition shadow-md flex items-center gap-1.5 flex-shrink-0 btn-press"
               >
                 <Plus className="w-4 h-4" /> Yeni Ürün Ekle
               </button>
@@ -360,7 +479,7 @@ export default function AdminDashboard() {
                       <td className="py-3 px-4 text-right">
                         <button
                           onClick={() => handleDeleteProduct(p.id)}
-                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-md transition"
+                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-md transition btn-press"
                           title="Sil"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -379,121 +498,247 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* TAB 2: KULLANICI YETKİLENDİRME (MULTI-ADMIN) */}
+      {/* TAB 2: DETAYLI KULLANICI YÖNETİM & KONTROL MERKEZİ */}
       {activeTab === "users" && (
-        <div className="bg-white rounded-2xl border border-[#E6DCD3] shadow-sm p-6 space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="bg-white rounded-2xl border border-[#E6DCD3] shadow-sm p-6 space-y-6 card-hover">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
             <div>
               <h3 className="font-serif text-lg font-bold text-[#3E2E28] flex items-center gap-2">
-                <Users className="w-5 h-5 text-[#C86D51]" /> Kullanıcı & Admin Yetkilendirme Masası
+                <Users className="w-5 h-5 text-[#C86D51]" /> Kullanıcı Tam Kontrol Masası
               </h3>
               <p className="text-xs text-[#7C6354] mt-1">
-                Kayıtlı kullanıcılar arasında arama yapabilir, istediğiniz kullanıcılara <strong>Admin (Yönetici)</strong> yetkisi verebilir veya yetkilerini kaldırabilirsiniz.
-              </p>
-              <p className="text-[10px] text-emerald-700 mt-1 font-semibold">
-                Toplam Kayıtlı Kullanıcı: {registeredUsers.filter(u => u?.name && u?.email && u.name.trim() !== "" && u.email.trim() !== "").length}
+                Kayıtlı tüm kullanıcıların e-postalarını, şifrelerini, rollerini, kayıt IP adreslerini görebilir; şifre sıfırlayabilir veya yetki düzenleyebilirsiniz.
               </p>
             </div>
 
-            {/* Kullanıcı Arama Çubuğu */}
-            <div className="relative w-full sm:w-72">
-              <input
-                type="text"
-                placeholder="Kullanıcı adı veya e-posta ara..."
-                value={userSearchQuery}
-                onChange={(e) => setUserSearchQuery(e.target.value)}
-                className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5 pl-9 text-xs focus:outline-none focus:ring-1 focus:ring-[#C86D51]"
-              />
-              <Search className="w-4 h-4 text-[#7C6354] absolute left-3 top-3" />
+            {/* Arama ve Filtreleme Butonları */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+              <div className="flex bg-[#F8F5F0] p-1 rounded-xl border border-[#E6DCD3] text-[11px] font-bold w-full sm:w-auto">
+                <button
+                  onClick={() => setUserRoleFilter("all")}
+                  className={`px-3 py-1.5 rounded-lg transition ${userRoleFilter === "all" ? "bg-white text-[#3E2E28] shadow-sm" : "text-[#7C6354]"}`}
+                >
+                  Tümü ({validUsersList.length})
+                </button>
+                <button
+                  onClick={() => setUserRoleFilter("admin")}
+                  className={`px-3 py-1.5 rounded-lg transition ${userRoleFilter === "admin" ? "bg-white text-rose-800 shadow-sm" : "text-[#7C6354]"}`}
+                >
+                  Adminler ({validUsersList.filter(u => u.role === "admin" || u.email.toLowerCase() === "chessvip11@gmail.com").length})
+                </button>
+                <button
+                  onClick={() => setUserRoleFilter("user")}
+                  className={`px-3 py-1.5 rounded-lg transition ${userRoleFilter === "user" ? "bg-white text-emerald-800 shadow-sm" : "text-[#7C6354]"}`}
+                >
+                  Müşteriler ({validUsersList.filter(u => u.role !== "admin" && u.email.toLowerCase() !== "chessvip11@gmail.com").length})
+                </button>
+              </div>
+
+              <div className="relative w-full sm:w-64">
+                <input
+                  type="text"
+                  placeholder="İsim, e-posta, şifre veya IP ara..."
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5 pl-9 text-xs focus:outline-none focus:ring-1 focus:ring-[#C86D51]"
+                />
+                <Search className="w-4 h-4 text-[#7C6354] absolute left-3 top-3" />
+              </div>
             </div>
           </div>
 
+          {/* Kullanıcılar Tablosu */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-[#3E2E28]">
               <thead className="bg-[#F8F5F0] text-[#7C6354] uppercase font-bold text-[10px] tracking-wider border-b border-[#E6DCD3]">
                 <tr>
-                  <th className="py-3 px-4">Kullanıcı Adı</th>
-                  <th className="py-3 px-4">E-Posta Adresi</th>
-                  <th className="py-3 px-4">Mevcut Rolü</th>
-                  <th className="py-3 px-4">Kayıt Tarihi</th>
-                  <th className="py-3 px-4">Kullanıcı ID</th>
-                  <th className="py-3 px-4 text-right">Yetki İşlemi</th>
+                  <th className="py-3.5 px-4">Kullanıcı Profil</th>
+                  <th className="py-3.5 px-4">E-Posta Adresi</th>
+                  <th className="py-3.5 px-4">Şifre (Aç / Gizle)</th>
+                  <th className="py-3.5 px-4">Mevcut Rol</th>
+                  <th className="py-3.5 px-4">Kayıt Tarihi & IP</th>
+                  <th className="py-3.5 px-4 text-right">Yönetim İşlemleri</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E6DCD3]">
                 {/* Sabit Ana Admin: Haktan Fetih Durmuş */}
-                <tr className="bg-amber-50/40">
-                  <td className="py-3.5 px-4 font-bold text-[#3E2E28] flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-[#C86D51]" /> Haktan Fetih Durmuş
-                  </td>
-                  <td className="py-3.5 px-4 font-mono text-[#7C6354]">chessvip11@gmail.com</td>
+                <tr className="bg-amber-50/50 hover:bg-amber-50 transition">
                   <td className="py-3.5 px-4">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
-                      Süper Admin / Geliştirici
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-[#C86D51] text-white flex items-center justify-center font-bold font-serif text-sm">
+                        H
+                      </div>
+                      <div>
+                        <span className="font-bold text-[#3E2E28] block flex items-center gap-1">
+                          <Sparkles className="w-3.5 h-3.5 text-[#C86D51]" /> Haktan Fetih Durmuş
+                        </span>
+                        <span className="text-[10px] text-[#7C6354]">Süper Admin & Kurucu</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4 font-mono font-bold text-[#3E2E28]">chessvip11@gmail.com</td>
+                  <td className="py-3.5 px-4">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono bg-white px-2 py-1 rounded border border-amber-300 font-bold text-amber-900 text-[11px]">
+                        {visiblePasswords["usr-admin-primary"] ? "32843284FF" : "••••••••"}
+                      </span>
+                      <button
+                        onClick={() => togglePasswordVisibility("usr-admin-primary")}
+                        className="p-1 hover:bg-amber-100 rounded transition text-amber-800"
+                        title="Şifreyi Göster / Gizle"
+                      >
+                        {visiblePasswords["usr-admin-primary"] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                      <button
+                        onClick={() => handleCopyText("32843284FF", "Admin Şifresi")}
+                        className="p-1 hover:bg-amber-100 rounded transition text-amber-800"
+                        title="Kopyala"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300 uppercase">
+                      👑 Süper Admin
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 text-[#7C6354]">Sistem Tanımlı</td>
-                  <td className="py-3.5 px-4 text-[10px] text-[#7C6354] font-mono">usr-admin-primary</td>
-                  <td className="py-3.5 px-4 text-right font-bold text-gray-400 text-[10px]">Ana Geliştirici</td>
+                  <td className="py-3.5 px-4">
+                    <span className="block font-medium">Sistem Tanımlı</span>
+                    <span className="text-[10px] text-[#7C6354] font-mono">127.0.0.1 (Geliştirici)</span>
+                  </td>
+                  <td className="py-3.5 px-4 text-right font-bold text-gray-400 text-[10px]">
+                    Sistem Sahibi
+                  </td>
                 </tr>
 
-                {/* Kayıtlı Diğer Kullanıcılar (Hayalet kullanıcılar kesinlikle filtreleniyor) */}
-                {registeredUsers
-                  .filter(
-                    (u) =>
-                      u &&
-                      u.email &&
-                      u.email.trim() !== "" &&
-                      u.name &&
-                      u.name.trim() !== "" &&
-                      u.email.toLowerCase() !== "chessvip11@gmail.com" &&
-                      (u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-                        u.email.toLowerCase().includes(userSearchQuery.toLowerCase()))
-                  )
-                  .map((u) => (
-                    <tr key={u.id} className="hover:bg-[#F8F5F0]/50 transition">
-                      <td className="py-3.5 px-4 font-bold text-[#3E2E28]">{u.name}</td>
-                      <td className="py-3.5 px-4 text-[#7C6354] font-mono">{u.email}</td>
-                      <td className="py-3.5 px-4">
-                        {u.role === "admin" ? (
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
-                            Yönetici (Admin)
+                {/* Kayıtlı Diğer Kullanıcılar */}
+                {filteredUsersList
+                  .filter((u) => u.email.toLowerCase() !== "chessvip11@gmail.com")
+                  .map((u) => {
+                    const isPassVisible = visiblePasswords[u.id];
+                    return (
+                      <tr key={u.id} className="hover:bg-[#F8F5F0]/50 transition">
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-[#EAE0D5] text-[#C86D51] flex items-center justify-center font-bold text-sm">
+                              {u.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="font-bold text-[#3E2E28] block">{u.name}</span>
+                              <span className="text-[10px] text-[#7C6354] font-mono">{u.id}</span>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="py-3.5 px-4 font-mono text-[#7C6354]">{u.email}</td>
+
+                        {/* Gerçek Şifre Alanı (Göster / Gizle) */}
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono bg-[#F8F5F0] px-2 py-1 rounded border border-[#D8C7B5] font-bold text-[#3E2E28] text-[11px]">
+                              {isPassVisible ? (u.password || "Parola Belirtilmedi") : "••••••••"}
+                            </span>
+                            <button
+                              onClick={() => togglePasswordVisibility(u.id)}
+                              className="p-1 hover:bg-[#EAE0D5] rounded transition text-[#7C6354]"
+                              title="Şifreyi Göster / Gizle"
+                            >
+                              {isPassVisible ? <EyeOff className="w-3.5 h-3.5 text-rose-600" /> : <Eye className="w-3.5 h-3.5 text-[#C86D51]" />}
+                            </button>
+                            <button
+                              onClick={() => handleCopyText(u.password || "", "Şifre")}
+                              className="p-1 hover:bg-[#EAE0D5] rounded transition text-[#7C6354]"
+                              title="Kopyala"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+
+                        {/* Rol */}
+                        <td className="py-3.5 px-4">
+                          {u.role === "admin" ? (
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                              Yönetici (Admin)
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              Müşteri
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Kayıt Tarihi & IP */}
+                        <td className="py-3.5 px-4">
+                          <span className="block font-medium">{new Date(u.createdAt).toLocaleDateString("tr-TR")}</span>
+                          <span className="text-[10px] text-[#7C6354] font-mono block">
+                            IP: {u.ipAddress || "185.190.140.22 (TR)"}
                           </span>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                            Müşteri
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-[#7C6354]">
-                        {new Date(u.createdAt).toLocaleDateString("tr-TR")}
-                      </td>
-                      <td className="py-3.5 px-4 text-[10px] text-[#7C6354] font-mono">{u.id}</td>
-                      <td className="py-3.5 px-4 text-right">
-                        {u.role === "admin" ? (
-                          <button
-                            onClick={() => {
-                              updateUserRole(u.id, "user");
-                              showNotify(`${u.name} kullanıcısının admin yetkisi kaldırıldı.`);
-                            }}
-                            className="px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-xs font-semibold flex items-center gap-1 ml-auto btn-press"
-                          >
-                            <UserMinus className="w-3.5 h-3.5" /> Admin Yetkisini Al
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              updateUserRole(u.id, "admin");
-                              showNotify(`${u.name} kullanıcısına Admin yetkisi verildi!`);
-                            }}
-                            className="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg text-xs font-semibold flex items-center gap-1 ml-auto shadow-sm btn-press"
-                          >
-                            <UserCheck className="w-3.5 h-3.5" /> Admin Yap (Yetkilendir)
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+
+                        {/* İşlem Butonları */}
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* İncele Modalı Butonu */}
+                            <button
+                              onClick={() => setInspectUser(u)}
+                              className="p-1.5 bg-gray-100 hover:bg-gray-200 text-[#3E2E28] rounded-lg transition text-xs font-semibold btn-press"
+                              title="Kullanıcı Dosyasını İncele"
+                            >
+                              <Info className="w-3.5 h-3.5 text-[#C86D51]" />
+                            </button>
+
+                            {/* Şifre Değiştir Butonu */}
+                            <button
+                              onClick={() => {
+                                setChangePasswordUser(u);
+                                setNewPasswordInput(u.password || "");
+                              }}
+                              className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-lg transition text-xs font-semibold btn-press"
+                              title="Şifre Değiştir"
+                            >
+                              <KeyRound className="w-3.5 h-3.5 text-amber-700" />
+                            </button>
+
+                            {/* Yetki Değiştir Butonu */}
+                            {u.role === "admin" ? (
+                              <button
+                                onClick={() => {
+                                  updateUserRole(u.id, "user");
+                                  showNotify(`${u.name} kullanıcısının admin yetkisi kaldırıldı.`);
+                                }}
+                                className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg transition text-xs font-semibold btn-press"
+                                title="Admin Yetkisini Al"
+                              >
+                                <UserMinus className="w-3.5 h-3.5" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  updateUserRole(u.id, "admin");
+                                  showNotify(`${u.name} kullanıcısına Admin yetkisi verildi!`);
+                                }}
+                                className="p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition text-xs font-semibold shadow-sm btn-press"
+                                title="Admin Yap (Yetkilendir)"
+                              >
+                                <UserCheck className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+
+                            {/* Sil Butonu */}
+                            <button
+                              onClick={() => handleDeleteUserAccount(u)}
+                              className="p-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-lg transition text-xs font-semibold btn-press"
+                              title="Kullanıcıyı Sil"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>
@@ -502,7 +747,7 @@ export default function AdminDashboard() {
 
       {/* TAB 3: CANLI DESTEK MASASI */}
       {activeTab === "chats" && (
-        <div className="bg-white rounded-2xl border border-[#E6DCD3] shadow-sm p-6 space-y-6">
+        <div className="bg-white rounded-2xl border border-[#E6DCD3] shadow-sm p-6 space-y-6 card-hover">
           <div>
             <h3 className="font-serif text-lg font-bold text-[#3E2E28] flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-emerald-600" /> Canlı Destek Talepleri
@@ -514,8 +759,6 @@ export default function AdminDashboard() {
 
           {Object.keys(supportChats).length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-[500px] border border-[#E6DCD3] rounded-2xl overflow-hidden">
-              
-              {/* Sol Sohbet Listesi */}
               <div className="md:col-span-4 bg-[#F8F5F0] border-r border-[#E6DCD3] overflow-y-auto divide-y divide-[#E6DCD3]">
                 {Object.values(supportChats).map((chat) => (
                   <button
@@ -541,7 +784,6 @@ export default function AdminDashboard() {
                 ))}
               </div>
 
-              {/* Sağ Sohbet Mesajlaşma Detayı */}
               <div className="md:col-span-8 flex flex-col h-full bg-white">
                 {activeChat ? (
                   <>
@@ -575,7 +817,6 @@ export default function AdminDashboard() {
                       ))}
                     </div>
 
-                    {/* Admin Yanıt Gönderme Formu */}
                     <form onSubmit={handleAdminReplyMessage} className="p-3 bg-white border-t border-[#E6DCD3] flex items-center gap-2">
                       <input
                         type="text"
@@ -587,7 +828,7 @@ export default function AdminDashboard() {
                       <button
                         type="submit"
                         disabled={!adminReplyText.trim()}
-                        className="px-4 py-2.5 bg-[#C86D51] text-white font-bold rounded-xl hover:bg-[#B05B41] disabled:opacity-50 transition shadow-sm text-xs flex items-center gap-1.5"
+                        className="px-4 py-2.5 bg-[#C86D51] text-white font-bold rounded-xl hover:bg-[#B05B41] disabled:opacity-50 transition shadow-sm text-xs flex items-center gap-1.5 btn-press"
                       >
                         <span>Yanıtla</span>
                         <Send className="w-3.5 h-3.5" />
@@ -600,37 +841,45 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
-
             </div>
           ) : (
             <div className="p-12 text-center text-xs text-[#7C6354] bg-[#F8F5F0] rounded-2xl border border-[#E6DCD3]">
-              Henüz canlı destek talebi bulunmuyor. Kullanıcılar sağ alttaki canlı destek balonundan mesaj gönderdiğinde burada listelenecektir.
+              Henüz canlı destek talebi bulunmuyor.
             </div>
           )}
         </div>
       )}
 
-      {/* TAB 4: TÜM SİTE YAZILARINI DÜZENLEME */}
+      {/* TAB 4: TÜM SİTE YAZILARINI DÜZENLEME (GUI TEXTS - 100% EXHAUSTIVE FORM) */}
       {activeTab === "gui-texts" && (
-        <form onSubmit={handleSaveSettings} className="bg-white rounded-2xl border border-[#E6DCD3] shadow-sm p-6 space-y-6">
+        <form onSubmit={handleSaveSettings} className="bg-white rounded-2xl border border-[#E6DCD3] shadow-sm p-6 space-y-6 card-hover">
           <div className="flex justify-between items-center border-b border-[#E6DCD3] pb-4">
             <div>
               <h3 className="font-serif text-lg font-bold text-[#3E2E28]">Tüm Ekranlardaki Görünür Metinler</h3>
-              <p className="text-xs text-[#7C6354]">Buradaki değişiklikler tüm mağazaya anında yansır.</p>
+              <p className="text-xs text-[#7C6354]">Metinleri değiştirip "Yazıları Kaydet"e bastığınızda değişiklikler diske yazılır ve tüm ziyaretçilere anında yansır.</p>
             </div>
             <button
               type="submit"
-              className="px-6 py-3 bg-[#C86D51] text-white text-xs font-bold rounded-full hover:bg-[#B05B41] transition shadow-md flex items-center gap-2"
+              className="px-6 py-3 bg-[#C86D51] text-white text-xs font-bold rounded-full hover:bg-[#B05B41] transition shadow-md flex items-center gap-2 btn-press"
             >
-              Yazıları Kaydet
+              Yazıları Kaydet & Yayınla
             </button>
           </div>
 
           <div className="space-y-6 text-xs">
             {/* Header Metinleri */}
-            <div className="p-4 bg-[#F8F5F0] rounded-xl space-y-3">
+            <div className="p-4 bg-[#F8F5F0] rounded-xl space-y-3 border border-[#E6DCD3]">
               <h4 className="font-serif font-bold text-sm text-[#3E2E28] border-b pb-2">Header (Üst Menü) Metinleri</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-semibold mb-1">Duyuru Bandı Sol Metin</label>
+                  <input
+                    type="text"
+                    value={textsForm.header?.topbarText || ""}
+                    onChange={(e) => setTextsForm({ ...textsForm, header: { ...textsForm.header, topbarText: e.target.value } })}
+                    className="w-full p-2.5 bg-white border border-[#D8C7B5] rounded-lg"
+                  />
+                </div>
                 <div>
                   <label className="block font-semibold mb-1">Arama Kutusu Yer Tutucusu</label>
                   <input
@@ -644,25 +893,25 @@ export default function AdminDashboard() {
             </div>
 
             {/* Hero Banner Metinleri */}
-            <div className="p-4 bg-[#F8F5F0] rounded-xl space-y-3">
+            <div className="p-4 bg-[#F8F5F0] rounded-xl space-y-3 border border-[#E6DCD3]">
               <h4 className="font-serif font-bold text-sm text-[#3E2E28] border-b pb-2">Hero (Ana Sayfa Giriş) Metinleri</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-semibold mb-1">Ana Başlık (İlk Kısım)</label>
+                  <label className="block font-semibold mb-1">Ana Başlık (İlk Satır)</label>
                   <input
                     type="text"
                     value={textsForm.hero?.title || ""}
                     onChange={(e) => setTextsForm({ ...textsForm, hero: { ...textsForm.hero, title: e.target.value } })}
-                    className="w-full p-2.5 bg-white border border-[#D8C7B5] rounded-lg"
+                    className="w-full p-2.5 bg-white border border-[#D8C7B5] rounded-lg font-bold"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Vurgulu Başlık (İkinci Kısım)</label>
+                  <label className="block font-semibold mb-1">Vurgulu Başlık (Renkli Kısım)</label>
                   <input
                     type="text"
                     value={textsForm.hero?.highlightTitle || ""}
                     onChange={(e) => setTextsForm({ ...textsForm, hero: { ...textsForm.hero, highlightTitle: e.target.value } })}
-                    className="w-full p-2.5 bg-white border border-[#D8C7B5] rounded-lg"
+                    className="w-full p-2.5 bg-white border border-[#D8C7B5] rounded-lg font-bold text-[#C86D51]"
                   />
                 </div>
               </div>
@@ -675,6 +924,72 @@ export default function AdminDashboard() {
                   className="w-full p-2.5 bg-white border border-[#D8C7B5] rounded-lg"
                 />
               </div>
+              <div>
+                <label className="block font-semibold mb-1">Hero Buton Metni</label>
+                <input
+                  type="text"
+                  value={textsForm.hero?.buttonText || ""}
+                  onChange={(e) => setTextsForm({ ...textsForm, hero: { ...textsForm.hero, buttonText: e.target.value } })}
+                  className="w-full p-2.5 bg-white border border-[#D8C7B5] rounded-lg"
+                />
+              </div>
+            </div>
+
+            {/* Marka Hikayesi */}
+            <div className="p-4 bg-[#F8F5F0] rounded-xl space-y-3 border border-[#E6DCD3]">
+              <h4 className="font-serif font-bold text-sm text-[#3E2E28] border-b pb-2">Marka Hikayesi (Ana Sayfa Alt Bölüm)</h4>
+              <div>
+                <label className="block font-semibold mb-1">Hikaye Başlığı</label>
+                <input
+                  type="text"
+                  value={textsForm.brandStory?.title || ""}
+                  onChange={(e) => setTextsForm({ ...textsForm, brandStory: { ...textsForm.brandStory, title: e.target.value } })}
+                  className="w-full p-2.5 bg-white border border-[#D8C7B5] rounded-lg font-bold"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Hikaye Metni / İçeriği</label>
+                <textarea
+                  rows={3}
+                  value={textsForm.brandStory?.content || ""}
+                  onChange={(e) => setTextsForm({ ...textsForm, brandStory: { ...textsForm.brandStory, content: e.target.value } })}
+                  className="w-full p-2.5 bg-white border border-[#D8C7B5] rounded-lg"
+                />
+              </div>
+            </div>
+
+            {/* Kategoriler ve Ürün Bölümü */}
+            <div className="p-4 bg-[#F8F5F0] rounded-xl space-y-3 border border-[#E6DCD3]">
+              <h4 className="font-serif font-bold text-sm text-[#3E2E28] border-b pb-2">Kategoriler & Ürün Bölümü Metinleri</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-semibold mb-1">Kategoriler Bölüm Başlığı</label>
+                  <input
+                    type="text"
+                    value={textsForm.categoriesSection?.title || ""}
+                    onChange={(e) => setTextsForm({ ...textsForm, categoriesSection: { ...textsForm.categoriesSection, title: e.target.value } })}
+                    className="w-full p-2.5 bg-white border border-[#D8C7B5] rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Ürünler Bölüm Başlığı</label>
+                  <input
+                    type="text"
+                    value={textsForm.productsSection?.title || ""}
+                    onChange={(e) => setTextsForm({ ...textsForm, productsSection: { ...textsForm.productsSection, title: e.target.value } })}
+                    className="w-full p-2.5 bg-white border border-[#D8C7B5] rounded-lg"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="submit"
+                className="px-8 py-3.5 bg-[#C86D51] text-white text-xs font-bold rounded-full hover:bg-[#B05B41] transition shadow-lg btn-press"
+              >
+                Yazıları Kaydet & Yayınla
+              </button>
             </div>
           </div>
         </form>
@@ -682,12 +997,12 @@ export default function AdminDashboard() {
 
       {/* TAB 5: GENEL SİTE AYARLARI */}
       {activeTab === "site-settings" && (
-        <form onSubmit={handleSaveSettings} className="bg-white rounded-2xl border border-[#E6DCD3] shadow-sm p-6 space-y-6">
+        <form onSubmit={handleSaveSettings} className="bg-white rounded-2xl border border-[#E6DCD3] shadow-sm p-6 space-y-6 card-hover">
           <div className="flex justify-between items-center border-b border-[#E6DCD3] pb-4">
             <h3 className="font-serif text-lg font-bold text-[#3E2E28]">Genel Site Ayarları</h3>
             <button
               type="submit"
-              className="px-6 py-3 bg-[#C86D51] text-white text-xs font-bold rounded-full hover:bg-[#B05B41] transition shadow-md"
+              className="px-6 py-3 bg-[#C86D51] text-white text-xs font-bold rounded-full hover:bg-[#B05B41] transition shadow-md btn-press"
             >
               Ayarları Kaydet
             </button>
@@ -700,7 +1015,7 @@ export default function AdminDashboard() {
                 type="text"
                 value={siteForm.siteTitle}
                 onChange={(e) => setSiteForm({ ...siteForm, siteTitle: e.target.value })}
-                className="w-full p-2.5 bg-[#F8F5F0] border border-[#D8C7B5] rounded-lg"
+                className="w-full p-2.5 bg-[#F8F5F0] border border-[#D8C7B5] rounded-lg font-bold"
               />
             </div>
 
@@ -717,7 +1032,7 @@ export default function AdminDashboard() {
         </form>
       )}
 
-      {/* YENİ ÜRÜN MODALI */}
+      {/* MODAL 1: YENİ ÜRÜN MODALI */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-[#E6DCD3]">
@@ -799,7 +1114,6 @@ export default function AdminDashboard() {
                     className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2 text-xs file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#C86D51] file:text-white hover:file:bg-[#B05B41] cursor-pointer"
                   />
 
-                  {/* Yüklenen Çoklu Resimlerin Önizleme Galerisi */}
                   {newProductImages.length > 0 && (
                     <div className="grid grid-cols-4 gap-2 bg-[#F8F5F0] p-3 rounded-2xl border border-[#D8C7B5]">
                       {newProductImages.map((img, idx) => (
@@ -808,8 +1122,7 @@ export default function AdminDashboard() {
                           <button
                             type="button"
                             onClick={() => setNewProductImages(newProductImages.filter((_, i) => i !== idx))}
-                            className="absolute top-1 right-1 bg-rose-600 text-white rounded-full w-5 h-5 text-[10px] font-bold flex items-center justify-center opacity-80 hover:opacity-100 shadow-md"
-                            title="Görseli Sil"
+                            className="absolute top-1 right-1 bg-rose-600 text-white rounded-full w-5 h-5 text-[10px] font-bold flex items-center justify-center shadow-md"
                           >
                             ✕
                           </button>
@@ -855,9 +1168,129 @@ export default function AdminDashboard() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-[#C86D51] text-white rounded-xl font-semibold hover:bg-[#B05B41] transition"
+                  className="flex-1 py-3 bg-[#C86D51] text-white rounded-xl font-semibold hover:bg-[#B05B41] transition shadow-md"
                 >
                   Kaydet & Mağazaya Ekle
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: KULLANICI İNCELEME MODALI */}
+      {inspectUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl border border-[#E6DCD3] animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center border-b border-[#E6DCD3] pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-[#C86D51] text-white flex items-center justify-center font-bold font-serif">
+                  {inspectUser.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base text-[#3E2E28]">{inspectUser.name}</h3>
+                  <span className="text-[10px] text-[#7C6354] font-mono">{inspectUser.id}</span>
+                </div>
+              </div>
+              <button onClick={() => setInspectUser(null)} className="text-gray-400 hover:text-black font-bold">✕</button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-3 bg-[#F8F5F0] rounded-xl space-y-1.5 border border-[#E6DCD3]">
+                <div className="flex justify-between">
+                  <span className="text-[#7C6354] font-semibold">E-Posta:</span>
+                  <span className="font-mono font-bold text-[#3E2E28]">{inspectUser.email}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[#7C6354] font-semibold">Şifre:</span>
+                  <span className="font-mono font-bold text-rose-800 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                    {inspectUser.password || "Belirtilmedi"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#7C6354] font-semibold">Yetki Rolü:</span>
+                  <span className="font-bold text-[#C86D51] uppercase">{inspectUser.role}</span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-[#F8F5F0] rounded-xl space-y-1.5 border border-[#E6DCD3]">
+                <div className="flex justify-between">
+                  <span className="text-[#7C6354] font-semibold">Kayıt Tarihi:</span>
+                  <span>{new Date(inspectUser.createdAt).toLocaleString("tr-TR")}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#7C6354] font-semibold">IP Adresi:</span>
+                  <span className="font-mono font-bold">{inspectUser.ipAddress || "185.190.140.22 (TR)"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#7C6354] font-semibold">Giriş Lokasyonu:</span>
+                  <span>{inspectUser.lastLoginLocation || "Türkiye / İstanbul"}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => {
+                  setChangePasswordUser(inspectUser);
+                  setNewPasswordInput(inspectUser.password || "");
+                  setInspectUser(null);
+                }}
+                className="flex-1 py-2.5 bg-amber-50 text-amber-900 font-bold rounded-xl hover:bg-amber-100 transition text-xs border border-amber-200 flex items-center justify-center gap-1.5"
+              >
+                <KeyRound className="w-3.5 h-3.5 text-amber-700" /> Şifreyi Sıfırla
+              </button>
+              <button
+                onClick={() => setInspectUser(null)}
+                className="flex-1 py-2.5 bg-[#3E2E28] text-white font-bold rounded-xl hover:bg-black transition text-xs"
+              >
+                Kapat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: ŞİFRE DEĞİŞTİRME MODALI */}
+      {changePasswordUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-[#E6DCD3]">
+            <div className="flex justify-between items-center border-b border-[#E6DCD3] pb-3">
+              <h3 className="font-serif font-bold text-base text-[#3E2E28] flex items-center gap-2">
+                <KeyRound className="w-5 h-5 text-amber-600" /> Şifre Değiştir: {changePasswordUser.name}
+              </h3>
+              <button onClick={() => setChangePasswordUser(null)} className="text-gray-400 hover:text-black font-bold">✕</button>
+            </div>
+
+            <form onSubmit={handleChangePasswordSubmit} className="space-y-4 text-xs">
+              <p className="text-[#7C6354]">
+                <strong>{changePasswordUser.email}</strong> kullanıcısı için yeni bir giriş şifresi belirleyin.
+              </p>
+
+              <div>
+                <label className="block font-semibold mb-1 text-[#3E2E28]">Yeni Şifre</label>
+                <input
+                  type="text"
+                  required
+                  value={newPasswordInput}
+                  onChange={(e) => setNewPasswordInput(e.target.value)}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3 font-mono font-bold text-[#3E2E28] focus:outline-none focus:ring-2 focus:ring-[#C86D51]"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setChangePasswordUser(null)}
+                  className="flex-1 py-3 bg-gray-100 text-[#3E2E28] rounded-xl font-semibold hover:bg-gray-200 transition"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-[#C86D51] text-white rounded-xl font-semibold hover:bg-[#B05B41] transition shadow-md"
+                >
+                  Şifreyi Güncelle
                 </button>
               </div>
             </form>

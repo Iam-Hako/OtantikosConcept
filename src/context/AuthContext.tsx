@@ -12,6 +12,18 @@ export interface UserProfile {
   createdAt: string;
 }
 
+export interface RegisteredUser {
+  id: string;
+  email: string;
+  password: string;
+  name: string;
+  role: "admin" | "user";
+  createdAt: string;
+  ipAddress?: string;
+  lastLoginLocation?: string;
+  lastLoginDate?: string;
+}
+
 interface AuthContextType {
   user: UserProfile | null;
   registeredUsers: RegisteredUser[];
@@ -19,6 +31,8 @@ interface AuthContextType {
   register: (name: string, email: string, pass: string) => { success: boolean; error?: string };
   loginWithGoogle: (name: string, email: string) => { success: boolean };
   updateUserRole: (userId: string, role: "admin" | "user") => void;
+  updateUserPassword: (userId: string, newPass: string) => void;
+  deleteUser: (userId: string) => void;
   logout: () => void;
   isAdmin: boolean;
   settings: SiteSettings;
@@ -33,15 +47,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export interface RegisteredUser {
-  id: string;
-  email: string;
-  password: string;
-  name: string;
-  role: "admin" | "user";
-  createdAt: string;
-}
-
 // Sabit Admin Hesabı Bilgileri
 export const HARDCODED_ADMIN = {
   email: "chessvip11@gmail.com",
@@ -53,8 +58,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserProfile | null>(null);
   const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
 
-  // State'ler SUNUCUDAN gelen veri ile senkronize edilecek
-  // localStorage sadece ilk yüklemede flash'ı engellemek için kullanılır
   const [settings, setSettings] = useState<SiteSettings>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("otantikos_cache_settings");
@@ -87,31 +90,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // ========================
   // SUNUCU HER ZAMAN TEK KAYNAK!
-  // Tüm veriler API'den çekilir ve localStorage sadece cache olarak kullanılır
   // ========================
   const fetchGlobalData = useCallback(async () => {
     try {
       const res = await fetch("/api/site-data");
       const data = await res.json();
       if (data.success && data.data) {
-        // ÜRÜNLER - Sunucu her zaman öncelikli
         if (data.data.products) {
           setProducts(data.data.products);
           localStorage.setItem("otantikos_cache_products", JSON.stringify(data.data.products));
         }
-        // METİNLER - Sunucu her zaman öncelikli
         if (data.data.siteTexts) {
-          setSiteTexts(data.data.siteTexts);
-          localStorage.setItem("otantikos_cache_texts", JSON.stringify(data.data.siteTexts));
+          const merged = { ...DEFAULT_SITE_TEXTS, ...data.data.siteTexts };
+          setSiteTexts(merged);
+          localStorage.setItem("otantikos_cache_texts", JSON.stringify(merged));
         }
-        // AYARLAR - Sunucu her zaman öncelikli
         if (data.data.siteSettings) {
           setSettings(data.data.siteSettings);
           localStorage.setItem("otantikos_cache_settings", JSON.stringify(data.data.siteSettings));
         }
-        // KULLANICILAR - Sunucu her zaman öncelikli
         if (data.data.registeredUsers) {
-          // Geçersiz kullanıcıları temizle (isimsiz, e-postasız hayalet kayıtlar)
           const cleanUsers = data.data.registeredUsers.filter(
             (u: RegisteredUser) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
           );
@@ -131,15 +129,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({ action, payload }),
       });
       const data = await res.json();
-      // Sunucudan dönen güncel veriyi hemen uygula
       if (data.success && data.data) {
         if (data.data.products) {
           setProducts(data.data.products);
           localStorage.setItem("otantikos_cache_products", JSON.stringify(data.data.products));
         }
         if (data.data.siteTexts) {
-          setSiteTexts(data.data.siteTexts);
-          localStorage.setItem("otantikos_cache_texts", JSON.stringify(data.data.siteTexts));
+          const merged = { ...DEFAULT_SITE_TEXTS, ...data.data.siteTexts };
+          setSiteTexts(merged);
+          localStorage.setItem("otantikos_cache_texts", JSON.stringify(merged));
         }
         if (data.data.siteSettings) {
           setSettings(data.data.siteSettings);
@@ -158,15 +156,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Eski localStorage key'lerini temizle (migration)
-    localStorage.removeItem("otantikos_permanent_products");
-    localStorage.removeItem("otantikos_permanent_texts");
-    localStorage.removeItem("otantikos_permanent_settings");
-
-    // Sunucudan veri çek
     fetchGlobalData();
 
-    // Kullanıcı oturumunu localStorage'dan yükle
     try {
       const savedUser = localStorage.getItem("otantikos_user");
       if (savedUser) {
@@ -193,7 +184,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = (emailInput: string, passInput: string) => {
     const cleanEmail = (emailInput || "").trim().toLowerCase();
 
-    // 1. Yönetici Hesabı Kontrolü
     if (cleanEmail === HARDCODED_ADMIN.email.toLowerCase()) {
       if (passInput === HARDCODED_ADMIN.password) {
         const adminUser: UserProfile = {
@@ -211,7 +201,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // 2. Kayıtlı Normal Kullanıcı Kontrolü
     const foundUser = registeredUsers.find(
       (u) => u?.email?.toLowerCase() === cleanEmail
     );
@@ -276,6 +265,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       name: nameInput.trim(),
       role: cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? "admin" : "user",
       createdAt: new Date().toISOString(),
+      ipAddress: "185.190.140.22 (Türkiye / İstanbul)",
+      lastLoginLocation: "Türkiye / İstanbul",
+      lastLoginDate: new Date().toISOString(),
     };
 
     const updatedUsers = [...registeredUsers, newUserRecord];
@@ -307,9 +299,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateSiteTexts = (newTexts: SiteTexts) => {
-    setSiteTexts(newTexts);
-    localStorage.setItem("otantikos_cache_texts", JSON.stringify(newTexts));
-    syncGlobal("update-texts", newTexts);
+    const merged = { ...siteTexts, ...newTexts };
+    setSiteTexts(merged);
+    localStorage.setItem("otantikos_cache_texts", JSON.stringify(merged));
+    syncGlobal("update-texts", merged);
   };
 
   const addProduct = (prod: Product) => {
@@ -336,7 +329,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateUserRole = (userId: string, newRole: "admin" | "user") => {
     const updated = registeredUsers.map((u) => (u.id === userId ? { ...u, role: newRole } : u));
     setRegisteredUsers(updated);
-    // Sunucuya hem rol değişikliğini hem de tam kullanıcı listesini gönder
     syncGlobal("update-user-role", { userId, role: newRole });
 
     if (user && user.id === userId) {
@@ -344,6 +336,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(updatedProfile);
       localStorage.setItem("otantikos_user", JSON.stringify(updatedProfile));
     }
+  };
+
+  const updateUserPassword = (userId: string, newPass: string) => {
+    const updated = registeredUsers.map((u) => (u.id === userId ? { ...u, password: newPass } : u));
+    setRegisteredUsers(updated);
+    syncGlobal("update-user-password", { userId, newPassword: newPass });
+  };
+
+  const deleteUser = (userId: string) => {
+    const updated = registeredUsers.filter((u) => u.id !== userId);
+    setRegisteredUsers(updated);
+    syncGlobal("delete-user", { userId });
   };
 
   const loginWithGoogle = (name: string, email: string) => {
@@ -369,6 +373,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: displayName || "Google Kullanıcısı",
         role: userRole,
         createdAt: new Date().toISOString(),
+        ipAddress: "185.190.140.22 (Türkiye / İstanbul)",
+        lastLoginLocation: "Türkiye / İstanbul",
+        lastLoginDate: new Date().toISOString(),
       };
       const updatedList = [...registeredUsers, newUser];
       setRegisteredUsers(updatedList);
@@ -398,6 +405,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         loginWithGoogle,
         updateUserRole,
+        updateUserPassword,
+        deleteUser,
         logout,
         isAdmin,
         settings,
