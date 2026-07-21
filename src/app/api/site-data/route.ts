@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { fetchCloudStore, saveCloudStore, defaultAdminUser, sanitizeStore } from "@/lib/serverStore";
 import { INITIAL_PRODUCTS, DEFAULT_SITE_SETTINGS } from "@/data/mockData";
 import { DEFAULT_SITE_TEXTS } from "@/data/siteTexts";
@@ -7,7 +7,9 @@ export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Pass request URL to ensure Next.js never bakes this route into static pre-render
+  const _reqUrl = request.url;
   const store = await fetchCloudStore();
 
   return NextResponse.json(
@@ -23,7 +25,7 @@ export async function GET() {
     },
     {
       headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
         Pragma: "no-cache",
         Expires: "0",
       },
@@ -31,7 +33,7 @@ export async function GET() {
   );
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action, payload } = body;
@@ -137,7 +139,7 @@ export async function POST(request: Request) {
       },
       {
         headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
           Pragma: "no-cache",
           Expires: "0",
         },
