@@ -19,16 +19,16 @@ export default function CheckoutPage() {
 
   // Form State
   const [formData, setFormData] = useState({
-    fullName: "Ahmet Yılmaz",
-    email: "ahmet.yilmaz@example.com",
-    phone: "0532 123 45 67",
-    city: "İstanbul",
-    district: "Kadıköy",
-    address: "Moda Cd. No:42 Daire:5",
-    cardNumber: "4543 2100 1234 5678",
-    cardHolder: "AHMET YILMAZ",
-    expiry: "12/28",
-    cvv: "321",
+    fullName: "",
+    email: "",
+    phone: "",
+    city: "",
+    district: "",
+    address: "",
+    cardNumber: "",
+    cardHolder: "",
+    expiry: "",
+    cvv: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -283,8 +283,24 @@ export default function CheckoutPage() {
               </div>
             ) : (
               <div className="p-4 bg-[#F8F5F0] rounded-xl text-xs text-[#7C6354] space-y-2 border border-[#D8C7B5]">
-                <p className="font-bold text-[#3E2E28]">Havale / EFT Hesap Bilgileri:</p>
-                <p>Sipariş tutarını <strong>TR98 0006 2000 0000 1234 5678 90</strong> IBAN numarasına göndererek siparişinizi onaylayabilirsiniz.</p>
+                <p className="font-bold text-[#3E2E28] text-sm flex items-center justify-between border-b border-[#E6DCD3] pb-2">
+                  <span>🏦 Havale / EFT Banka Hesap Bilgileri:</span>
+                </p>
+                <div className="space-y-1.5 pt-1 text-xs">
+                  <div className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-[#E6DCD3]">
+                    <span className="font-medium text-[#7C6354]">Alıcı Adı:</span>
+                    <strong className="text-[#3E2E28] font-bold">Günay Esma Tokmak</strong>
+                  </div>
+                  <div className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-[#E6DCD3]">
+                    <span className="font-medium text-[#7C6354]">IBAN Numarası:</span>
+                    <strong className="text-[#C86D51] font-mono font-bold tracking-wider select-all">
+                      TR87 0006 2000 3440 0006 6507 62
+                    </strong>
+                  </div>
+                </div>
+                <p className="text-[11px] text-[#7C6354] pt-1">
+                  💡 Siparişinizi tamamladıktan sonra lütfen ödeme açıklama kısmına <strong>Ad Soyadınızı</strong> yazarak yukarıdaki IBAN numarasına havale yapınız.
+                </p>
               </div>
             )}
           </div>

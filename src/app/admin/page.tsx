@@ -86,13 +86,13 @@ export default function AdminDashboard() {
 
   // Yeni Ürün Form State
   const [newProduct, setNewProduct] = useState({
-    title: "Özel Tasarım Bijuteri Kolye",
+    title: "",
     category: "Bijuteri & Takı",
     categorySlug: "bijuteri-taki",
-    price: 149.90,
-    stock: 25,
-    description: "Şık ve özgün tasarım bijuteri aksesuarı.",
-    image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop"
+    price: "" as any,
+    stock: "" as any,
+    description: "",
+    image: ""
   });
   const [newProductImages, setNewProductImages] = useState<string[]>([]);
 
@@ -242,6 +242,15 @@ export default function AdminDashboard() {
     addProduct(created);
     setIsModalOpen(false);
     setNewProductImages([]);
+    setNewProduct({
+      title: "",
+      category: "Bijuteri & Takı",
+      categorySlug: "bijuteri-taki",
+      price: "" as any,
+      stock: "" as any,
+      description: "",
+      image: ""
+    });
     showNotify("Yeni ürün mağazaya başarıyla eklendi ve tüm kullanıcılara yansıtıldı!");
   };
 
