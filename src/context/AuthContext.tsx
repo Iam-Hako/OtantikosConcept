@@ -3,26 +3,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Product, SiteSettings, INITIAL_PRODUCTS, DEFAULT_SITE_SETTINGS } from "@/data/mockData";
 import { SiteTexts, DEFAULT_SITE_TEXTS } from "@/data/siteTexts";
+import { UserProfile, RegisteredUser, HARDCODED_ADMIN, defaultAdminUser } from "@/lib/constants";
 
-export interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  role: "admin" | "user";
-  createdAt: string;
-}
-
-export interface RegisteredUser {
-  id: string;
-  email: string;
-  password: string;
-  name: string;
-  role: "admin" | "user";
-  createdAt: string;
-  ipAddress?: string;
-  lastLoginLocation?: string;
-  lastLoginDate?: string;
-}
+export type { UserProfile, RegisteredUser };
+export { HARDCODED_ADMIN, defaultAdminUser };
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -48,25 +32,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Sabit Admin Hesabı Bilgileri
-export const HARDCODED_ADMIN = {
-  email: "chessvip11@gmail.com",
-  password: "32843284FF",
-  name: "Haktan Fetih Durmuş",
-};
-
-const defaultAdminUser: RegisteredUser = {
-  id: "usr-admin-primary",
-  email: HARDCODED_ADMIN.email,
-  password: HARDCODED_ADMIN.password,
-  name: HARDCODED_ADMIN.name,
-  role: "admin",
-  createdAt: "2026-07-21T00:00:00.000Z",
-  ipAddress: "127.0.0.1 (Yönetici)",
-  lastLoginLocation: "Türkiye / İstanbul",
-  lastLoginDate: "2026-07-21T00:00:00.000Z",
-};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);

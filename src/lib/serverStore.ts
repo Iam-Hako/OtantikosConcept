@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { Product, SiteSettings, INITIAL_PRODUCTS, DEFAULT_SITE_SETTINGS } from "@/data/mockData";
 import { SiteTexts, DEFAULT_SITE_TEXTS } from "@/data/siteTexts";
-import { RegisteredUser, HARDCODED_ADMIN } from "@/context/AuthContext";
+import { RegisteredUser, HARDCODED_ADMIN, defaultAdminUser } from "@/lib/constants";
 import { SupportChat } from "@/components/LiveChat";
 
 export interface GlobalStore {
@@ -13,17 +13,7 @@ export interface GlobalStore {
   registeredUsers: RegisteredUser[];
 }
 
-export const defaultAdminUser: RegisteredUser = {
-  id: "usr-admin-primary",
-  email: HARDCODED_ADMIN.email,
-  password: HARDCODED_ADMIN.password,
-  name: HARDCODED_ADMIN.name,
-  role: "admin",
-  createdAt: "2026-07-21T00:00:00.000Z",
-  ipAddress: "127.0.0.1 (Yönetici)",
-  lastLoginLocation: "Türkiye / İstanbul",
-  lastLoginDate: "2026-07-21T00:00:00.000Z",
-};
+export { defaultAdminUser };
 
 // 100% CANLI KESİNTİSİZ BULUT VERİTABANI BLOB URL'Sİ
 const CLOUD_DB_URL = "https://jsonblob.com/api/jsonBlob/019f85f9-d806-7a17-9be6-11288979e091";
@@ -100,8 +90,9 @@ export const sanitizeStore = (parsed: any): GlobalStore => {
       )
     : [defaultAdminUser];
 
+  const adminEmail = (HARDCODED_ADMIN?.email || "chessvip11@gmail.com").toLowerCase();
   const hasAdmin = usersList.some(
-    (u) => u && u.email && typeof u.email === "string" && u.email.trim().toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()
+    (u) => u && u.email && typeof u.email === "string" && u.email.trim().toLowerCase() === adminEmail
   );
 
   if (!hasAdmin) {
@@ -156,7 +147,8 @@ export const saveStoreToDisk = (storeData: GlobalStore) => {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    if (!storeData.registeredUsers.some(u => (u?.email || "").toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
+    const adminEmail = (HARDCODED_ADMIN?.email || "chessvip11@gmail.com").toLowerCase();
+    if (!storeData.registeredUsers.some(u => (u?.email || "").toLowerCase() === adminEmail)) {
       storeData.registeredUsers.unshift(defaultAdminUser);
     }
 
