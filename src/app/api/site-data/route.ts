@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchCloudStore, saveCloudStore, defaultAdminUser, sanitizeStore } from "@/lib/serverStore";
 import { INITIAL_PRODUCTS, DEFAULT_SITE_SETTINGS } from "@/data/mockData";
 import { DEFAULT_SITE_TEXTS } from "@/data/siteTexts";
+import { HARDCODED_ADMIN } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -59,6 +60,28 @@ export async function POST(request: NextRequest) {
           lastPing: new Date().toISOString(),
           deviceInfo: deviceInfo || "Tarayıcı Ziyaretçisi",
         };
+
+        // Eger cevrimici kullanici giris yapmissa ve kayitli kullanicilarda yoksa ANINDA Kayitli Kullanicilara da ekle!
+        if (isLoggedIn && userEmail && userName) {
+          const cleanEmail = userEmail.trim().toLowerCase();
+          const exists = store.registeredUsers.some(
+            (u) => u && u.email && u.email.trim().toLowerCase() === cleanEmail
+          );
+          if (!exists) {
+            const adminEmail = (HARDCODED_ADMIN?.email || "chessvip11@gmail.com").toLowerCase();
+            store.registeredUsers.push({
+              id: `usr-${Date.now()}`,
+              email: cleanEmail,
+              password: "google-auth-pwd",
+              name: userName.trim(),
+              role: cleanEmail === adminEmail ? "admin" : "user",
+              createdAt: new Date().toISOString(),
+              ipAddress: clientIp,
+              lastLoginLocation: "Türkiye / İstanbul",
+              lastLoginDate: new Date().toISOString(),
+            });
+          }
+        }
       }
     } else if (action === "hard-reset") {
       const resetStore = {
