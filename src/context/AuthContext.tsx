@@ -43,6 +43,7 @@ interface AuthContextType {
   addProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
   updateProduct: (product: Product) => void;
+  refreshData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -89,11 +90,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   // ========================
-  // SUNUCU HER ZAMAN TEK KAYNAK!
+  // SUNUCU VERİSİNİ ÇEK (CANLI CANLI ANLIK SENKRONİZASYON)
   // ========================
   const fetchGlobalData = useCallback(async () => {
     try {
-      const res = await fetch("/api/site-data");
+      const res = await fetch("/api/site-data", { cache: "no-store" });
       const data = await res.json();
       if (data.success && data.data) {
         if (data.data.products) {
@@ -156,7 +157,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Sayfa açıldığında sunucu verilerini çek
     fetchGlobalData();
+
+    // 2.5 saniyede bir otomatik sunucudan güncel kullanıcı ve ürün listesini çek (Canlı Otomatik Senkronizasyon)
+    const timer = setInterval(() => {
+      fetchGlobalData();
+    }, 2500);
 
     try {
       const savedUser = localStorage.getItem("otantikos_user");
@@ -179,6 +186,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) {
       console.error("AuthContext loading error:", e);
     }
+
+    return () => clearInterval(timer);
   }, [fetchGlobalData]);
 
   const login = (emailInput: string, passInput: string) => {
@@ -417,6 +426,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addProduct,
         deleteProduct,
         updateProduct,
+        refreshData: fetchGlobalData,
       }}
     >
       {children}

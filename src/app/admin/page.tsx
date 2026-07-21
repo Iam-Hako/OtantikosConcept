@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth, RegisteredUser } from "@/context/AuthContext";
+import { useAuth, RegisteredUser, HARDCODED_ADMIN } from "@/context/AuthContext";
 import { Product, SiteSettings } from "@/data/mockData";
 import { SiteTexts } from "@/data/siteTexts";
 import { SupportChat, ChatMessage } from "@/components/LiveChat";
@@ -30,7 +30,8 @@ import {
   KeyRound,
   Globe,
   Info,
-  Edit3
+  RefreshCw,
+  Crown
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -49,9 +50,10 @@ export default function AdminDashboard() {
     products,
     addProduct,
     deleteProduct,
+    refreshData,
   } = useAuth();
 
-  // Top-Level State Definitions (MUST NOT be conditional)
+  // Top-Level State Definitions
   const [activeTab, setActiveTab] = useState<"products" | "users" | "chats" | "gui-texts" | "site-settings">("products");
   const [pageLoaded, setPageLoaded] = useState(false);
   const [search, setSearch] = useState("");
@@ -59,6 +61,7 @@ export default function AdminDashboard() {
   const [userRoleFilter, setUserRoleFilter] = useState<"all" | "admin" | "user">("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notification, setNotification] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Şifre Göster/Gizle State'i (Kullanıcı ID -> boolean)
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
@@ -78,8 +81,6 @@ export default function AdminDashboard() {
   const [supportChats, setSupportChats] = useState<Record<string, SupportChat>>({});
   const [selectedChatEmail, setSelectedChatEmail] = useState<string | null>(null);
   const [adminReplyText, setAdminReplyText] = useState("");
-
-  const [hasInitializedForm, setHasInitializedForm] = useState(false);
 
   // Yeni Ürün Form State
   const [newProduct, setNewProduct] = useState({
@@ -101,7 +102,6 @@ export default function AdminDashboard() {
     if (siteTexts && settings) {
       setSiteForm(settings);
       setTextsForm(siteTexts);
-      setHasInitializedForm(true);
     }
   }, [siteTexts, settings]);
 
@@ -133,7 +133,7 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  // Early Return BEFORE any handlers or render (MUST BE AFTER ALL HOOKS)
+  // Early Return BEFORE any handlers or render
   if (!user || !isAdmin) {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center space-y-6 animate-page-in">
@@ -154,6 +154,13 @@ export default function AdminDashboard() {
     );
   }
 
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshData();
+    showNotify("Tüm kullanıcılar ve veriler güncellendi!");
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
   const togglePasswordVisibility = (userId: string) => {
     setVisiblePasswords((prev) => ({ ...prev, [userId]: !prev[userId] }));
   };
@@ -164,7 +171,7 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteUserAccount = (targetUser: RegisteredUser) => {
-    if (targetUser.email.toLowerCase() === "chessvip11@gmail.com") {
+    if (targetUser.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
       alert("Ana Süper Admin hesabı silinemez!");
       return;
     }
@@ -276,14 +283,33 @@ export default function AdminDashboard() {
     p.title.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Kullanıcı filtreleme
+  // 1. Hayalet kullanıcıları temizle
   const validUsersList = registeredUsers.filter(
     (u) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
   );
 
-  const filteredUsersList = validUsersList.filter((u) => {
-    if (userRoleFilter === "admin" && u.role !== "admin" && u.email.toLowerCase() !== "chessvip11@gmail.com") return false;
-    if (userRoleFilter === "user" && (u.role === "admin" || u.email.toLowerCase() === "chessvip11@gmail.com")) return false;
+  // 2. RÜTBE SIRALAMASI (Rank 1: Primary Super Admin -> Rank 2: Admins -> Rank 3: Customers newest first)
+  const sortedUsersList = [...validUsersList].sort((a, b) => {
+    const isAPrimary = a.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase();
+    const isBPrimary = b.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase();
+    if (isAPrimary) return -1;
+    if (isBPrimary) return 1;
+
+    const isAAdmin = a.role === "admin";
+    const isBAdmin = b.role === "admin";
+    if (isAAdmin && !isBAdmin) return -1;
+    if (!isAAdmin && isBAdmin) return 1;
+
+    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+  });
+
+  // 3. Filtreleme (Arama ve Rol Filtresi)
+  const filteredUsersList = sortedUsersList.filter((u) => {
+    const isPrimary = u.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase();
+    const isUserAdmin = u.role === "admin" || isPrimary;
+
+    if (userRoleFilter === "admin" && !isUserAdmin) return false;
+    if (userRoleFilter === "user" && isUserAdmin) return false;
 
     if (userSearchQuery.trim()) {
       const q = userSearchQuery.toLowerCase();
@@ -320,8 +346,16 @@ export default function AdminDashboard() {
             <h1 className="font-serif text-3xl font-bold text-[#3E2E28] mt-1">Site & Yetki Yönetim Merkezi</h1>
           </div>
 
-          {/* Tab Menü Butonları */}
+          {/* Tab Menü Butonları & Yenile Butonu */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <button
+              onClick={handleManualRefresh}
+              className={`p-2.5 bg-white border border-[#D8C7B5] hover:border-[#C86D51] text-[#3E2E28] rounded-full transition shadow-sm btn-press ${isRefreshing ? "animate-spin" : ""}`}
+              title="Tüm Canlı Verileri Yenile"
+            >
+              <RefreshCw className="w-4 h-4 text-[#C86D51]" />
+            </button>
+
             <button
               onClick={() => setActiveTab("products")}
               className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-2 btn-press ${
@@ -410,7 +444,7 @@ export default function AdminDashboard() {
             </div>
             <div>
               <span className="text-[10px] text-[#7C6354] uppercase font-bold tracking-wider">Veri Kalıcılığı</span>
-              <p className="font-serif text-xs font-bold text-emerald-700">✓ %100 Senkron</p>
+              <p className="font-serif text-xs font-bold text-emerald-700">✓ Anlık Canlı Senkron</p>
             </div>
           </div>
         </div>
@@ -498,17 +532,28 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* TAB 2: DETAYLI KULLANICI YÖNETİM & KONTROL MERKEZİ */}
+      {/* TAB 2: DETAYLI KULLANICI YÖNETİM & RÜTBE SIRALAMALI KONTROL MERKEZİ */}
       {activeTab === "users" && (
         <div className="bg-white rounded-2xl border border-[#E6DCD3] shadow-sm p-6 space-y-6 card-hover">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
             <div>
               <h3 className="font-serif text-lg font-bold text-[#3E2E28] flex items-center gap-2">
-                <Users className="w-5 h-5 text-[#C86D51]" /> Kullanıcı Tam Kontrol Masası
+                <Crown className="w-5 h-5 text-amber-600" /> Rütbe Sıralamalı Kullanıcı Kontrol Masası
               </h3>
               <p className="text-xs text-[#7C6354] mt-1">
-                Kayıtlı tüm kullanıcıların e-postalarını, şifrelerini, rollerini, kayıt IP adreslerini görebilir; şifre sıfırlayabilir veya yetki düzenleyebilirsiniz.
+                Tüm kayıtlı kullanıcılar rütbe sırasına göre dizilmiştir (Süper Admin &rarr; Yöneticiler &rarr; Müşteriler).
               </p>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 font-bold rounded-full text-[11px] border border-amber-300">
+                  Toplam Kayıtlı Kullanıcı: {validUsersList.length}
+                </span>
+                <span className="px-2.5 py-0.5 bg-rose-100 text-rose-900 font-bold rounded-full text-[11px] border border-rose-300">
+                  Yönetici (Admin): {validUsersList.filter(u => u.role === "admin" || u.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()).length}
+                </span>
+                <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-900 font-bold rounded-full text-[11px] border border-emerald-300">
+                  Müşteri: {validUsersList.filter(u => u.role !== "admin" && u.email.toLowerCase() !== HARDCODED_ADMIN.email.toLowerCase()).length}
+                </span>
+              </div>
             </div>
 
             {/* Arama ve Filtreleme Butonları */}
@@ -518,26 +563,26 @@ export default function AdminDashboard() {
                   onClick={() => setUserRoleFilter("all")}
                   className={`px-3 py-1.5 rounded-lg transition ${userRoleFilter === "all" ? "bg-white text-[#3E2E28] shadow-sm" : "text-[#7C6354]"}`}
                 >
-                  Tümü ({validUsersList.length})
+                  Tüm Rütbeler ({validUsersList.length})
                 </button>
                 <button
                   onClick={() => setUserRoleFilter("admin")}
                   className={`px-3 py-1.5 rounded-lg transition ${userRoleFilter === "admin" ? "bg-white text-rose-800 shadow-sm" : "text-[#7C6354]"}`}
                 >
-                  Adminler ({validUsersList.filter(u => u.role === "admin" || u.email.toLowerCase() === "chessvip11@gmail.com").length})
+                  👑 Yöneticiler ({validUsersList.filter(u => u.role === "admin" || u.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()).length})
                 </button>
                 <button
                   onClick={() => setUserRoleFilter("user")}
                   className={`px-3 py-1.5 rounded-lg transition ${userRoleFilter === "user" ? "bg-white text-emerald-800 shadow-sm" : "text-[#7C6354]"}`}
                 >
-                  Müşteriler ({validUsersList.filter(u => u.role !== "admin" && u.email.toLowerCase() !== "chessvip11@gmail.com").length})
+                  👤 Müşteriler ({validUsersList.filter(u => u.role !== "admin" && u.email.toLowerCase() !== HARDCODED_ADMIN.email.toLowerCase()).length})
                 </button>
               </div>
 
               <div className="relative w-full sm:w-64">
                 <input
                   type="text"
-                  placeholder="İsim, e-posta, şifre veya IP ara..."
+                  placeholder="İsim, e-posta veya şifre ara..."
                   value={userSearchQuery}
                   onChange={(e) => setUserSearchQuery(e.target.value)}
                   className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5 pl-9 text-xs focus:outline-none focus:ring-1 focus:ring-[#C86D51]"
@@ -547,138 +592,131 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Kullanıcılar Tablosu */}
+          {/* Kullanıcılar Tablosu (RÜTBE SIRALAMALI) */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-[#3E2E28]">
               <thead className="bg-[#F8F5F0] text-[#7C6354] uppercase font-bold text-[10px] tracking-wider border-b border-[#E6DCD3]">
                 <tr>
+                  <th className="py-3.5 px-3 w-12 text-center">Sıra</th>
                   <th className="py-3.5 px-4">Kullanıcı Profil</th>
                   <th className="py-3.5 px-4">E-Posta Adresi</th>
                   <th className="py-3.5 px-4">Şifre (Aç / Gizle)</th>
-                  <th className="py-3.5 px-4">Mevcut Rol</th>
+                  <th className="py-3.5 px-4">Rütbe / Mevcut Rol</th>
                   <th className="py-3.5 px-4">Kayıt Tarihi & IP</th>
                   <th className="py-3.5 px-4 text-right">Yönetim İşlemleri</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E6DCD3]">
-                {/* Sabit Ana Admin: Haktan Fetih Durmuş */}
-                <tr className="bg-amber-50/50 hover:bg-amber-50 transition">
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#C86D51] text-white flex items-center justify-center font-bold font-serif text-sm">
-                        H
-                      </div>
-                      <div>
-                        <span className="font-bold text-[#3E2E28] block flex items-center gap-1">
-                          <Sparkles className="w-3.5 h-3.5 text-[#C86D51]" /> Haktan Fetih Durmuş
-                        </span>
-                        <span className="text-[10px] text-[#7C6354]">Süper Admin & Kurucu</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 font-mono font-bold text-[#3E2E28]">chessvip11@gmail.com</td>
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-mono bg-white px-2 py-1 rounded border border-amber-300 font-bold text-amber-900 text-[11px]">
-                        {visiblePasswords["usr-admin-primary"] ? "32843284FF" : "••••••••"}
-                      </span>
-                      <button
-                        onClick={() => togglePasswordVisibility("usr-admin-primary")}
-                        className="p-1 hover:bg-amber-100 rounded transition text-amber-800"
-                        title="Şifreyi Göster / Gizle"
-                      >
-                        {visiblePasswords["usr-admin-primary"] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                      <button
-                        onClick={() => handleCopyText("32843284FF", "Admin Şifresi")}
-                        className="p-1 hover:bg-amber-100 rounded transition text-amber-800"
-                        title="Kopyala"
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300 uppercase">
-                      👑 Süper Admin
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="block font-medium">Sistem Tanımlı</span>
-                    <span className="text-[10px] text-[#7C6354] font-mono">127.0.0.1 (Geliştirici)</span>
-                  </td>
-                  <td className="py-3.5 px-4 text-right font-bold text-gray-400 text-[10px]">
-                    Sistem Sahibi
-                  </td>
-                </tr>
+                {filteredUsersList.map((u, index) => {
+                  const isPrimaryAdmin = u.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase();
+                  const isPassVisible = visiblePasswords[u.id];
 
-                {/* Kayıtlı Diğer Kullanıcılar */}
-                {filteredUsersList
-                  .filter((u) => u.email.toLowerCase() !== "chessvip11@gmail.com")
-                  .map((u) => {
-                    const isPassVisible = visiblePasswords[u.id];
-                    return (
-                      <tr key={u.id} className="hover:bg-[#F8F5F0]/50 transition">
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-[#EAE0D5] text-[#C86D51] flex items-center justify-center font-bold text-sm">
-                              {u.name.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <span className="font-bold text-[#3E2E28] block">{u.name}</span>
-                              <span className="text-[10px] text-[#7C6354] font-mono">{u.id}</span>
-                            </div>
+                  return (
+                    <tr
+                      key={u.id}
+                      className={`transition ${
+                        isPrimaryAdmin
+                          ? "bg-amber-50/60 hover:bg-amber-50 font-semibold"
+                          : u.role === "admin"
+                          ? "bg-rose-50/30 hover:bg-rose-50/50"
+                          : "hover:bg-[#F8F5F0]/50"
+                      }`}
+                    >
+                      {/* Sıra Numarası */}
+                      <td className="py-3.5 px-3 text-center font-mono font-bold text-[#7C6354] text-[11px]">
+                        #{index + 1}
+                      </td>
+
+                      {/* Profil & İsim */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`w-9 h-9 rounded-full text-white flex items-center justify-center font-bold font-serif text-sm shadow-sm ${
+                              isPrimaryAdmin
+                                ? "bg-gradient-to-br from-amber-600 to-orange-500"
+                                : u.role === "admin"
+                                ? "bg-gradient-to-br from-rose-600 to-pink-500"
+                                : "bg-[#EAE0D5] text-[#C86D51]"
+                            }`}
+                          >
+                            {u.name.charAt(0).toUpperCase()}
                           </div>
-                        </td>
-
-                        <td className="py-3.5 px-4 font-mono text-[#7C6354]">{u.email}</td>
-
-                        {/* Gerçek Şifre Alanı (Göster / Gizle) */}
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono bg-[#F8F5F0] px-2 py-1 rounded border border-[#D8C7B5] font-bold text-[#3E2E28] text-[11px]">
-                              {isPassVisible ? (u.password || "Parola Belirtilmedi") : "••••••••"}
+                          <div>
+                            <span className="font-bold text-[#3E2E28] block flex items-center gap-1">
+                              {isPrimaryAdmin && <Crown className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />}
+                              {u.name}
                             </span>
-                            <button
-                              onClick={() => togglePasswordVisibility(u.id)}
-                              className="p-1 hover:bg-[#EAE0D5] rounded transition text-[#7C6354]"
-                              title="Şifreyi Göster / Gizle"
-                            >
-                              {isPassVisible ? <EyeOff className="w-3.5 h-3.5 text-rose-600" /> : <Eye className="w-3.5 h-3.5 text-[#C86D51]" />}
-                            </button>
-                            <button
-                              onClick={() => handleCopyText(u.password || "", "Şifre")}
-                              className="p-1 hover:bg-[#EAE0D5] rounded transition text-[#7C6354]"
-                              title="Kopyala"
-                            >
-                              <Copy className="w-3.5 h-3.5" />
-                            </button>
+                            <span className="text-[10px] text-[#7C6354] font-mono">{u.id}</span>
                           </div>
-                        </td>
+                        </div>
+                      </td>
 
-                        {/* Rol */}
-                        <td className="py-3.5 px-4">
-                          {u.role === "admin" ? (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
-                              Yönetici (Admin)
-                            </span>
-                          ) : (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                              Müşteri
-                            </span>
-                          )}
-                        </td>
+                      {/* E-Posta */}
+                      <td className="py-3.5 px-4 font-mono font-bold text-[#3E2E28]">{u.email}</td>
 
-                        {/* Kayıt Tarihi & IP */}
-                        <td className="py-3.5 px-4">
-                          <span className="block font-medium">{new Date(u.createdAt).toLocaleDateString("tr-TR")}</span>
-                          <span className="text-[10px] text-[#7C6354] font-mono block">
-                            IP: {u.ipAddress || "185.190.140.22 (TR)"}
+                      {/* Gerçek Şifre Alanı (Göster / Gizle) */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`font-mono px-2 py-1 rounded border font-bold text-[11px] ${
+                              isPrimaryAdmin
+                                ? "bg-amber-100 text-amber-950 border-amber-300"
+                                : "bg-[#F8F5F0] text-[#3E2E28] border-[#D8C7B5]"
+                            }`}
+                          >
+                            {isPassVisible ? (u.password || "Parola Belirtilmedi") : "••••••••"}
                           </span>
-                        </td>
+                          <button
+                            onClick={() => togglePasswordVisibility(u.id)}
+                            className="p-1 hover:bg-[#EAE0D5] rounded transition text-[#7C6354]"
+                            title="Şifreyi Göster / Gizle"
+                          >
+                            {isPassVisible ? <EyeOff className="w-3.5 h-3.5 text-rose-600" /> : <Eye className="w-3.5 h-3.5 text-[#C86D51]" />}
+                          </button>
+                          <button
+                            onClick={() => handleCopyText(u.password || "", "Şifre")}
+                            className="p-1 hover:bg-[#EAE0D5] rounded transition text-[#7C6354]"
+                            title="Kopyala"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
 
-                        {/* İşlem Butonları */}
-                        <td className="py-3.5 px-4 text-right">
+                      {/* Rütbe / Mevcut Rol */}
+                      <td className="py-3.5 px-4">
+                        {isPrimaryAdmin ? (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-200 text-amber-950 border border-amber-400 uppercase">
+                            👑 Süper Admin / Kurucu
+                          </span>
+                        ) : u.role === "admin" ? (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                            🛡️ Yönetici (Admin)
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            👤 Müşteri
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Kayıt Tarihi & IP */}
+                      <td className="py-3.5 px-4">
+                        <span className="block font-medium">
+                          {u.createdAt ? new Date(u.createdAt).toLocaleDateString("tr-TR") : "Sistem Tanımlı"}
+                        </span>
+                        <span className="text-[10px] text-[#7C6354] font-mono block">
+                          IP: {u.ipAddress || "185.190.140.22 (TR)"}
+                        </span>
+                      </td>
+
+                      {/* Yönetim İşlemleri */}
+                      <td className="py-3.5 px-4 text-right">
+                        {isPrimaryAdmin ? (
+                          <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-full border border-amber-300">
+                            Ana Geliştirici
+                          </span>
+                        ) : (
                           <div className="flex items-center justify-end gap-1.5">
                             {/* İncele Modalı Butonu */}
                             <button
@@ -735,10 +773,11 @@ export default function AdminDashboard() {
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1216,7 +1255,7 @@ export default function AdminDashboard() {
               <div className="p-3 bg-[#F8F5F0] rounded-xl space-y-1.5 border border-[#E6DCD3]">
                 <div className="flex justify-between">
                   <span className="text-[#7C6354] font-semibold">Kayıt Tarihi:</span>
-                  <span>{new Date(inspectUser.createdAt).toLocaleString("tr-TR")}</span>
+                  <span>{inspectUser.createdAt ? new Date(inspectUser.createdAt).toLocaleString("tr-TR") : "Sistem Tanımlı"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#7C6354] font-semibold">IP Adresi:</span>
