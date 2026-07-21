@@ -38,7 +38,7 @@ export interface RegisteredUser {
 export const HARDCODED_ADMIN = {
   email: "chessvip11@gmail.com",
   password: "32843284FF",
-  name: "Yönetici Admin",
+  name: "Haktan Fetih Durmuş",
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -51,26 +51,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
-      // Tüm eski hesapları ve oturumları sıfırla (Kullanıcı Talebi)
-      localStorage.removeItem("otantikos_registered_users");
-      setRegisteredUsers([]);
+      // Tüm eski hesapları sıfırla, sadece yeni chessvip11@gmail.com (Haktan Fetih Durmuş) kalsın
+      const defaultAdmin: RegisteredUser = {
+        id: "usr-admin-primary",
+        email: HARDCODED_ADMIN.email,
+        password: HARDCODED_ADMIN.password,
+        name: HARDCODED_ADMIN.name,
+        role: "admin",
+        createdAt: new Date().toISOString(),
+      };
+      
+      localStorage.setItem("otantikos_registered_users", JSON.stringify([defaultAdmin]));
+      setRegisteredUsers([defaultAdmin]);
 
       const savedUser = localStorage.getItem("otantikos_user");
       if (savedUser) {
         const parsedUser = JSON.parse(savedUser);
-        // Admin hesabı güncellendiği için eski admin oturumunu da yenile
-        if (parsedUser.email?.toLowerCase() === "admin@otantikosconcept.com") {
+        if (parsedUser.email?.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
           const freshAdmin: UserProfile = {
             id: "usr-admin-primary",
             email: HARDCODED_ADMIN.email,
             name: HARDCODED_ADMIN.name,
             role: "admin",
-            createdAt: new Date().toISOString(),
+            createdAt: parsedUser.createdAt || new Date().toISOString(),
           };
           setUser(freshAdmin);
           localStorage.setItem("otantikos_user", JSON.stringify(freshAdmin));
         } else {
-          setUser(parsedUser);
+          // Admin dışındaki tüm eski aktif oturumları da sıfırla
+          setUser(null);
+          localStorage.removeItem("otantikos_user");
         }
       }
 
@@ -275,18 +285,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginWithGoogle = (name: string, email: string) => {
-    const existing = registeredUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
-    let userRole: "admin" | "user" = "user";
+    const cleanEmail = email.toLowerCase().trim();
+    const existing = registeredUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+    let userRole: "admin" | "user" = cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? "admin" : "user";
+    let displayName = cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? HARDCODED_ADMIN.name : name;
 
     if (existing) {
       userRole = existing.role;
+      if (cleanEmail === HARDCODED_ADMIN.email.toLowerCase()) {
+        displayName = HARDCODED_ADMIN.name;
+      } else {
+        displayName = existing.name;
+      }
     } else {
       const newUser: RegisteredUser = {
         id: `usr-${Date.now()}`,
-        email,
+        email: cleanEmail,
         password: "google-auth-pwd",
-        name,
-        role: "user",
+        name: displayName,
+        role: userRole,
         createdAt: new Date().toISOString(),
       };
       const updatedList = [...registeredUsers, newUser];
@@ -296,8 +313,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const userProfile: UserProfile = {
       id: existing ? existing.id : `usr-g-${Date.now()}`,
-      email,
-      name,
+      email: cleanEmail,
+      name: displayName,
       role: userRole,
       createdAt: new Date().toISOString(),
     };
@@ -306,7 +323,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.email?.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase() || user?.role === "admin";
 
   return (
     <AuthContext.Provider

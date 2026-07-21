@@ -4,11 +4,11 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth, HARDCODED_ADMIN } from "@/context/AuthContext";
-import { User, Lock, Mail, ShieldAlert, LogOut, Package, ArrowRight, KeyRound, Loader2 } from "lucide-react";
+import { User, Lock, Mail, ShieldAlert, LogOut, Package, ArrowRight, KeyRound, Loader2, Edit3 } from "lucide-react";
 
 export default function AccountPage() {
   const router = useRouter();
-  const { user, login, register, loginWithGoogle, logout, isAdmin, siteTexts } = useAuth();
+  const { user, registeredUsers, login, register, loginWithGoogle, logout, isAdmin, siteTexts } = useAuth();
 
   const [isLoginView, setIsLoginView] = useState(true);
   const [email, setEmail] = useState("");
@@ -29,7 +29,16 @@ export default function AccountPage() {
   });
   const [inputCode, setInputCode] = useState("");
 
-  // Google Identity Services SDK Yükle (accounts.google.com bağlantısı için)
+  // Kullanıcı Adı Belirleme Aşaması State'i (Kaydolurken Son Aşama)
+  const [pendingDisplayNameCompletion, setPendingDisplayNameCompletion] = useState<{
+    email: string;
+    isGoogle: boolean;
+    defaultName: string;
+    password?: string;
+  } | null>(null);
+  const [customDisplayName, setCustomDisplayName] = useState("");
+
+  // Google Identity Services SDK Yükle (resmi Google penceresi için)
   useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
@@ -56,17 +65,38 @@ export default function AccountPage() {
           .then((res) => res.json())
           .then((data) => {
             if (data.email) {
-              loginWithGoogle(data.name || "Google Kullanıcısı", data.email);
-              setMessage({ text: `Google ile giriş yapıldı: ${data.email}`, type: "success" });
-              if (data.email.trim().toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
-                router.push("/admin");
-              }
+              handleGoogleSuccess(data.name || "", data.email);
             }
           })
           .catch((err) => console.error("Google userinfo fetch error:", err));
       }
     }
-  }, []);
+  }, [registeredUsers]);
+
+  // Google Giriş Başarılı Olduğunda
+  const handleGoogleSuccess = (googleName: string, googleEmail: string) => {
+    const cleanEmail = googleEmail.trim().toLowerCase();
+
+    // Bu email ile kayıtlı hesap zaten var mı?
+    const existing = registeredUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+
+    if (existing) {
+      // Zaten varsa direkt oturumu başlat
+      loginWithGoogle(existing.name, cleanEmail);
+      setMessage({ text: "Giriş başarılı! Yönlendiriliyorsunuz...", type: "success" });
+      if (cleanEmail === HARDCODED_ADMIN.email.toLowerCase()) {
+        setTimeout(() => router.push("/admin"), 800);
+      }
+    } else {
+      // Eğer ilk defa Google ile giriş yapıyorsa (yani kaydoluyorsa) son aşama olarak kullanıcı adı sorma ekranını tetikle
+      setPendingDisplayNameCompletion({
+        email: cleanEmail,
+        isGoogle: true,
+        defaultName: cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? HARDCODED_ADMIN.name : googleName,
+      });
+      setCustomDisplayName(cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? HARDCODED_ADMIN.name : googleName);
+    }
+  };
 
   // E-Posta Gönderme İşlemi (Zoho SMTP Gerçek API Çağrısı)
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,11 +108,6 @@ export default function AccountPage() {
       return;
     }
 
-    if (!isLoginView && !name) {
-      setMessage({ text: "Lütfen adınızı ve soyadınızı giriniz.", type: "error" });
-      return;
-    }
-
     // Sabit Admin Kontrolü
     if (isLoginView && email.trim().toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
       if (password !== HARDCODED_ADMIN.password) {
@@ -91,10 +116,18 @@ export default function AccountPage() {
       }
     }
 
+    // Kayıt olma aşamasında mükerrer e-posta kontrolü
+    if (!isLoginView) {
+      const existing = registeredUsers.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
+      if (existing) {
+        setMessage({ text: "Bu e-posta adresi ile zaten kayıtlı bir hesap var! Lütfen giriş yapın.", type: "error" });
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     try {
-      // Gerçek /api/send-otp Sunucu Rotalarına İstek At
       const res = await fetch("/api/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -146,24 +179,25 @@ export default function AccountPage() {
         setInputCode("");
 
         if (verificationModal.isLogin) {
+          // Giriş Yapma Doğrulaması
           const loginRes = login(email, password);
           if (loginRes.success) {
             setMessage({ text: "E-posta doğrulandı, giriş yapılıyor...", type: "success" });
-            setTimeout(() => {
-              if (email.trim().toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
-                router.push("/admin");
-              }
-            }, 800);
+            if (email.trim().toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
+              setTimeout(() => router.push("/admin"), 800);
+            }
           } else {
             setMessage({ text: loginRes.error || "Giriş yapılamadı.", type: "error" });
           }
         } else {
-          const regRes = register(name, email, password);
-          if (regRes.success) {
-            setMessage({ text: "E-posta başarıyla doğrulandı ve hesabınız oluşturuldu!", type: "success" });
-          } else {
-            setMessage({ text: regRes.error || "Kayıt tamamlanamadı.", type: "error" });
-          }
+          // Kayıt Olma Doğrulaması -> Kullanıcı adını belirlemek için son aşamaya geç
+          setPendingDisplayNameCompletion({
+            email: email.trim().toLowerCase(),
+            isGoogle: false,
+            defaultName: "",
+            password: password,
+          });
+          setCustomDisplayName("");
         }
       } else {
         setMessage({ text: data.error || "Girdiğiniz doğrulama kodu geçersiz.", type: "error" });
@@ -175,13 +209,42 @@ export default function AccountPage() {
     }
   };
 
-  // Doğrudan Orijinal Google (accounts.google.com) Pop-up Penceresini Tetikle (Fotoğraf 2'deki Resmi Ekran)
-  const handleGoogleClick = () => {
-    const clientId =
-      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
-      "766304598844-equfq1204ln5mtjqdc5hk53prunqnc2m.apps.googleusercontent.com";
+  // Kullanıcı Adı Son Aşama Tamamlama
+  const handleCompleteDisplayName = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pendingDisplayNameCompletion) return;
 
-    // 1. Google Identity Services SDK Varsa Çalıştır
+    const { email: finalEmail, isGoogle, password: finalPassword } = pendingDisplayNameCompletion;
+    const finalName = customDisplayName.trim();
+
+    if (!finalName) {
+      setMessage({ text: "Lütfen sitede görünecek adınızı ve soyadınızı yazın.", type: "error" });
+      return;
+    }
+
+    if (isGoogle) {
+      loginWithGoogle(finalName, finalEmail);
+      setMessage({ text: "Kaydınız Google ile başarıyla tamamlandı!", type: "success" });
+    } else {
+      const regRes = register(finalName, finalEmail, finalPassword || "");
+      if (regRes.success) {
+        setMessage({ text: "Hesabınız başarıyla oluşturuldu!", type: "success" });
+      } else {
+        setMessage({ text: regRes.error || "Kayıt tamamlanamadı.", type: "error" });
+        return;
+      }
+    }
+
+    setPendingDisplayNameCompletion(null);
+    if (finalEmail.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
+      setTimeout(() => router.push("/admin"), 800);
+    }
+  };
+
+  // Doğrudan Orijinal Google Pop-up Penceresini Tetikle (accounts.google.com)
+  const handleGoogleClick = () => {
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "766304598844-equfq1204ln5mtjqdc5hk53prunqnc2m.apps.googleusercontent.com";
+
     if (typeof window !== "undefined" && (window as any).google) {
       try {
         (window as any).google.accounts.id.initialize({
@@ -197,12 +260,7 @@ export default function AccountPage() {
                   .join("")
               );
               const payload = JSON.parse(jsonPayload);
-
-              loginWithGoogle(payload.name || "Google Kullanıcısı", payload.email);
-              setMessage({ text: `Google ile giriş yapıldı: ${payload.email}`, type: "success" });
-              if (payload.email.trim().toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
-                router.push("/admin");
-              }
+              handleGoogleSuccess(payload.name || "", payload.email);
             }
           },
         });
@@ -213,7 +271,6 @@ export default function AccountPage() {
       }
     }
 
-    // 2. Doğrudan Orijinal accounts.google.com Pop-up Penceresi Aç (Fotoğraf 2'deki Google Ekranı)
     const width = 520;
     const height = 630;
     const left = window.screenX + (window.outerWidth - width) / 2;
@@ -286,6 +343,47 @@ export default function AccountPage() {
               {siteTexts?.accountPage?.startShoppingLink || "Alışverişe Başla &rarr;"}
             </Link>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // SON AŞAMA: KULLANICI ADI BELİRLEME EKRANI
+  if (pendingDisplayNameCompletion) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16">
+        <div className="bg-white p-8 rounded-3xl border border-[#E6DCD3] shadow-xl space-y-6">
+          <div className="text-center space-y-2">
+            <div className="w-12 h-12 bg-[#C86D51]/10 text-[#C86D51] rounded-full flex items-center justify-center mx-auto mb-2">
+              <Edit3 className="w-6 h-6" />
+            </div>
+            <h1 className="font-serif text-2xl font-bold text-[#3E2E28]">Profil Adınızı Belirleyin</h1>
+            <p className="text-xs text-[#7C6354]">
+              Doğrulama başarılı! Son adım olarak sitede ve siparişlerinizde görünecek adınızı onaylayın.
+            </p>
+          </div>
+
+          <form onSubmit={handleCompleteDisplayName} className="space-y-4 text-xs">
+            <div>
+              <label className="block font-semibold text-[#3E2E28] mb-1">Adınız Soyadınız</label>
+              <input
+                type="text"
+                required
+                placeholder="Ad Soyad"
+                value={customDisplayName}
+                onChange={(e) => setCustomDisplayName(e.target.value)}
+                className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-[#C86D51] font-bold text-[#3E2E28]"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3.5 bg-[#C86D51] text-white font-semibold rounded-full hover:bg-[#B05B41] transition shadow-md text-xs flex items-center justify-center gap-2"
+            >
+              <span>Hesabı Tamamla & Giriş Yap</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </form>
         </div>
       </div>
     );
@@ -373,22 +471,6 @@ export default function AccountPage() {
 
         {/* Giriş / Kayıt Formu */}
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          {!isLoginView && (
-            <div>
-              <label className="block font-semibold text-[#3E2E28] mb-1">
-                {siteTexts?.accountPage?.fullNameLabel || "Ad Soyad"}
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="Adınız ve Soyadınız"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-[#C86D51]"
-              />
-            </div>
-          )}
-
           <div>
             <label className="block font-semibold text-[#3E2E28] mb-1">
               {siteTexts?.accountPage?.emailLabel || "E-Posta Adresi"}
@@ -495,7 +577,7 @@ export default function AccountPage() {
                   {isLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <span>Doğrula & Hesaba Gir</span>
+                    <span>Doğrula & Devam Et</span>
                   )}
                 </button>
               </div>
