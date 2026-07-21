@@ -124,33 +124,34 @@ export default function AccountPage() {
     }
   };
 
-  // Google Pop-up Tıklama
+  // Google Pop-up Tıklama (FedCM Hatasız Temiz GIS OAuth2 Akışı)
   const handleGoogleClick = () => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "766304598844-equfq1204ln5mtjqdc5hk53prunqnc2m.apps.googleusercontent.com";
 
-    if (typeof window !== "undefined" && (window as any).google) {
+    if (typeof window !== "undefined" && (window as any).google && (window as any).google.accounts?.oauth2) {
       try {
-        (window as any).google.accounts.id.initialize({
+        const client = (window as any).google.accounts.oauth2.initTokenClient({
           client_id: clientId,
-          callback: (response: any) => {
-            if (response.credential) {
-              const base64Url = response.credential.split(".")[1];
-              const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-              const jsonPayload = decodeURIComponent(
-                atob(base64)
-                  .split("")
-                  .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-                  .join("")
-              );
-              const payload = JSON.parse(jsonPayload);
-              handleGoogleSuccess(payload.name || "", payload.email);
+          scope: "email profile",
+          callback: (tokenResponse: any) => {
+            if (tokenResponse && tokenResponse.access_token) {
+              fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+                headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+              })
+                .then((res) => res.json())
+                .then((data) => {
+                  if (data && data.email) {
+                    handleGoogleSuccess(data.name || "", data.email);
+                  }
+                })
+                .catch((err) => console.error("Google userinfo fetch error:", err));
             }
           },
         });
-        (window as any).google.accounts.id.prompt();
+        client.requestAccessToken();
         return;
       } catch (err) {
-        console.error("Google GIS Error:", err);
+        console.error("Google OAuth2 GIS Error:", err);
       }
     }
 
