@@ -4,6 +4,7 @@ import { INITIAL_PRODUCTS, DEFAULT_SITE_SETTINGS } from "@/data/mockData";
 import { DEFAULT_SITE_TEXTS } from "@/data/siteTexts";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
 export async function GET() {

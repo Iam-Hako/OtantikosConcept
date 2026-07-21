@@ -23,11 +23,14 @@ const getSeedFilePath = () => path.join(process.cwd(), "src", "data", "persisten
 
 export const fetchCloudStore = async (): Promise<GlobalStore> => {
   try {
-    const res = await fetch(CLOUD_DB_URL, {
+    const freshUrl = `${CLOUD_DB_URL}?t=${Date.now()}`;
+    const res = await fetch(freshUrl, {
       cache: "no-store",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
       },
     });
     if (res.ok) {
