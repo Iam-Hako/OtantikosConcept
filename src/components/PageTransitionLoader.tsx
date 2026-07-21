@@ -12,7 +12,7 @@ export default function PageTransitionLoader() {
     setLoading(true);
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 400);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [pathname]);
@@ -20,14 +20,19 @@ export default function PageTransitionLoader() {
   if (!loading) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[100] pointer-events-none">
-      {/* Üst İnce Hızlı Yüklenme Çubuğu */}
-      <div className="h-1 bg-gradient-to-r from-[#C86D51] via-[#E6A085] to-[#C86D51] animate-pulse w-full shadow-md" />
+    <div className="loader-overlay" style={{ animation: 'pageFadeIn 0.2s ease forwards' }}>
+      {/* Full-width progress bar */}
+      <div className="loader-bar" />
       
-      {/* Şık Hafif Yüklenme Göstergesi */}
-      <div className="fixed top-4 right-4 bg-[#3E2E28] text-white px-3.5 py-2 rounded-full shadow-2xl flex items-center gap-2 text-[11px] font-bold border border-white/20 animate-in fade-in zoom-in duration-200">
-        <Sparkles className="w-3.5 h-3.5 text-[#C86D51] animate-spin" />
-        <span className="tracking-wide">Yükleniyor...</span>
+      {/* Centered loading indicator */}
+      <div
+        className="flex flex-col items-center gap-3"
+        style={{ animation: 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
+      >
+        <div className="w-12 h-12 rounded-full bg-white shadow-xl border border-[#E6DCD3] flex items-center justify-center">
+          <Sparkles className="w-5 h-5 text-[#C86D51] animate-sparkle" />
+        </div>
+        <span className="text-xs font-bold text-[#3E2E28] tracking-widest uppercase">Yükleniyor</span>
       </div>
     </div>
   );

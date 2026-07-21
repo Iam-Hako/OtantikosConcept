@@ -44,6 +44,9 @@ export default function AdminDashboard() {
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState<"products" | "users" | "chats" | "gui-texts" | "site-settings">("products");
+  // CSS animasyonları için
+  const [pageLoaded, setPageLoaded] = useState(false);
+  useEffect(() => { setPageLoaded(true); }, []);
   const [search, setSearch] = useState("");
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -145,7 +148,7 @@ export default function AdminDashboard() {
     if (catLower.includes("hediyelik")) {
       catSlug = "hediyelik-esya";
     } else if (catLower.includes("oyuncak") || catLower.includes("squishy")) {
-      catSlug = "squishy";
+      catSlug = "trend-oyuncak-squishy";
     } else {
       catSlug = "bijuteri-taki";
     }
@@ -225,7 +228,7 @@ export default function AdminDashboard() {
   const activeChat = selectedChatEmail ? supportChats[selectedChatEmail.toLowerCase()] : null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-page-in">
       
       {/* Toast Bildirim */}
       {notification && (

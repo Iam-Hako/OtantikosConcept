@@ -22,7 +22,7 @@ export default function ProductCard({ product }: { product: Product }) {
   };
 
   return (
-    <div className="group bg-white rounded-2xl overflow-hidden border border-[#E6DCD3] hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
+    <div className="group bg-white rounded-2xl overflow-hidden border border-[#E6DCD3] transition-all duration-300 flex flex-col justify-between card-hover">
       <div>
         {/* Ürün Görseli & Etiketler */}
         <Link href={`/urun/${product.slug}`} className="block relative aspect-square overflow-hidden bg-[#F8F5F0]">
