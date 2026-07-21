@@ -16,14 +16,19 @@ export async function POST(request: Request) {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setOTP(cleanEmail, code, 10);
 
+    const smtpHost = process.env.SMTP_HOST || "smtppro.zoho.eu";
+    const smtpPort = Number(process.env.SMTP_PORT) || 465;
+    const smtpUser = process.env.SMTP_USER || "destek@otantikosconcept.com";
+    const smtpPass = process.env.SMTP_PASS || "x8JLYmmXYFJu";
+
     // Zoho SMTP Transporter Yapılandırması
     const transporter = nodemailer.createTransport({
-      host: "smtppro.zoho.eu",
-      port: 465,
-      secure: true, // SSL (port 465)
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465, // SSL (port 465)
       auth: {
-        user: "destek@otantikosconcept.com",
-        pass: "x8JLYmmXYFJu",
+        user: smtpUser,
+        pass: smtpPass,
       },
       tls: {
         rejectUnauthorized: false
@@ -31,11 +36,11 @@ export async function POST(request: Request) {
     });
 
     const mailOptions = {
-      from: '"OtantikosConcept Güvenlik" <destek@otantikosconcept.com>',
+      from: smtpUser, // Zoho kısıtlamalarına tam uyum için birebir aynı adres
       to: cleanEmail,
-      subject: `OtantikosConcept Doğrulama Kodunuz: ${code}`,
+      subject: `OtantikosConcept E-Posta Doğrulama Kodunuz: ${code}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #E6DCD3; rounded-radius: 16px; background-color: #F8F5F0;">
+        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #E6DCD3; border-radius: 16px; background-color: #F8F5F0;">
           <div style="text-align: center; margin-bottom: 20px;">
             <h1 style="color: #3E2E28; font-size: 24px; margin: 0;">OtantikosConcept</h1>
             <span style="color: #C86D51; text-transform: uppercase; font-size: 11px; font-weight: bold; letter-spacing: 2px;">Güvenlik Doğrulaması</span>
@@ -64,7 +69,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `${cleanEmail} adresine gerçek 6 haneli doğrulama kodunuz başarıyla gönderildi.`,
+      message: `${cleanEmail} adresine 6 haneli doğrulama kodunuz başarıyla gönderildi.`,
     });
   } catch (error: any) {
     console.error("Nodemailer SMTP Error:", error);
