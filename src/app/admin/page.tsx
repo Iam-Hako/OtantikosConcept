@@ -109,6 +109,7 @@ export default function AdminDashboard() {
     description: "Şık ve özgün tasarım bijuteri aksesuarı.",
     image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop"
   });
+  const [newProductImages, setNewProductImages] = useState<string[]>([]);
 
   // Yetki Kontrolü: Admin değilse engelle
   if (!user || !isAdmin) {
@@ -137,8 +138,6 @@ export default function AdminDashboard() {
       showNotify("Ürün mağazadan silindi.");
     }
   };
-
-  const [newProductImages, setNewProductImages] = useState<string[]>([]);
 
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
