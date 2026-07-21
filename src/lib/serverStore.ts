@@ -166,8 +166,8 @@ export const sanitizeStore = (parsed: any): GlobalStore => {
     Object.entries(parsed.activeVisitors).forEach(([vId, session]: [string, any]) => {
       if (session && session.lastPing) {
         const pingTime = new Date(session.lastPing).getTime();
-        // 15 saniyeden eski olmayan aktif ziyaretcileri canlı olarak koru
-        if (nowTime - pingTime < 15000) {
+        // 60 saniyeden eski olmayan aktif ziyaretcileri canlı olarak koru
+        if (Math.abs(nowTime - pingTime) < 60000) {
           cleanVisitors[vId] = session;
         }
       }
