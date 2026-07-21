@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
 
   // ========================
-  // SMART SUNUCU VERİ ÇEKME (TITREME / GIDIP GELME ENGELLEYICI RE-RENDER GUARDIAN)
+  // SUNUCUDAN ANLIK VERİ ÇEKME (DOĞRUDAN STATE GÜNCELLEMESİ)
   // ========================
   const fetchGlobalData = useCallback(async () => {
     try {
@@ -52,14 +52,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await res.json();
       if (data.success && data.data) {
         if (data.data.products && Array.isArray(data.data.products)) {
-          setProducts((prev) => (JSON.stringify(prev) !== JSON.stringify(data.data.products) ? data.data.products : prev));
+          setProducts(data.data.products);
         }
         if (data.data.siteTexts) {
-          const mergedTexts = { ...DEFAULT_SITE_TEXTS, ...data.data.siteTexts };
-          setSiteTexts((prev) => (JSON.stringify(prev) !== JSON.stringify(mergedTexts) ? mergedTexts : prev));
+          setSiteTexts({ ...DEFAULT_SITE_TEXTS, ...data.data.siteTexts });
         }
         if (data.data.siteSettings) {
-          setSettings((prev) => (JSON.stringify(prev) !== JSON.stringify(data.data.siteSettings) ? data.data.siteSettings : prev));
+          setSettings(data.data.siteSettings);
         }
         if (data.data.registeredUsers && Array.isArray(data.data.registeredUsers)) {
           let cleanUsers = data.data.registeredUsers.filter(
@@ -68,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!cleanUsers.some((u: RegisteredUser) => (u?.email || "").toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
             cleanUsers = [defaultAdminUser, ...cleanUsers];
           }
-          setRegisteredUsers((prev) => (JSON.stringify(prev) !== JSON.stringify(cleanUsers) ? cleanUsers : prev));
+          setRegisteredUsers(cleanUsers);
         }
       }
     } catch (err) {
@@ -85,16 +84,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       const data = await res.json();
       if (data.success && data.data) {
-        if (data.data.products) {
-          setProducts((prev) => (JSON.stringify(prev) !== JSON.stringify(data.data.products) ? data.data.products : prev));
-        }
-        if (data.data.siteTexts) {
-          const merged = { ...DEFAULT_SITE_TEXTS, ...data.data.siteTexts };
-          setSiteTexts((prev) => (JSON.stringify(prev) !== JSON.stringify(merged) ? merged : prev));
-        }
-        if (data.data.siteSettings) {
-          setSettings((prev) => (JSON.stringify(prev) !== JSON.stringify(data.data.siteSettings) ? data.data.siteSettings : prev));
-        }
+        if (data.data.products) setProducts(data.data.products);
+        if (data.data.siteTexts) setSiteTexts({ ...DEFAULT_SITE_TEXTS, ...data.data.siteTexts });
+        if (data.data.siteSettings) setSettings(data.data.siteSettings);
         if (data.data.registeredUsers) {
           let cleanUsers = data.data.registeredUsers.filter(
             (u: RegisteredUser) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
@@ -102,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!cleanUsers.some((u: RegisteredUser) => (u?.email || "").toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
             cleanUsers = [defaultAdminUser, ...cleanUsers];
           }
-          setRegisteredUsers((prev) => (JSON.stringify(prev) !== JSON.stringify(cleanUsers) ? cleanUsers : prev));
+          setRegisteredUsers(cleanUsers);
         }
       }
     } catch (err) {
@@ -136,10 +128,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Sayfa yüklendiğinde doğrudan SUNUCUDAN veri çek
     fetchGlobalData();
 
-    // 3 saniyede bir akıllı arkaplan sorgusu (Smart Deep-Equal Guard ile Re-render engellenir)
+    // 2 saniyede bir canli sunucu sorgusu
     const timer = setInterval(() => {
       fetchGlobalData();
-    }, 3000);
+    }, 2000);
 
     try {
       const savedUser = localStorage.getItem("otantikos_user");
@@ -254,10 +246,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       lastLoginDate: new Date().toISOString(),
     };
 
-    // İstemci durumunu anında guncelle
     setRegisteredUsers((prev) => [newUserRecord, ...prev]);
 
-    // Sunucuya doğrudan yeni kullanıcıyı kaydet
     await syncGlobal("register-user", newUserRecord);
 
     const userProfile: UserProfile = {
