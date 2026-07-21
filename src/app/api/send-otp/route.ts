@@ -16,27 +16,20 @@ export async function POST(request: Request) {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setOTP(cleanEmail, code, 10);
 
-    const smtpHost = process.env.SMTP_HOST || "smtppro.zoho.eu";
-    const smtpPort = Number(process.env.SMTP_PORT) || 465;
     const smtpUser = process.env.SMTP_USER || "destek@otantikosconcept.com";
     const smtpPass = process.env.SMTP_PASS || "x8JLYmmXYFJu";
 
-    // Zoho SMTP Transporter Yapılandırması
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpPort === 465, // SSL (port 465)
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
+    // Zoho EU için Alternatif Sunucu ve Port Kombinasyonları
+    const configs = [
+      { host: "smtppro.zoho.eu", port: 465, secure: true },
+      { host: "smtp.zoho.eu", port: 465, secure: true },
+      { host: "smtppro.zoho.eu", port: 587, secure: false },
+      { host: "smtp.zoho.eu", port: 587, secure: false },
+      { host: "smtp.zoho.com", port: 465, secure: true },
+    ];
 
     const mailOptions = {
-      from: smtpUser, // Zoho kısıtlamalarına tam uyum için birebir aynı adres
+      from: smtpUser,
       to: cleanEmail,
       subject: `OtantikosConcept E-Posta Doğrulama Kodunuz: ${code}`,
       html: `
@@ -65,18 +58,47 @@ export async function POST(request: Request) {
       `,
     };
 
-    await transporter.sendMail(mailOptions);
+    let lastError: any = null;
+    let sentSuccess = false;
 
-    return NextResponse.json({
-      success: true,
-      message: `${cleanEmail} adresine 6 haneli doğrulama kodunuz başarıyla gönderildi.`,
-    });
+    for (const cfg of configs) {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: cfg.host,
+          port: cfg.port,
+          secure: cfg.secure,
+          auth: {
+            user: smtpUser,
+            pass: smtpPass,
+          },
+          tls: {
+            rejectUnauthorized: false,
+          },
+        });
+
+        await transporter.sendMail(mailOptions);
+        sentSuccess = true;
+        break;
+      } catch (err: any) {
+        console.error(`Attempt with ${cfg.host}:${cfg.port} failed:`, err?.message);
+        lastError = err;
+      }
+    }
+
+    if (sentSuccess) {
+      return NextResponse.json({
+        success: true,
+        message: `${cleanEmail} adresine 6 haneli doğrulama kodunuz başarıyla gönderildi.`,
+      });
+    }
+
+    throw lastError || new Error("Zoho SMTP bağlantı hatası.");
   } catch (error: any) {
-    console.error("Nodemailer SMTP Error:", error);
+    console.error("Nodemailer Final Error:", error);
     return NextResponse.json(
       {
         success: false,
-        error: `E-posta gönderilemedi: ${error?.message || "Zoho SMTP bağlantı hatası."}`,
+        error: `E-posta gönderilemedi: ${error?.message || "Zoho Mail SMTP ayarlarını kontrol ediniz."}`,
       },
       { status: 500 }
     );
