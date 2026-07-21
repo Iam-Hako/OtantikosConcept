@@ -49,10 +49,10 @@ export async function POST(request: Request) {
         supportChats: {},
         registeredUsers: [defaultAdminUser],
       };
-      await saveCloudStore(resetStore);
+      const finalReset = await saveCloudStore(resetStore);
       return NextResponse.json({
         success: true,
-        data: resetStore,
+        data: finalReset,
       });
     }
 
@@ -120,18 +120,18 @@ export async function POST(request: Request) {
 
     const sanitized = sanitizeStore(store);
 
-    // Bulut Veritabanına Yazımı Tamamla (Canlı Ortak DB)
-    await saveCloudStore(sanitized);
+    // Bulut Veritabanına Yazımı Tamamla ve Son Veriyi Al
+    const finalSavedStore = await saveCloudStore(sanitized);
 
     return NextResponse.json(
       {
         success: true,
         data: {
-          products: sanitized.products,
-          siteTexts: sanitized.siteTexts,
-          siteSettings: sanitized.siteSettings,
-          supportChats: sanitized.supportChats,
-          registeredUsers: sanitized.registeredUsers,
+          products: finalSavedStore.products,
+          siteTexts: finalSavedStore.siteTexts,
+          siteSettings: finalSavedStore.siteSettings,
+          supportChats: finalSavedStore.supportChats,
+          registeredUsers: finalSavedStore.registeredUsers,
         },
       },
       {

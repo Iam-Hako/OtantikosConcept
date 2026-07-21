@@ -43,7 +43,7 @@ export const fetchCloudStore = async (): Promise<GlobalStore> => {
   return loadStoreFromDisk();
 };
 
-export const saveCloudStore = async (storeData: GlobalStore): Promise<void> => {
+export const saveCloudStore = async (storeData: GlobalStore): Promise<GlobalStore> => {
   const sanitized = sanitizeStore(storeData);
 
   try {
@@ -64,6 +64,7 @@ export const saveCloudStore = async (storeData: GlobalStore): Promise<void> => {
   }
 
   saveStoreToDisk(sanitized);
+  return sanitized;
 };
 
 export const sanitizeStore = (parsed: any): GlobalStore => {
