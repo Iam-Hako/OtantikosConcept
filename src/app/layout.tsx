@@ -3,11 +3,12 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { CartProvider } from "@/context/CartContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
-  title: "OtantikosConcept | El Yapımı Otantik Ev & Yaşam Ürünleri",
-  description: "Anadolu'nun zengin dokunuşları, el yapımı seramikler, doğal ev tekstili ve özel tasarım zanaat ürünleri OtantikosConcept güvencesiyle.",
-  keywords: "otantikosconcept, otantik ürünler, el yapımı seramik, peştemal, zeytin ağacı sunum, doğal soya mumu",
+  title: "OtantikosConcept | Trend Oyuncaklar, NeeDoh Squishy & Bijuteri",
+  description: "NeeDoh Squishy Çin Mantısı, stres oyuncakları, trend bijuteri takılar ve özgün aksesuarlar OtantikosConcept güvencesiyle.",
+  keywords: "otantikosconcept, needoh squishy, çin mantısı squishy, trend oyuncak, bijuteri, takı, hediyelik",
   icons: {
     icon: "/otantikos-logo.png",
     shortcut: "/otantikos-logo.png",
@@ -23,11 +24,13 @@ export default function RootLayout({
   return (
     <html lang="tr">
       <body className="antialiased min-h-screen flex flex-col justify-between selection:bg-[#C86D51] selection:text-white">
-        <CartProvider>
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );

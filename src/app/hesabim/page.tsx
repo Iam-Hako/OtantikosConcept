@@ -1,0 +1,220 @@
+"use client";
+
+import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { User, Lock, Mail, ShieldAlert, LogOut, Package, ArrowRight, CheckCircle2 } from "lucide-react";
+
+export default function AccountPage() {
+  const router = useRouter();
+  const { user, login, register, logout, isAdmin } = useAuth();
+
+  const [isLoginView, setIsLoginView] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [message, setMessage] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage("");
+
+    if (!email || !password) {
+      setMessage("Lütfen tüm alanları doldurun.");
+      return;
+    }
+
+    if (isLoginView) {
+      login(email, password);
+      setMessage("Giriş başarılı! Yönlendiriliyorsunuz...");
+    } else {
+      if (!name) {
+        setMessage("Lütfen adınızı giriniz.");
+        return;
+      }
+      register(name, email, password);
+      setMessage("Hesabınız oluşturuldu! Giriş yapıldı.");
+    }
+  };
+
+  // Eğer Kullanıcı Zaten Giriş Yapmışsa Hesabım Ekranını Göster
+  if (user) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12 space-y-8">
+        
+        {/* Kullanıcı Karşılama Kartı */}
+        <div className="bg-white p-8 rounded-3xl border border-[#E6DCD3] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-[#EAE0D5] text-[#C86D51] rounded-full flex items-center justify-center font-bold text-2xl font-serif">
+              {user.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="font-serif text-2xl font-bold text-[#3E2E28]">{user.name}</h1>
+                {isAdmin ? (
+                  <span className="px-2.5 py-0.5 bg-rose-100 text-rose-800 text-[10px] font-bold rounded-full uppercase">
+                    Admin Yetkili
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full uppercase">
+                    Müşteri
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-[#7C6354] mt-0.5">{user.email}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="flex-1 sm:flex-none px-6 py-3 bg-[#C86D51] text-white text-xs font-semibold rounded-full hover:bg-[#B05B41] transition shadow-md flex items-center justify-center gap-2"
+              >
+                <ShieldAlert className="w-4 h-4" /> Admin Paneline Git
+              </Link>
+            )}
+            <button
+              onClick={() => logout()}
+              className="flex-1 sm:flex-none px-5 py-3 bg-gray-100 text-[#3E2E28] text-xs font-semibold rounded-full hover:bg-gray-200 transition flex items-center justify-center gap-2"
+            >
+              <LogOut className="w-4 h-4 text-rose-600" /> Çıkış Yap
+            </button>
+          </div>
+        </div>
+
+        {/* Sipariş Geçmişi Alanı */}
+        <div className="bg-white p-8 rounded-3xl border border-[#E6DCD3] shadow-sm space-y-4">
+          <h2 className="font-serif text-xl font-bold text-[#3E2E28] flex items-center gap-2">
+            <Package className="w-5 h-5 text-[#C86D51]" /> Geçmiş Siparişleriniz
+          </h2>
+          <div className="p-6 bg-[#F8F5F0] rounded-2xl text-center space-y-2 border border-[#E6DCD3]">
+            <p className="text-xs text-[#7C6354]">Henüz verilmiş bir siparişiniz bulunmamaktadır.</p>
+            <Link href="/urunler" className="text-xs font-bold text-[#C86D51] hover:underline inline-block pt-1">
+              Alışverişe Başla &rarr;
+            </Link>
+          </div>
+        </div>
+
+      </div>
+    );
+  }
+
+  // Giriş Yap / Kayıt Ol Ekranı
+  return (
+    <div className="max-w-md mx-auto px-4 py-16">
+      <div className="bg-white p-8 rounded-3xl border border-[#E6DCD3] shadow-xl space-y-6">
+        
+        {/* Başlık ve Tab Geçişi */}
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 bg-[#EAE0D5] text-[#C86D51] rounded-full flex items-center justify-center mx-auto mb-2">
+            <User className="w-6 h-6" />
+          </div>
+          <h1 className="font-serif text-2xl font-bold text-[#3E2E28]">
+            {isLoginView ? "OtantikosConcept'e Giriş Yap" : "Yeni Hesap Oluştur"}
+          </h1>
+          <p className="text-xs text-[#7C6354]">
+            {isLoginView
+              ? "Siparişlerinizi takip etmek ve hızlı alışveriş yapmak için giriş yapın."
+              : "Trend oyuncak, squishy ve bijuteri fırsatlarından yararlanmak için kaydolun."}
+          </p>
+        </div>
+
+        {/* Tab Butonları */}
+        <div className="grid grid-cols-2 gap-2 bg-[#F8F5F0] p-1.5 rounded-2xl border border-[#E6DCD3]">
+          <button
+            onClick={() => {
+              setIsLoginView(true);
+              setMessage("");
+            }}
+            className={`py-2 text-xs font-bold rounded-xl transition ${
+              isLoginView ? "bg-white text-[#3E2E28] shadow-sm" : "text-[#7C6354]"
+            }`}
+          >
+            Giriş Yap
+          </button>
+          <button
+            onClick={() => {
+              setIsLoginView(false);
+              setMessage("");
+            }}
+            className={`py-2 text-xs font-bold rounded-xl transition ${
+              !isLoginView ? "bg-white text-[#3E2E28] shadow-sm" : "text-[#7C6354]"
+            }`}
+          >
+            Kayıt Ol
+          </button>
+        </div>
+
+        {message && (
+          <div className="p-3 bg-amber-50 text-amber-900 border border-amber-200 rounded-xl text-xs text-center font-medium">
+            {message}
+          </div>
+        )}
+
+        {/* Giriş / Kayıt Formu */}
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+          {!isLoginView && (
+            <div>
+              <label className="block font-semibold text-[#3E2E28] mb-1">Ad Soyad</label>
+              <input
+                type="text"
+                required
+                placeholder="Örn: Ayşe Yılmaz"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-[#C86D51]"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block font-semibold text-[#3E2E28] mb-1">E-Posta Adresi</label>
+            <div className="relative">
+              <input
+                type="email"
+                required
+                placeholder="ornek@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3 pl-10 focus:outline-none focus:ring-1 focus:ring-[#C86D51]"
+              />
+              <Mail className="w-4 h-4 text-[#7C6354] absolute left-3 top-3.5" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block font-semibold text-[#3E2E28] mb-1">Şifre</label>
+            <div className="relative">
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3 pl-10 focus:outline-none focus:ring-1 focus:ring-[#C86D51]"
+              />
+              <Lock className="w-4 h-4 text-[#7C6354] absolute left-3 top-3.5" />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-3.5 bg-[#C86D51] text-white font-semibold rounded-full hover:bg-[#B05B41] transition shadow-md text-xs flex items-center justify-center gap-2"
+          >
+            <span>{isLoginView ? "Giriş Yap" : "Kayıt Ol & Hesabı Oluştur"}</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </form>
+
+        <div className="pt-2 text-center border-t border-[#E6DCD3]">
+          <p className="text-[11px] text-[#7C6354]">
+            💡 <strong>İpucu (Admin Yetkisi İçin)</strong>: E-posta adresinize <code>admin</code> kelimesi içeren bir e-posta yazarsanız (Örn: <code>admin@otantikos.com</code>) sistem otomatik olarak <strong>Admin / Yönetici Yetkisi</strong> tanımlar.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  );
+}

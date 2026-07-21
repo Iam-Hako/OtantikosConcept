@@ -29,41 +29,70 @@ export interface Category {
   itemCount: number;
 }
 
-// Varsayılan kategoriler (Yönetici Paneli üzerinden yönetilebilir)
-export const INITIAL_CATEGORIES: Category[] = [
-  {
-    id: "cat-1",
-    name: "El Yapımı Seramik",
-    slug: "el-yapimi-seramik",
-    description: "Usta zanaatkarlar tarafından hazırlanan seramik koleksiyonu.",
-    image: "/otantikos-logo.png",
-    itemCount: 0
-  },
-  {
-    id: "cat-2",
-    name: "Otantik Ev Tekstili",
-    slug: "otantik-ev-tekstili",
-    description: "Doğal dokuma kumaş ve peştemal ürünleri.",
-    image: "/otantikos-logo.png",
-    itemCount: 0
-  },
-  {
-    id: "cat-3",
-    name: "Doğal Ahşap & Dekor",
-    slug: "dogal-ahsap-dekor",
-    description: "Ahşap sunum ve ev dekorasyon objeleri.",
-    image: "/otantikos-logo.png",
-    itemCount: 0
-  },
-  {
-    id: "cat-4",
-    name: "Doğal Bakım & Mumlar",
-    slug: "dogal-bakim-mumlar",
-    description: "Organik mum ve doğal el yapımı sabunlar.",
-    image: "/otantikos-logo.png",
-    itemCount: 0
-  }
-];
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  role: "user" | "admin";
+  createdAt: string;
+}
 
-// Başlangıçta ürün listesi boş bırakıldı. Ürünler Admin Paneli (/admin) üzerinden eklenecektir.
+export interface SiteSettings {
+  siteTitle: string;
+  siteSubtitle: string;
+  heroTitle: string;
+  heroHighlightText: string;
+  heroDescription: string;
+  topbarText: string;
+  announcementText: string;
+  navLinks: {
+    label: string;
+    href: string;
+  }[];
+  categories: Category[];
+}
+
+// Varsayılan Site Ayarları (Bijuteri, Trend Oyuncaklar & NeeDoh Squishy Konseptine Uyarlanmış)
+export const DEFAULT_SITE_SETTINGS: SiteSettings = {
+  siteTitle: "OtantikosConcept",
+  siteSubtitle: "Specialist Local & Trend Products",
+  heroTitle: "Trend Oyuncaklar & Özgün",
+  heroHighlightText: "Bijuteri Koleksiyonu",
+  heroDescription: "NeeDoh Squishy Çin Mantısı, stres oyuncakları, trend hediyelikler ve göz alıcı bijuteri takı tasarımları tek adreste!",
+  topbarText: "OtantikosConcept • Trend Oyuncaklar, Squishy ve Şık Bijuteri Dünyası",
+  announcementText: "Yeni Gelen NeeDoh Squishy Çin Mantısı ve Trend Bijuterileri Keşfedin!",
+  navLinks: [
+    { label: "Ana Sayfa", href: "/" },
+    { label: "Tüm Ürünler", href: "/urunler" },
+    { label: "Trend Oyuncak & Squishy", href: "/kategori/trend-oyuncak-squishy" },
+    { label: "Bijuteri & Takı", href: "/kategori/bijuteri-taki" },
+  ],
+  categories: [
+    {
+      id: "cat-1",
+      name: "Trend Oyuncak & Squishy",
+      slug: "trend-oyuncak-squishy",
+      description: "NeeDoh Squishy Çin Mantısı, stres topu ve popüler pop-it oyuncaklar.",
+      image: "/otantikos-logo.png",
+      itemCount: 0
+    },
+    {
+      id: "cat-2",
+      name: "Bijuteri & Takı",
+      slug: "bijuteri-taki",
+      description: "Özel tasarım kolyeler, bileklikler, küpeler ve trend aksesuarlar.",
+      image: "/otantikos-logo.png",
+      itemCount: 0
+    },
+    {
+      id: "cat-3",
+      name: "Trend Hediyelikler",
+      slug: "trend-hediyelikler",
+      description: "Sevdikleriniz için popüler ve eğlenceli konsept hediyeler.",
+      image: "/otantikos-logo.png",
+      itemCount: 0
+    }
+  ]
+};
+
 export const INITIAL_PRODUCTS: Product[] = [];

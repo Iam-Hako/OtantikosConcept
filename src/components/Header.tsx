@@ -13,14 +13,17 @@ import {
   ChevronDown,
   Sparkles,
   ShieldCheck,
-  Truck
+  Truck,
+  ShieldAlert,
+  LogOut
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import { INITIAL_CATEGORIES } from "@/data/mockData";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Header() {
   const router = useRouter();
   const { totalItems } = useCart();
+  const { user, isAdmin, logout, settings } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -35,17 +38,21 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full transition-all">
-      {/* Üst Duyuru Çubuğu (Top Bar) - "Kargo Bedava" ibaresi kaldırıldı */}
+      {/* Üst Duyuru Çubuğu (Top Bar - Admin Panelinden Düzenlenebilir) */}
       <div className="bg-[#3E2E28] text-[#F8F5F0] text-xs py-2 px-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5 text-[#C86D51] animate-pulse" />
-            <span>OtantikosConcept <strong>Doğal & El Yapımı</strong> Özel Tasarım Mağazası</span>
+            <span>{settings.announcementText}</span>
           </div>
           <div className="hidden md:flex items-center gap-6 text-[11px] text-[#D8C7B5]">
             <span className="flex items-center gap-1"><Truck className="w-3 h-3" /> Hızlı & Özenli Teslimat</span>
-            <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> %100 Orijinal El Yapımı</span>
-            <Link href="/iletisim" className="hover:text-white transition">Müşteri Destek</Link>
+            <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> %100 Orijinal Ürünler</span>
+            {user ? (
+              <span className="text-white font-medium">Hoş geldin, {user.name}</span>
+            ) : (
+              <Link href="/hesabim" className="hover:text-white transition">Giriş Yap / Kayıt Ol</Link>
+            )}
           </div>
         </div>
       </div>
@@ -86,42 +93,31 @@ export default function Header() {
               </div>
               <div className="flex flex-col">
                 <span className="font-serif text-2xl tracking-wide text-[#3E2E28] font-bold leading-tight">
-                  Otantikos<span className="text-[#C86D51] font-light">Concept</span>
+                  {settings.siteTitle}
                 </span>
-                <span className="text-[9px] tracking-[0.2em] text-[#7C6354] uppercase font-sans font-semibold">
-                  Specialist Local Products
+                <span className="text-[9px] tracking-[0.15em] text-[#7C6354] uppercase font-sans font-semibold">
+                  {settings.siteSubtitle}
                 </span>
               </div>
             </Link>
 
-            {/* Masaüstü Navigasyon Linkleri */}
+            {/* Masaüstü Navigasyon Linkleri (Admin Paneli ile dinamik düzenlenebilir) */}
             <nav className="hidden md:flex items-center space-x-8 text-sm font-medium text-[#3E2E28]">
-              <Link href="/" className="hover:text-[#C86D51] transition">
-                Ana Sayfa
-              </Link>
-              <Link href="/urunler" className="hover:text-[#C86D51] transition">
-                Tüm Ürünler
-              </Link>
-              <div className="relative group py-6">
-                <button className="hover:text-[#C86D51] transition flex items-center gap-1">
-                  Kategoriler <ChevronDown className="w-4 h-4 text-[#7C6354]" />
-                </button>
-                {/* Dropdown Menü */}
-                <div className="absolute top-full left-0 w-64 bg-white shadow-xl rounded-xl border border-[#E6DCD3] p-2 opacity-0 group-hover:opacity-100 visibility-hidden group-hover:visibility-visible transition-all duration-200 z-50">
-                  {INITIAL_CATEGORIES.map((cat) => (
-                    <Link
-                      key={cat.id}
-                      href={`/kategori/${cat.slug}`}
-                      className="block px-4 py-2.5 text-xs text-[#3E2E28] hover:bg-[#F8F5F0] hover:text-[#C86D51] rounded-lg transition font-medium"
-                    >
-                      {cat.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-              <Link href="/admin" className="text-xs bg-[#C86D51] text-white px-3.5 py-1.5 rounded-full hover:bg-[#B05B41] transition font-semibold">
-                + Ürün Ekle (Admin)
-              </Link>
+              {settings.navLinks.map((link, idx) => (
+                <Link key={idx} href={link.href} className="hover:text-[#C86D51] transition">
+                  {link.label}
+                </Link>
+              ))}
+
+              {/* Sadece Admin Kullanıcılar Görebilir */}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="text-xs bg-[#C86D51] text-white px-3.5 py-1.5 rounded-full hover:bg-[#B05B41] transition font-semibold flex items-center gap-1 shadow-sm"
+                >
+                  <ShieldAlert className="w-3.5 h-3.5" /> Site Yönetimi & Admin
+                </Link>
+              )}
             </nav>
 
             {/* Sağ: Arama & Sepet & Profil */}
@@ -129,7 +125,7 @@ export default function Header() {
               <form onSubmit={handleSearch} className="hidden lg:flex items-center relative">
                 <input
                   type="text"
-                  placeholder="Ürün ara..."
+                  placeholder="Squishy, bijuteri, oyuncak ara..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-48 xl:w-64 bg-[#EAE0D5]/50 border border-[#D8C7B5] rounded-full py-2 pl-4 pr-10 text-xs text-[#3E2E28] placeholder-[#7C6354] focus:outline-none focus:ring-2 focus:ring-[#C86D51] transition"
@@ -139,8 +135,14 @@ export default function Header() {
                 </button>
               </form>
 
-              <Link href="/admin" className="hidden sm:flex p-2 text-[#3E2E28] hover:text-[#C86D51] hover:bg-[#EAE0D5]/50 rounded-full transition" title="Yönetici Paneli">
+              {/* Kullanıcı Hesabı Linki */}
+              <Link
+                href="/hesabim"
+                className="hidden sm:flex p-2 text-[#3E2E28] hover:text-[#C86D51] hover:bg-[#EAE0D5]/50 rounded-full transition items-center gap-1.5"
+                title={user ? `Hesabım (${user.name})` : "Giriş Yap / Kayıt Ol"}
+              >
                 <User className="w-5 h-5" />
+                {user && <span className="text-xs font-semibold max-w-[80px] truncate">{user.name}</span>}
               </Link>
 
               {/* Sepet Butonu */}
@@ -168,7 +170,7 @@ export default function Header() {
           <form onSubmit={handleSearch} className="flex items-center gap-2">
             <input
               type="text"
-              placeholder="Ürün ara..."
+              placeholder="Squishy, bijuteri, oyuncak ara..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 bg-white border border-[#D8C7B5] rounded-lg py-2 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#C86D51]"
@@ -192,7 +194,7 @@ export default function Header() {
                   <div className="relative w-9 h-9 rounded-full overflow-hidden border border-[#C86D51]">
                     <Image src="/otantikos-logo.png" alt="Logo" fill className="object-cover" />
                   </div>
-                  <span className="font-serif text-lg font-bold text-[#3E2E28]">OtantikosConcept</span>
+                  <span className="font-serif text-lg font-bold text-[#3E2E28]">{settings.siteTitle}</span>
                 </div>
                 <button onClick={() => setMobileMenuOpen(false)} className="p-1 text-[#3E2E28]">
                   <X className="w-6 h-6" />
@@ -200,16 +202,52 @@ export default function Header() {
               </div>
 
               <div className="py-6 flex flex-col space-y-4">
-                <Link href="/" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-[#3E2E28]">
-                  Ana Sayfa
-                </Link>
-                <Link href="/urunler" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-[#3E2E28]">
-                  Tüm Ürünler
-                </Link>
-                <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="text-base font-bold text-[#C86D51]">
-                  Yönetici Paneli / Ürün Ekle
-                </Link>
+                {settings.navLinks.map((link, idx) => (
+                  <Link
+                    key={idx}
+                    href={link.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-base font-medium text-[#3E2E28]"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-base font-bold text-[#C86D51] pt-2"
+                  >
+                    Site Yönetimi (Admin)
+                  </Link>
+                )}
               </div>
+            </div>
+
+            <div className="pt-6 border-t border-[#E6DCD3]">
+              {user ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-[#7C6354]">Oturum Açıldı: <strong>{user.email}</strong></p>
+                  <button
+                    onClick={() => {
+                      logout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full py-2 bg-rose-600 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-2"
+                  >
+                    <LogOut className="w-4 h-4" /> Çıkış Yap
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/hesabim"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 text-sm text-[#3E2E28] font-medium"
+                >
+                  <User className="w-5 h-5 text-[#C86D51]" /> Giriş Yap / Kayıt Ol
+                </Link>
+              )}
             </div>
           </div>
         </div>
