@@ -24,6 +24,7 @@ export default function CheckoutPage() {
     phone: "",
     city: "",
     district: "",
+    postalCode: "",
     address: "",
     cardNumber: "",
     cardHolder: "",
@@ -168,15 +169,41 @@ export default function CheckoutPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#3E2E28] mb-1">{siteTexts?.checkoutPage?.cityLabel || "Şehir / İlçe"}</label>
+                <label className="block text-xs font-semibold text-[#3E2E28] mb-1">İl (Şehir)</label>
                 <input
                   type="text"
                   name="city"
                   required
-                  placeholder={siteTexts?.checkoutPage?.cityPlaceholder}
+                  placeholder="Örn: İstanbul"
                   value={formData.city}
                   onChange={handleChange}
                   className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5 text-xs focus:ring-1 focus:ring-[#C86D51] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#3E2E28] mb-1">İlçe</label>
+                <input
+                  type="text"
+                  name="district"
+                  required
+                  placeholder="Örn: Kadıköy"
+                  value={formData.district}
+                  onChange={handleChange}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5 text-xs focus:ring-1 focus:ring-[#C86D51] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#3E2E28] mb-1">Posta Kodu</label>
+                <input
+                  type="text"
+                  name="postalCode"
+                  maxLength={5}
+                  placeholder="Örn: 34710"
+                  value={formData.postalCode}
+                  onChange={handleChange}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5 text-xs font-mono focus:ring-1 focus:ring-[#C86D51] focus:outline-none"
                 />
               </div>
             </div>
