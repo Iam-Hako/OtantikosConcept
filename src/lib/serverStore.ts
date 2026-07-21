@@ -17,8 +17,9 @@ export interface GlobalStore {
 
 export { defaultAdminUser };
 
-// 100% CANLI KESİNTİSİZ BULUT VERİTABANI BLOB URL'Sİ (NODE HTTPS ENGINE)
-const CLOUD_DB_URL = "https://jsonblob.com/api/jsonBlob/019f85f9-d806-7a17-9be6-11288979e091";
+// 100% CANLI KESİNTİSİZ SUPABASE RESMİ KURUMSAL VERİTABANI VE BULUT MOTORU
+const SUPABASE_URL = "https://ylsllngysdilkziptqzr.supabase.co";
+const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc2xsbmd5c2RpbGt6aXB0cXpyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDY1NDIwMCwiZXhwIjoyMTAwMjMwMjAwfQ.JDo2K5SZxjzLjbvRtcDM2g8coPdPuyCivDHhEyL01qs";
 
 let inMemoryStoreCache: GlobalStore | null = null;
 
@@ -27,22 +28,33 @@ const getSeedFilePath = () => path.join(process.cwd(), "src", "data", "persisten
 
 const httpGetCloudStore = (): Promise<any> => {
   return new Promise((resolve, reject) => {
+    const fetchUrl = `${SUPABASE_URL}/storage/v1/object/public/otantikos_store/store.json?t=${Date.now()}`;
     https
-      .get(`${CLOUD_DB_URL}?t=${Date.now()}`, { headers: { Accept: "application/json" } }, (res) => {
-        let body = "";
-        res.on("data", (chunk) => (body += chunk));
-        res.on("end", () => {
-          try {
-            if (res.statusCode === 200) {
-              resolve(JSON.parse(body));
-            } else {
-              reject(new Error(`HTTP GET Status: ${res.statusCode}`));
+      .get(
+        fetchUrl,
+        {
+          headers: {
+            apikey: SUPABASE_SERVICE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+            Accept: "application/json",
+          },
+        },
+        (res) => {
+          let body = "";
+          res.on("data", (chunk) => (body += chunk));
+          res.on("end", () => {
+            try {
+              if (res.statusCode === 200) {
+                resolve(JSON.parse(body));
+              } else {
+                reject(new Error(`Supabase Storage GET Status: ${res.statusCode}`));
+              }
+            } catch (e) {
+              reject(e);
             }
-          } catch (e) {
-            reject(e);
-          }
-        });
-      })
+          });
+        }
+      )
       .on("error", (e) => reject(e));
   });
 };
@@ -51,13 +63,15 @@ const httpPutCloudStore = (storeData: any): Promise<void> => {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify(storeData);
     const req = https.request(
-      CLOUD_DB_URL,
+      `${SUPABASE_URL}/storage/v1/object/otantikos_store/store.json`,
       {
-        method: "PUT",
+        method: "POST",
         headers: {
+          apikey: SUPABASE_SERVICE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
           "Content-Type": "application/json",
           "Content-Length": Buffer.byteLength(payload),
-          Accept: "application/json",
+          "x-upsert": "true",
         },
       },
       (res) => {
@@ -67,7 +81,7 @@ const httpPutCloudStore = (storeData: any): Promise<void> => {
           if (res.statusCode === 200 || res.statusCode === 201) {
             resolve();
           } else {
-            reject(new Error(`HTTP PUT Status: ${res.statusCode}`));
+            reject(new Error(`Supabase Storage POST Status: ${res.statusCode}`));
           }
         });
       }
@@ -88,7 +102,7 @@ export const fetchCloudStoreFromNetwork = async (): Promise<GlobalStore> => {
       return sanitized;
     }
   } catch (e) {
-    console.error("Native HTTPS Cloud DB fetch exception:", e);
+    console.error("Native Supabase Cloud DB fetch exception:", e);
   }
 
   const diskStore = loadStoreFromDisk();
@@ -111,7 +125,7 @@ export const saveCloudStore = async (storeData: GlobalStore): Promise<GlobalStor
   try {
     await httpPutCloudStore(sanitized);
   } catch (e) {
-    console.error("Native HTTPS Cloud DB save exception:", e);
+    console.error("Native Supabase Cloud DB save exception:", e);
   }
 
   saveStoreToDisk(sanitized);
@@ -166,7 +180,6 @@ export const sanitizeStore = (parsed: any): GlobalStore => {
     Object.entries(parsed.activeVisitors).forEach(([vId, session]: [string, any]) => {
       if (session && session.lastPing) {
         const pingTime = new Date(session.lastPing).getTime();
-        // 60 saniyeden eski olmayan aktif ziyaretcileri canlı olarak koru
         if (Math.abs(nowTime - pingTime) < 60000) {
           cleanVisitors[vId] = session;
         }
