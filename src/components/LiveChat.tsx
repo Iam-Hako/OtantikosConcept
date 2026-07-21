@@ -38,26 +38,31 @@ export default function LiveChat() {
   const activeEmail = user ? user.email : guestEmail;
   const activeName = user ? user.name : guestName;
 
-  // LocalStorage'dan tüm sohbetleri çek
-  const loadChats = () => {
+  // Sunucudan ve LocalStorage'dan tüm sohbetleri çek
+  const loadChats = async () => {
     try {
-      const raw = localStorage.getItem("otantikos_support_chats");
-      if (raw) {
-        const chats: Record<string, SupportChat> = JSON.parse(raw);
-        setAllChats(chats);
+      let chats: Record<string, SupportChat> = {};
+      const res = await fetch("/api/site-data");
+      const data = await res.json();
 
-        // Müşteri modu için kendi sohbetini çek
-        if (activeEmail && chats[activeEmail.toLowerCase()]) {
-          setChatData(chats[activeEmail.toLowerCase()]);
-          setHasStarted(true);
-        }
+      if (data.success && data.data?.supportChats) {
+        chats = data.data.supportChats;
+      } else {
+        const raw = localStorage.getItem("otantikos_support_chats");
+        if (raw) chats = JSON.parse(raw);
+      }
 
-        // Admin modu için seçili müşterinin sohbetini güncelle
-        if (selectedCustomerEmail && chats[selectedCustomerEmail.toLowerCase()]) {
-          // Sohbet güncel kalsın
-        } else if (!selectedCustomerEmail && Object.keys(chats).length > 0) {
-          setSelectedCustomerEmail(Object.keys(chats)[0]);
-        }
+      setAllChats(chats);
+
+      if (activeEmail && chats[activeEmail.toLowerCase()]) {
+        setChatData(chats[activeEmail.toLowerCase()]);
+        setHasStarted(true);
+      }
+
+      if (selectedCustomerEmail && chats[selectedCustomerEmail.toLowerCase()]) {
+        // Sohbet güncel tutuluyor
+      } else if (!selectedCustomerEmail && Object.keys(chats).length > 0) {
+        setSelectedCustomerEmail(Object.keys(chats)[0]);
       }
     } catch (e) {
       console.error("Chat loading error:", e);
@@ -71,7 +76,6 @@ export default function LiveChat() {
     loadChats();
   }, [user, activeEmail]);
 
-  // Her 800ms ve 'storage' olayında sohbetleri senkronize et
   useEffect(() => {
     loadChats();
     const interval = setInterval(loadChats, 800);
@@ -115,14 +119,22 @@ export default function LiveChat() {
     saveChatToStorage(email, newChat);
   };
 
-  const saveChatToStorage = (email: string, chatObj: SupportChat) => {
+  const saveChatToStorage = async (email: string, chatObj: SupportChat) => {
     try {
-      const raw = localStorage.getItem("otantikos_support_chats");
-      const chats: Record<string, SupportChat> = raw ? JSON.parse(raw) : {};
-      chats[email.toLowerCase()] = chatObj;
-      localStorage.setItem("otantikos_support_chats", JSON.stringify(chats));
-      setAllChats(chats);
-      // Diğer sekmeleri anında tetikle
+      const updatedAll = { ...allChats, [email.toLowerCase()]: chatObj };
+      setAllChats(updatedAll);
+      localStorage.setItem("otantikos_support_chats", JSON.stringify(updatedAll));
+      
+      // Global Sunucuya Gönder (Tüm Cihazlar İçin)
+      await fetch("/api/site-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update-chat",
+          payload: { userEmail: email, chat: chatObj },
+        }),
+      });
+
       window.dispatchEvent(new Event("storage"));
     } catch (e) {
       console.error("Save chat error:", e);
@@ -201,10 +213,9 @@ export default function LiveChat() {
 
   return (
     <>
-      {/* Canlı Destek Açma Balonu */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 bg-[#C86D51] text-white p-3.5 sm:p-4 rounded-full shadow-2xl hover:bg-[#B05B41] hover:scale-105 transition-all duration-300 flex items-center gap-2 border-2 border-white group relative"
+        className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 inline-flex items-center gap-2 px-4 py-3 sm:px-5 sm:py-3.5 bg-[#C86D51] text-white rounded-full shadow-2xl hover:bg-[#B05B41] transition-all duration-300 border-2 border-white w-auto max-w-max shrink-0 cursor-pointer font-bold text-xs"
         aria-label="Canlı Destek"
       >
         <MessageSquare className="w-6 h-6 animate-pulse" />

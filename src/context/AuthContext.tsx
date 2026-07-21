@@ -1,8 +1,16 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { UserProfile, SiteSettings, DEFAULT_SITE_SETTINGS, Product } from "@/data/mockData";
+import { Product, SiteSettings, INITIAL_PRODUCTS, DEFAULT_SITE_SETTINGS } from "@/data/mockData";
 import { SiteTexts, DEFAULT_SITE_TEXTS } from "@/data/siteTexts";
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  role: "admin" | "user";
+  createdAt: string;
+}
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -46,23 +54,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
   const [siteTexts, setSiteTexts] = useState<SiteTexts>(DEFAULT_SITE_TEXTS);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // Global Sunucu Verisini Çek ve Senkronize Et
+  const fetchGlobalData = async () => {
+    try {
+      const res = await fetch("/api/site-data");
+      const data = await res.json();
+      if (data.success && data.data) {
+        if (data.data.products && data.data.products.length > 0) {
+          setProducts(data.data.products);
+        }
+        if (data.data.siteTexts) {
+          setSiteTexts(data.data.siteTexts);
+        }
+        if (data.data.siteSettings) {
+          setSettings(data.data.siteSettings);
+        }
+        if (data.data.registeredUsers && data.data.registeredUsers.length > 0) {
+          setRegisteredUsers(data.data.registeredUsers);
+        }
+      }
+    } catch (err) {
+      console.error("Global data fetch error:", err);
+    }
+  };
+
+  const syncGlobal = async (action: string, payload: any) => {
+    try {
+      await fetch("/api/site-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, payload }),
+      });
+    } catch (err) {
+      console.error("Global sync error:", err);
+    }
+  };
 
   useEffect(() => {
     try {
-      // Tüm eski hesapları sıfırla, sadece yeni chessvip11@gmail.com (Haktan Fetih Durmuş) kalsın
-      const defaultAdmin: RegisteredUser = {
-        id: "usr-admin-primary",
-        email: HARDCODED_ADMIN.email,
-        password: HARDCODED_ADMIN.password,
-        name: HARDCODED_ADMIN.name,
-        role: "admin",
-        createdAt: new Date().toISOString(),
-      };
-      
-      localStorage.setItem("otantikos_registered_users", JSON.stringify([defaultAdmin]));
-      setRegisteredUsers([defaultAdmin]);
+      fetchGlobalData();
+      const interval = setInterval(fetchGlobalData, 3000);
 
       const savedUser = localStorage.getItem("otantikos_user");
       if (savedUser) {
@@ -78,43 +112,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(freshAdmin);
           localStorage.setItem("otantikos_user", JSON.stringify(freshAdmin));
         } else {
-          // Admin dışındaki tüm eski aktif oturumları da sıfırla
-          setUser(null);
-          localStorage.removeItem("otantikos_user");
+          setUser(parsedUser);
         }
       }
-
-      // Site ayarları yükle
-      const savedSettings = localStorage.getItem("otantikos_settings");
-      if (savedSettings) {
-        const parsed = JSON.parse(savedSettings);
-        if (parsed.heroDescription?.includes("NeeDoh") || parsed.siteSubtitle?.includes("Specialist") || parsed.heroTitle?.includes("Trend Oyuncaklar")) {
-          setSettings(DEFAULT_SITE_SETTINGS);
-          localStorage.setItem("otantikos_settings", JSON.stringify(DEFAULT_SITE_SETTINGS));
-        } else {
-          setSettings(parsed);
-        }
-      } else {
-        setSettings(DEFAULT_SITE_SETTINGS);
-      }
-
-      // Site yazıları yükle
-      const savedSiteTexts = localStorage.getItem("otantikos_site_texts");
-      if (savedSiteTexts) {
-        const parsed = JSON.parse(savedSiteTexts);
-        if (parsed.hero?.description?.includes("NeeDoh") || parsed.hero?.title?.includes("Trend Oyuncaklar")) {
-          setSiteTexts(DEFAULT_SITE_TEXTS);
-          localStorage.setItem("otantikos_site_texts", JSON.stringify(DEFAULT_SITE_TEXTS));
-        } else {
-          setSiteTexts(parsed);
-        }
-      } else {
-        setSiteTexts(DEFAULT_SITE_TEXTS);
-      }
-
-      // Ürünleri yükle
-      const savedProducts = localStorage.getItem("otantikos_products");
-      if (savedProducts) setProducts(JSON.parse(savedProducts));
+      return () => clearInterval(interval);
     } catch (e) {
       console.error("AuthContext loading error:", e);
     } finally {
@@ -125,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = (emailInput: string, passInput: string) => {
     const cleanEmail = emailInput.trim().toLowerCase();
 
-    // 1. Sabit Admin Hesabı Kontrolü
+    // 1. Yönetici Hesabı Kontrolü
     if (cleanEmail === HARDCODED_ADMIN.email.toLowerCase()) {
       if (passInput === HARDCODED_ADMIN.password) {
         const adminUser: UserProfile = {
@@ -155,7 +156,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     }
 
-    // Şifre Doğrulama
     if (foundUser.password !== passInput) {
       return {
         success: false,
@@ -163,7 +163,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     }
 
-    // Şifre Doğru - Oturum Aç
     const userProfile: UserProfile = {
       id: foundUser.id,
       email: foundUser.email,
@@ -192,14 +191,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: "Şifreniz en az 4 karakter olmalıdır." };
     }
 
-    if (cleanEmail === HARDCODED_ADMIN.email.toLowerCase()) {
-      return {
-        success: false,
-        error: "Bu e-posta adresi yöneticiye ait özel adrestir. Lütfen Giriş Yap sekmesinden giriş yapın.",
-      };
-    }
-
-    // E-posta adresi daha önce kayıt olmuş mu?
     const existing = registeredUsers.find(
       (u) => u.email.toLowerCase() === cleanEmail
     );
@@ -211,21 +202,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     }
 
-    // Yeni Kullanıcı Oluştur ve Veritabanına (localStorage) Kaydet
     const newUserRecord: RegisteredUser = {
       id: `usr-${Date.now()}`,
       email: cleanEmail,
       password: passInput,
       name: nameInput.trim(),
-      role: "user",
+      role: cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? "admin" : "user",
       createdAt: new Date().toISOString(),
     };
 
     const updatedUsers = [...registeredUsers, newUserRecord];
     setRegisteredUsers(updatedUsers);
-    localStorage.setItem("otantikos_registered_users", JSON.stringify(updatedUsers));
+    syncGlobal("register-user", newUserRecord);
 
-    // Yeni Kullanıcı Oturumunu Başlat
     const userProfile: UserProfile = {
       id: newUserRecord.id,
       email: newUserRecord.email,
@@ -246,36 +235,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateSettings = (newSettings: SiteSettings) => {
     setSettings(newSettings);
-    localStorage.setItem("otantikos_settings", JSON.stringify(newSettings));
+    syncGlobal("update-settings", newSettings);
   };
 
   const updateSiteTexts = (newTexts: SiteTexts) => {
     setSiteTexts(newTexts);
-    localStorage.setItem("otantikos_site_texts", JSON.stringify(newTexts));
+    syncGlobal("update-texts", newTexts);
   };
 
   const addProduct = (prod: Product) => {
     const updated = [prod, ...products];
     setProducts(updated);
-    localStorage.setItem("otantikos_products", JSON.stringify(updated));
+    syncGlobal("update-products", updated);
   };
 
   const deleteProduct = (id: string) => {
     const updated = products.filter((p) => p.id !== id);
     setProducts(updated);
-    localStorage.setItem("otantikos_products", JSON.stringify(updated));
+    syncGlobal("update-products", updated);
   };
 
   const updateProduct = (updatedProd: Product) => {
     const updated = products.map((p) => (p.id === updatedProd.id ? updatedProd : p));
     setProducts(updated);
-    localStorage.setItem("otantikos_products", JSON.stringify(updated));
+    syncGlobal("update-products", updated);
   };
 
   const updateUserRole = (userId: string, newRole: "admin" | "user") => {
     const updated = registeredUsers.map((u) => (u.id === userId ? { ...u, role: newRole } : u));
     setRegisteredUsers(updated);
-    localStorage.setItem("otantikos_registered_users", JSON.stringify(updated));
+    syncGlobal("update-user-role", { userId, role: newRole });
 
     if (user && user.id === userId) {
       const updatedProfile: UserProfile = { ...user, role: newRole };
@@ -308,7 +297,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       const updatedList = [...registeredUsers, newUser];
       setRegisteredUsers(updatedList);
-      localStorage.setItem("otantikos_registered_users", JSON.stringify(updatedList));
+      syncGlobal("register-user", newUser);
     }
 
     const userProfile: UserProfile = {
