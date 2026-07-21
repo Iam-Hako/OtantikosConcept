@@ -55,9 +55,21 @@ export const HARDCODED_ADMIN = {
   name: "Haktan Fetih Durmuş",
 };
 
+const defaultAdminUser: RegisteredUser = {
+  id: "usr-admin-primary",
+  email: HARDCODED_ADMIN.email,
+  password: HARDCODED_ADMIN.password,
+  name: HARDCODED_ADMIN.name,
+  role: "admin",
+  createdAt: "2026-07-21T00:00:00.000Z",
+  ipAddress: "127.0.0.1 (Yönetici)",
+  lastLoginLocation: "Türkiye / İstanbul",
+  lastLoginDate: new Date().toISOString(),
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
+  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([defaultAdminUser]);
 
   const [settings, setSettings] = useState<SiteSettings>(() => {
     if (typeof window !== "undefined") {
@@ -89,33 +101,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return INITIAL_PRODUCTS;
   });
 
+  // Master Local Storage Backup Sync
+  const saveMasterBackup = (prods: Product[], texts: SiteTexts, setts: SiteSettings, users: RegisteredUser[]) => {
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("otantikos_cache_products", JSON.stringify(prods));
+        localStorage.setItem("otantikos_cache_texts", JSON.stringify(texts));
+        localStorage.setItem("otantikos_cache_settings", JSON.stringify(setts));
+        localStorage.setItem("otantikos_cache_users", JSON.stringify(users));
+      }
+    } catch (e) {}
+  };
+
   // ========================
-  // SUNUCU VERİSİNİ ÇEK (CANLI CANLI ANLIK SENKRONİZASYON)
+  // SUNUCU VERİSİNİ ÇEK VE LOCAL MASTER SAVER İLE BİRLEŞTİR
   // ========================
   const fetchGlobalData = useCallback(async () => {
     try {
       const res = await fetch("/api/site-data", { cache: "no-store" });
       const data = await res.json();
       if (data.success && data.data) {
-        if (data.data.products) {
+        // 1. ÜRÜNLER
+        if (data.data.products && Array.isArray(data.data.products)) {
           setProducts(data.data.products);
           localStorage.setItem("otantikos_cache_products", JSON.stringify(data.data.products));
         }
+
+        // 2. METİNLER
         if (data.data.siteTexts) {
           const merged = { ...DEFAULT_SITE_TEXTS, ...data.data.siteTexts };
           setSiteTexts(merged);
           localStorage.setItem("otantikos_cache_texts", JSON.stringify(merged));
         }
+
+        // 3. AYARLAR
         if (data.data.siteSettings) {
           setSettings(data.data.siteSettings);
           localStorage.setItem("otantikos_cache_settings", JSON.stringify(data.data.siteSettings));
         }
-        if (data.data.registeredUsers) {
-          const cleanUsers = data.data.registeredUsers.filter(
-            (u: RegisteredUser) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
-          );
-          setRegisteredUsers(cleanUsers);
+
+        // 4. KULLANICILAR (Her zaman defaultAdminUser mevcut olmalıdır)
+        let incomingUsers: RegisteredUser[] = Array.isArray(data.data.registeredUsers)
+          ? data.data.registeredUsers.filter(
+              (u: RegisteredUser) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
+            )
+          : [];
+
+        const hasAdmin = incomingUsers.some(
+          (u) => u.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()
+        );
+
+        if (!hasAdmin) {
+          incomingUsers = [defaultAdminUser, ...incomingUsers];
         }
+
+        setRegisteredUsers(incomingUsers);
+        localStorage.setItem("otantikos_cache_users", JSON.stringify(incomingUsers));
       }
     } catch (err) {
       console.error("Global data fetch error:", err);
@@ -133,21 +174,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.success && data.data) {
         if (data.data.products) {
           setProducts(data.data.products);
-          localStorage.setItem("otantikos_cache_products", JSON.stringify(data.data.products));
         }
         if (data.data.siteTexts) {
           const merged = { ...DEFAULT_SITE_TEXTS, ...data.data.siteTexts };
           setSiteTexts(merged);
-          localStorage.setItem("otantikos_cache_texts", JSON.stringify(merged));
         }
         if (data.data.siteSettings) {
           setSettings(data.data.siteSettings);
-          localStorage.setItem("otantikos_cache_settings", JSON.stringify(data.data.siteSettings));
         }
         if (data.data.registeredUsers) {
-          const cleanUsers = data.data.registeredUsers.filter(
+          let cleanUsers = data.data.registeredUsers.filter(
             (u: RegisteredUser) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
           );
+          if (!cleanUsers.some((u: RegisteredUser) => u.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
+            cleanUsers = [defaultAdminUser, ...cleanUsers];
+          }
           setRegisteredUsers(cleanUsers);
         }
       }
@@ -160,7 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Sayfa açıldığında sunucu verilerini çek
     fetchGlobalData();
 
-    // 2.5 saniyede bir otomatik sunucudan güncel kullanıcı ve ürün listesini çek (Canlı Otomatik Senkronizasyon)
+    // 2.5 saniyede bir canlı senkronizasyon yap
     const timer = setInterval(() => {
       fetchGlobalData();
     }, 2500);
@@ -175,7 +216,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             email: HARDCODED_ADMIN.email,
             name: HARDCODED_ADMIN.name,
             role: "admin",
-            createdAt: parsedUser.createdAt || new Date().toISOString(),
+            createdAt: parsedUser.createdAt || "2026-07-21T00:00:00.000Z",
           };
           setUser(freshAdmin);
           localStorage.setItem("otantikos_user", JSON.stringify(freshAdmin));
@@ -200,7 +241,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: HARDCODED_ADMIN.email,
           name: HARDCODED_ADMIN.name,
           role: "admin",
-          createdAt: new Date().toISOString(),
+          createdAt: "2026-07-21T00:00:00.000Z",
         };
         setUser(adminUser);
         localStorage.setItem("otantikos_user", JSON.stringify(adminUser));
@@ -396,7 +437,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email: cleanEmail,
       name: displayName || "Google Kullanıcısı",
       role: userRole,
-      createdAt: new Date().toISOString(),
+      createdAt: "2026-07-21T00:00:00.000Z",
     };
     setUser(userProfile);
     localStorage.setItem("otantikos_user", JSON.stringify(userProfile));

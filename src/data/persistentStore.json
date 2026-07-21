@@ -1,0 +1,295 @@
+{
+  "products": [
+    {
+      "id": "prod-1",
+      "title": "NeeDoh Squishy Çin Mantısı Stress Topu",
+      "slug": "needoh-squishy-cin-mantisi",
+      "description": "Özel buharda pişirme sepetli, ultra yumuşak ve rahatlatıcı NeeDoh Squishy Çin Mantısı stres oyuncağı.",
+      "price": 189.9,
+      "category": "Trend Oyuncak & Squishy",
+      "categorySlug": "trend-oyuncak-squishy",
+      "image": "https://images.unsplash.com/photo-1531525645387-7f14be1bdbbd?q=80&w=800&auto=format&fit=crop",
+      "images": [
+        "https://images.unsplash.com/photo-1531525645387-7f14be1bdbbd?q=80&w=800&auto=format&fit=crop"
+      ],
+      "stock": 45,
+      "rating": 4.9,
+      "reviewCount": 128,
+      "badge": "YENİ",
+      "details": [
+        "Orijinal esnek sıkılabilir Squishy dokusu",
+        "Mini buhar sepeti hediyeli",
+        "Toksik madde içermeyen güvenli malzeme",
+        "Stres azaltıcı ve eğlenceli tasarım"
+      ]
+    },
+    {
+      "id": "prod-2",
+      "title": "Otantik Etnik Desenli Doğal Taş Kolye",
+      "slug": "otantik-etnik-desenli-dogal-tas-kolye",
+      "description": "Özel tasarım bijuteri kolye, etnik motifler ve doğal taş detayları ile şıklığınıza zarafet katın.",
+      "price": 149.9,
+      "category": "Bijuteri & Takı",
+      "categorySlug": "bijuteri-taki",
+      "image": "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop",
+      "images": [
+        "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop"
+      ],
+      "stock": 20,
+      "rating": 4.8,
+      "reviewCount": 64,
+      "badge": "ÇOK SATAN",
+      "details": [
+        "Kararma yapmaz anti-alerjik kaplama",
+        "Ayarlanabilir zincir boyu",
+        "Özel hediye kutusunda gönderim"
+      ]
+    },
+    {
+      "id": "prod-3",
+      "title": "El Yapımı Otantik Seramik Kupa Bardak",
+      "slug": "el-yapimi-otantik-seramik-kupa",
+      "description": "Özel sır kaplamalı, tamamen el yapımı tasarım hediyelik seramik kupa bardak.",
+      "price": 229.9,
+      "category": "Hediyelik Eşya & Aksesuar",
+      "categorySlug": "hediyelik-esya",
+      "image": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=800&auto=format&fit=crop",
+      "images": [
+        "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=800&auto=format&fit=crop"
+      ],
+      "stock": 15,
+      "rating": 5,
+      "reviewCount": 42,
+      "details": [
+        "350 ml hacim",
+        "Bulaşık makinesinde yıkanabilir",
+        "El işçiliği özel seramik"
+      ]
+    }
+  ],
+  "siteTexts": {
+    "header": {
+      "topbarText": "OtantikosConcept • Bijuteri, Hediyelik Eşya ve Trend Oyuncak Mağazası",
+      "topbarShipping": "",
+      "topbarOriginal": "",
+      "topbarWelcome": "Hoş geldin",
+      "topbarLogin": "Giriş Yap / Kayıt Ol",
+      "searchPlaceholder": "Ürün veya bijuteri ara...",
+      "navHome": "Ana Sayfa",
+      "navAllProducts": "Tüm Ürünler",
+      "navSquishy": "Trend Oyuncak & Squishy",
+      "navJewelry": "Bijuteri & Takı",
+      "adminButton": "Yönetici Paneli",
+      "accountLabel": "Hesabım",
+      "cartLabel": "Sepetim"
+    },
+    "hero": {
+      "badge": "Bijuteri & Hediyelik Eşya",
+      "title": "Bijuteri &",
+      "highlightTitle": "Hediyelik Eşya",
+      "description": "Özgün bijuteri takı tasarımları, şık aksesuarlar ve en popüler hediyelik eşyalar.",
+      "buttonText": "Koleksiyonu Keşfet",
+      "adminButtonText": "Metinleri Düzenle",
+      "cardBadgeTitle": "OtantikosConcept",
+      "cardBadgeSub": "Bijuteri & Hediyelik Eşya",
+      "cardBadgeDesc": "Bijuteri ve hediyelik eşya koleksiyonu."
+    },
+    "categoriesSection": {
+      "badge": "Kategoriler",
+      "title": "Öne Çıkan Ürün Grupları",
+      "subtitle": "Bijuteri, hediyelik eşya ve trend oyuncak kategorilerimiz.",
+      "inspectButton": "Ürünleri İncele"
+    },
+    "productsSection": {
+      "badge": "Yeni Eklenenler",
+      "title": "Yeni Ürünler",
+      "seeAllLink": "Tümünü Gör",
+      "subtitle": "Yeni gelen popüler ürünlerimiz",
+      "emptyCatalogTitle": "Yakında Yeni Ürünlerimizle Buradayız!",
+      "emptyCatalogDesc": "Koleksiyonumuz hazırlanıyor, çok yakında harika ürünlerimizle hizmetinizde olacağız.",
+      "emptyCatalogAdminAction": "+ Yönetici Panelinden Ürün Ekle"
+    },
+    "productCard": {
+      "newBadge": "YENİ",
+      "soldOutBadge": "TÜKENDİ",
+      "inStock": "Stokta Var",
+      "addToCart": "Sepete Ekle",
+      "inCart": "Sepette Var",
+      "viewDetail": "Detayları İncele",
+      "reviewsCountSuffix": "Değerlendirme"
+    },
+    "catalogPage": {
+      "title": "Tüm Ürünlerimiz",
+      "subtitle": "Bijuteri, hediyelik eşya ve trend oyuncaklarımızı keşfedin.",
+      "filtersTitle": "Kategoriler & Filtreler",
+      "allCategories": "Tüm Kategoriler",
+      "sortTitle": "Fiyata Göre Sırala",
+      "sortDefault": "Varsayılan Sıralama",
+      "sortLowToHigh": "Fiyat: Düşükten Yükseğe",
+      "sortHighToLow": "Fiyat: Yüksekten Düşüğe",
+      "foundCountSuffix": "ürün listelendi",
+      "noProductsTitle": "Aradığınız Kriterde Ürün Bulunamadı",
+      "noProductsDesc": "Arama teriminizi değiştirerek veya filtreleri temizleyerek tekrar deneyebilirsiniz.",
+      "clearFiltersButton": "Filtreleri Temizle"
+    },
+    "productDetailPage": {
+      "stockStatusInStock": "Stok Durumu: Stokta Var",
+      "stockStatusOutOfStock": "Stok Durumu: Stokta Yok",
+      "quantityLabel": "Adet Seçimi:",
+      "variantLabel": "Varyant Seçimi:",
+      "addToCartButton": "Sepete Ekle",
+      "buyNowButton": "Hemen Satın Al",
+      "badgeFastShipping": "Özenli Kargo",
+      "badgeOriginal": "Orijinal Ürün",
+      "badgeEasyReturn": "Kolay İade",
+      "descriptionTab": "Ürün Açıklaması",
+      "detailsTab": "Teknik Detaylar & Özellikler",
+      "relatedProductsTitle": "İlginizi Çekebilecek Diğer Ürünler"
+    },
+    "cartPage": {
+      "title": "Alışveriş Sepetiniz",
+      "emptyCartTitle": "Sepetiniz Boş",
+      "emptyCartDesc": "Henüz sepetinize ürün eklemediniz. Ürünler sayfamızdan alışverişe başlayabilirsiniz.",
+      "startShoppingButton": "Alışverişe Başla",
+      "couponTitle": "İndirim Kuponu",
+      "couponPlaceholder": "Kupon Kodunuz",
+      "couponApplyButton": "Uygula",
+      "couponSuccessText": "Kupon Kodu Uygulandı",
+      "summaryTitle": "Sipariş Özeti",
+      "subtotal": "Ürün Toplamı",
+      "shipping": "Kargo Ücreti",
+      "couponDiscount": "Kupon İndirimi",
+      "total": "Ödenecek Toplam Tutar",
+      "checkoutButton": "Ödeme Yapmaya Geç",
+      "secureShoppingBadge": "Güvenli Alışveriş Koruması"
+    },
+    "checkoutPage": {
+      "title": "Ödeme ve Teslimat",
+      "subtitle": "Lütfen teslimat bilgilerinizi ve ödeme yönteminizi seçin",
+      "step1Title": "1. Teslimat & Adres Bilgileri",
+      "fullNameLabel": "Ad Soyad",
+      "fullNamePlaceholder": "Adınız ve soyadınız",
+      "phoneLabel": "Telefon Numarası",
+      "phonePlaceholder": "05XX XXX XX XX",
+      "emailLabel": "E-Posta Adresi",
+      "emailPlaceholder": "ornek@email.com",
+      "cityLabel": "İl / İlçe",
+      "cityPlaceholder": "Örn: İstanbul / Kadıköy",
+      "addressLabel": "Açık Adres",
+      "addressPlaceholder": "Mahalle, sokak, bina ve daire numarası...",
+      "orderNoteLabel": "Sipariş Notu (Opsiyonel)",
+      "orderNotePlaceholder": "Kargo kuryesi için ek notunuz varsa buraya yazabilirsiniz...",
+      "step2Title": "2. Ödeme Yöntemi",
+      "cardOptionTitle": "Kredi / Banka Kartı",
+      "cardOptionDesc": "Güvenli kartla ödeme yapın.",
+      "codOptionTitle": "Kapıda Ödeme",
+      "codOptionDesc": "Siparişinizi teslim alırken kapıda ödeyin.",
+      "cardHolderLabel": "Kart Üzerindeki İsim",
+      "cardNumberLabel": "Kart Numarası",
+      "expireDateLabel": "Son Kullanma Tarihi",
+      "cvcLabel": "CVC / Güvenlik Kodu",
+      "completeOrderButton": "Siparişi Onayla ve Tamamla",
+      "orderSuccessTitle": "Siparişiniz Başarıyla Alındı! 🎉",
+      "orderSuccessDesc": "Sipariş numaranız ile kargonuzu takip edebilirsiniz. Bizi tercih ettiğiniz için teşekkür ederiz!",
+      "backToHomeButton": "Ana Sayfaya Dön"
+    },
+    "accountPage": {
+      "loginTitle": "Müşteri Girişi",
+      "loginSub": "Siparişlerinizi takip etmek veya hesabınıza ulaşmak için giriş yapın.",
+      "registerTitle": "Yeni Hesap Oluştur",
+      "registerSub": "Giriş yapmak ve sipariş vermek için hesap oluşturun.",
+      "loginTab": "Giriş Yap",
+      "registerTab": "Kayıt Ol",
+      "fullNameLabel": "Ad Soyad",
+      "fullNamePlaceholder": "Adınız ve soyadınız",
+      "emailLabel": "E-Posta Adresi",
+      "emailPlaceholder": "ornek@email.com",
+      "passwordLabel": "Şifre",
+      "passwordPlaceholder": "••••••••",
+      "loginSubmitButton": "Giriş Yap",
+      "registerSubmitButton": "Kayıt Ol & Hesabı Oluştur",
+      "adminBadge": "Yönetici",
+      "customerBadge": "Müşteri",
+      "goToAdminButton": "Yönetici Paneli",
+      "logoutButton": "Çıkış Yap",
+      "orderHistoryTitle": "Geçmiş Siparişleriniz",
+      "noOrdersMessage": "Henüz verilmiş bir siparişiniz bulunmamaktadır.",
+      "startShoppingLink": "Alışverişe Başla &rarr;"
+    },
+    "brandStory": {
+      "title": "OtantikosConcept",
+      "content": "OtantikosConcept olarak en şık bijuteri ve hediyelik eşya modellerini sizlerle buluşturuyoruz."
+    },
+    "footer": {
+      "trust1Title": "Özenli Paketleme",
+      "trust1Desc": "Hasarsız & Hızlı Teslimat",
+      "trust2Title": "Güvenli Ödeme",
+      "trust2Desc": "SSL Koruma",
+      "trust3Title": "Kolay İade",
+      "trust3Desc": "İade Garantisi",
+      "trust4Title": "Müşteri Desteği",
+      "trust4Desc": "Kesintisiz Hizmet",
+      "brandDescription": "OtantikosConcept - Bijuteri ve Hediyelik Eşya Mağazası.",
+      "quickLinksTitle": "Hızlı Menü",
+      "categoriesTitle": "Kategoriler",
+      "customerServiceTitle": "Müşteri Hizmetleri",
+      "faqLink": "Sıkça Sorulan Sorular",
+      "shippingPolicyLink": "Kargo ve Teslimat",
+      "returnPolicyLink": "İade ve Değişim Koşulları",
+      "newsletterTitle": "E-Bülten",
+      "newsletterDesc": "Yeni ürünlerimiz ve haberler için bültenimize katılın.",
+      "newsletterPlaceholder": "E-posta adresiniz...",
+      "newsletterButton": "Abone Ol",
+      "paymentMethodsBadge": "",
+      "copyrightText": "© 2026 OtantikosConcept. Tüm hakları saklıdır."
+    }
+  },
+  "siteSettings": {
+    "siteTitle": "OtantikosConcept",
+    "siteSubtitle": "Bijuteri & Hediyelik Eşya",
+    "heroTitle": "Bijuteri &",
+    "heroHighlightText": "Hediyelik Eşya",
+    "heroDescription": "Özgün bijuteri takı tasarımları, şık aksesuarlar ve en popüler hediyelik eşyalar.",
+    "categories": [
+      {
+        "id": "cat-1",
+        "name": "Bijuteri & Takı",
+        "slug": "bijuteri-taki",
+        "description": "Kolye, küpe, bileklik ve özgün tasarım takı koleksiyonu.",
+        "image": "/otantikos-logo.png",
+        "itemCount": 0
+      },
+      {
+        "id": "cat-2",
+        "name": "Hediyelik Eşya & Aksesuar",
+        "slug": "hediyelik-esya",
+        "description": "Sevdikleriniz için özel tasarım ev dekorasyonu ve aksesuar hediyeleri.",
+        "image": "/otantikos-logo.png",
+        "itemCount": 0
+      },
+      {
+        "id": "cat-3",
+        "name": "Trend Oyuncak & Squishy",
+        "slug": "trend-oyuncak-squishy",
+        "description": "NeeDoh Squishy Çin Mantısı, stres topu ve popüler trend oyuncaklar.",
+        "image": "/otantikos-logo.png",
+        "itemCount": 0
+      }
+    ],
+    "topbarText": "OtantikosConcept • Bijuteri, Hediyelik Eşya ve Trend Oyuncak Mağazası"
+  },
+  "supportChats": {},
+  "registeredUsers": [
+    {
+      "id": "usr-admin-primary",
+      "email": "chessvip11@gmail.com",
+      "password": "32843284FF",
+      "name": "Haktan Fetih Durmuş",
+      "role": "admin",
+      "createdAt": "2026-07-21T00:00:00.000Z",
+      "ipAddress": "127.0.0.1 (Yönetici)",
+      "lastLoginLocation": "Türkiye / İstanbul",
+      "lastLoginDate": "2026-07-21T00:00:00.000Z"
+    }
+  ]
+}
