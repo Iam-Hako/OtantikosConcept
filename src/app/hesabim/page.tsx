@@ -175,63 +175,55 @@ export default function AccountPage() {
     }
   };
 
-  // Doğrudan Orijinal Google (accounts.google.com) Pop-up Penceresini Tetikle
+  // Doğrudan Orijinal Google (accounts.google.com) Pop-up Penceresini Tetikle (2. Fotoğraftaki Resmi Ekran)
   const handleGoogleClick = () => {
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "1029384756-googleoauthclientid.apps.googleusercontent.com";
 
-    // Google Cloud Console Client ID Tanımlı ise Google OAuth Penceresini Aç
-    if (clientId) {
-      if (typeof window !== "undefined" && (window as any).google) {
-        try {
-          (window as any).google.accounts.id.initialize({
-            client_id: clientId,
-            callback: (response: any) => {
-              if (response.credential) {
-                const base64Url = response.credential.split(".")[1];
-                const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-                const jsonPayload = decodeURIComponent(
-                  atob(base64)
-                    .split("")
-                    .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-                    .join("")
-                );
-                const payload = JSON.parse(jsonPayload);
+    // 1. Google Identity Services SDK Varsa Çalıştır
+    if (typeof window !== "undefined" && (window as any).google) {
+      try {
+        (window as any).google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (response: any) => {
+            if (response.credential) {
+              const base64Url = response.credential.split(".")[1];
+              const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+              const jsonPayload = decodeURIComponent(
+                atob(base64)
+                  .split("")
+                  .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+                  .join("")
+              );
+              const payload = JSON.parse(jsonPayload);
 
-                loginWithGoogle(payload.name || "Google Kullanıcısı", payload.email);
-                setMessage({ text: `Google ile giriş yapıldı: ${payload.email}`, type: "success" });
-                if (payload.email.trim().toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
-                  router.push("/admin");
-                }
+              loginWithGoogle(payload.name || "Google Kullanıcısı", payload.email);
+              setMessage({ text: `Google ile giriş yapıldı: ${payload.email}`, type: "success" });
+              if (payload.email.trim().toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
+                router.push("/admin");
               }
-            },
-          });
-          (window as any).google.accounts.id.prompt();
-          return;
-        } catch (err) {
-          console.error("Google GIS Error:", err);
-        }
+            }
+          },
+        });
+        (window as any).google.accounts.id.prompt();
+        return;
+      } catch (err) {
+        console.error("Google GIS Error:", err);
       }
-
-      const width = 520;
-      const height = 630;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-
-      window.open(
-        `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=token&scope=email%20profile&redirect_uri=${encodeURIComponent(
-          window.location.origin + "/hesabim"
-        )}`,
-        "GoogleOauthPopup",
-        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
-      );
-    } else {
-      // Client ID henüz Vercel / .env tarafına eklenmediyse 401 hatası verdirmeden oturumu anında Google ile doğrula
-      loginWithGoogle(HARDCODED_ADMIN.name, HARDCODED_ADMIN.email);
-      setMessage({ text: `Google hesabı doğrulandı: ${HARDCODED_ADMIN.email}`, type: "success" });
-      setTimeout(() => {
-        router.push("/admin");
-      }, 800);
     }
+
+    // 2. Doğrudan Orijinal accounts.google.com Pop-up Penceresi Aç (Fotoğraf 2'deki Google Ekranı)
+    const width = 520;
+    const height = 630;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+
+    window.open(
+      `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=token&scope=email%20profile&redirect_uri=${encodeURIComponent(
+        window.location.origin + "/hesabim"
+      )}`,
+      "GoogleOauthPopup",
+      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
+    );
   };
 
   // Eğer Kullanıcı Zaten Giriş Yapmışsa Hesabım Ekranını Göster
