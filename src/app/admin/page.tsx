@@ -83,8 +83,14 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadSupportChats();
-    const interval = setInterval(loadSupportChats, 2000);
-    return () => clearInterval(interval);
+    const interval = setInterval(loadSupportChats, 800);
+    const handleStorage = () => loadSupportChats();
+
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", handleStorage);
+    };
   }, []);
 
   // Yeni Ürün Form State
@@ -181,6 +187,7 @@ export default function AdminDashboard() {
       const updatedAll = { ...supportChats, [emailKey]: updatedChat };
       setSupportChats(updatedAll);
       localStorage.setItem("otantikos_support_chats", JSON.stringify(updatedAll));
+      window.dispatchEvent(new Event("storage"));
       setAdminReplyText("");
       showNotify("Yanıtınız canlı destek hattından iletildi!");
     }
