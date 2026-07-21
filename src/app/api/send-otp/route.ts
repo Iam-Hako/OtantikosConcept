@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Resend } from "resend";
 import nodemailer from "nodemailer";
 import { setOTP } from "@/lib/otpStore";
 
@@ -16,89 +17,88 @@ export async function POST(request: Request) {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setOTP(cleanEmail, code, 10);
 
-    const smtpUser = process.env.SMTP_USER || "destek@otantikosconcept.com";
-    const smtpPass = process.env.SMTP_PASS || "x8JLYmmXYFJu";
-
-    // Zoho EU için Alternatif Sunucu ve Port Kombinasyonları
-    const configs = [
-      { host: "smtppro.zoho.eu", port: 465, secure: true },
-      { host: "smtp.zoho.eu", port: 465, secure: true },
-      { host: "smtppro.zoho.eu", port: 587, secure: false },
-      { host: "smtp.zoho.eu", port: 587, secure: false },
-      { host: "smtp.zoho.com", port: 465, secure: true },
-    ];
-
-    const mailOptions = {
-      from: smtpUser,
-      to: cleanEmail,
-      subject: `OtantikosConcept E-Posta Doğrulama Kodunuz: ${code}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #E6DCD3; border-radius: 16px; background-color: #F8F5F0;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #3E2E28; font-size: 24px; margin: 0;">OtantikosConcept</h1>
-            <span style="color: #C86D51; text-transform: uppercase; font-size: 11px; font-weight: bold; letter-spacing: 2px;">Güvenlik Doğrulaması</span>
-          </div>
-          
-          <div style="background-color: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid #E6DCD3; text-align: center;">
-            <p style="color: #7C6354; font-size: 14px; margin-bottom: 16px;">
-              Giriş / Kayıt işleminizi tamamlamak için aşağıdaki 6 haneli doğrulama kodunu kullanınız:
-            </p>
-            <div style="font-size: 32px; font-weight: bold; color: #C86D51; letter-spacing: 8px; font-family: monospace; margin: 16px 0; background-color: #F8F5F0; padding: 12px; border-radius: 12px; display: inline-block;">
-              ${code}
-            </div>
-            <p style="color: #999; font-size: 12px; margin-top: 16px;">
-              Bu kod 10 dakika boyunca geçerlidir. Bu işlemi siz yapmadıysanız lütfen bu e-postayı dikkate almayınız.
-            </p>
-          </div>
-          
-          <div style="text-align: center; margin-top: 20px; color: #7C6354; font-size: 11px;">
-            © ${new Date().getFullYear()} OtantikosConcept. Tüm hakları saklıdır.
-          </div>
+    const fromEmail = process.env.SENDER_EMAIL || "destek@otantikosconcept.com";
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #E6DCD3; border-radius: 16px; background-color: #F8F5F0;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h1 style="color: #3E2E28; font-size: 24px; margin: 0;">OtantikosConcept</h1>
+          <span style="color: #C86D51; text-transform: uppercase; font-size: 11px; font-weight: bold; letter-spacing: 2px;">Güvenlik Doğrulaması</span>
         </div>
-      `,
-    };
+        
+        <div style="background-color: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid #E6DCD3; text-align: center;">
+          <p style="color: #7C6354; font-size: 14px; margin-bottom: 16px;">
+            Giriş / Kayıt işleminizi tamamlamak için aşağıdaki 6 haneli doğrulama kodunu kullanınız:
+          </p>
+          <div style="font-size: 32px; font-weight: bold; color: #C86D51; letter-spacing: 8px; font-family: monospace; margin: 16px 0; background-color: #F8F5F0; padding: 12px; border-radius: 12px; display: inline-block;">
+            ${code}
+          </div>
+          <p style="color: #999; font-size: 12px; margin-top: 16px;">
+            Bu kod 10 dakika boyunca geçerlidir. Bu işlemi siz yapmadıysanız lütfen bu e-postayı dikkate almayınız.
+          </p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px; color: #7C6354; font-size: 11px;">
+          © ${new Date().getFullYear()} OtantikosConcept. Tüm hakları saklıdır.
+        </div>
+      </div>
+    `;
 
-    let lastError: any = null;
-    let sentSuccess = false;
+    // 1. ÖNCELİK: Resend API Key Tanımlı İse Resmi Resend SDK Kullan
+    if (process.env.RESEND_API_KEY) {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const resendRes = await resend.emails.send({
+        from: `OtantikosConcept <${fromEmail}>`,
+        to: cleanEmail,
+        subject: `OtantikosConcept E-Posta Doğrulama Kodunuz: ${code}`,
+        html: htmlContent,
+      });
 
-    for (const cfg of configs) {
-      try {
-        const transporter = nodemailer.createTransport({
-          host: cfg.host,
-          port: cfg.port,
-          secure: cfg.secure,
-          auth: {
-            user: smtpUser,
-            pass: smtpPass,
-          },
-          tls: {
-            rejectUnauthorized: false,
-          },
-        });
-
-        await transporter.sendMail(mailOptions);
-        sentSuccess = true;
-        break;
-      } catch (err: any) {
-        console.error(`Attempt with ${cfg.host}:${cfg.port} failed:`, err?.message);
-        lastError = err;
+      if (resendRes.error) {
+        throw new Error(`Resend Hatası: ${resendRes.error.message}`);
       }
-    }
 
-    if (sentSuccess) {
       return NextResponse.json({
         success: true,
-        message: `${cleanEmail} adresine 6 haneli doğrulama kodunuz başarıyla gönderildi.`,
+        message: `${cleanEmail} adresine doğrulama kodunuz başarıyla gönderildi.`,
       });
     }
 
-    throw lastError || new Error("Zoho SMTP bağlantı hatası.");
+    // 2. İKİNCİ ÖNCELİK: Brevo / Resend SMTP / Özel SMTP
+    const smtpHost = process.env.SMTP_HOST || "smtp-relay.brevo.com";
+    const smtpPort = Number(process.env.SMTP_PORT) || 587;
+    const smtpUser = process.env.SMTP_USER || "destek@otantikosconcept.com";
+    const smtpPass = process.env.SMTP_PASS || "";
+
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `OtantikosConcept <${fromEmail}>`,
+      to: cleanEmail,
+      subject: `OtantikosConcept E-Posta Doğrulama Kodunuz: ${code}`,
+      html: htmlContent,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `${cleanEmail} adresine 6 haneli doğrulama kodunuz başarıyla gönderildi.`,
+    });
   } catch (error: any) {
-    console.error("Nodemailer Final Error:", error);
+    console.error("Email Sending API Error:", error);
     return NextResponse.json(
       {
         success: false,
-        error: `E-posta gönderilemedi: ${error?.message || "Zoho Mail SMTP ayarlarını kontrol ediniz."}`,
+        error: `E-posta gönderilemedi: ${error?.message || "E-posta servisi yanıt vermedi."}`,
       },
       { status: 500 }
     );
