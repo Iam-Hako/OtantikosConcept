@@ -29,8 +29,6 @@ export const fetchCloudStore = async (): Promise<GlobalStore> => {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        Pragma: "no-cache",
       },
     });
     if (res.ok) {
@@ -38,9 +36,11 @@ export const fetchCloudStore = async (): Promise<GlobalStore> => {
       if (parsed && typeof parsed === "object") {
         return sanitizeStore(parsed);
       }
+    } else {
+      console.error("Cloud DB fetch non-ok status:", res.status);
     }
   } catch (e) {
-    console.error("Cloud DB fetch error, falling back to disk:", e);
+    console.error("Cloud DB fetch exception:", e);
   }
 
   return loadStoreFromDisk();
@@ -63,7 +63,7 @@ export const saveCloudStore = async (storeData: GlobalStore): Promise<GlobalStor
       console.error("Cloud DB PUT failed with status:", res.status);
     }
   } catch (e) {
-    console.error("Cloud DB save error:", e);
+    console.error("Cloud DB save exception:", e);
   }
 
   saveStoreToDisk(sanitized);
