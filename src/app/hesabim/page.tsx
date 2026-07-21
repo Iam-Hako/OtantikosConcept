@@ -175,9 +175,11 @@ export default function AccountPage() {
     }
   };
 
-  // Doğrudan Orijinal Google (accounts.google.com) Pop-up Penceresini Tetikle (2. Fotoğraftaki Resmi Ekran)
+  // Doğrudan Orijinal Google (accounts.google.com) Pop-up Penceresini Tetikle (Fotoğraf 2'deki Resmi Ekran)
   const handleGoogleClick = () => {
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "1029384756-googleoauthclientid.apps.googleusercontent.com";
+    const clientId =
+      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+      "766304598844-equfq1204ln5mtjqdc5hk53prunqnc2m.apps.googleusercontent.com";
 
     // 1. Google Identity Services SDK Varsa Çalıştır
     if (typeof window !== "undefined" && (window as any).google) {
