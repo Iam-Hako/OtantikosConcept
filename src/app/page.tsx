@@ -53,8 +53,8 @@ export default function HomePage() {
 
             {/* Sağ Taraf: Brand Display */}
             <div className="lg:col-span-5 relative flex justify-center">
-              <div className="relative w-80 h-96 sm:w-96 sm:h-[450px] rounded-3xl overflow-hidden shadow-2xl border-4 border-white flex flex-col items-center justify-center bg-[#EAE0D5] p-8 text-center">
-                <div className="relative w-36 h-36 rounded-full overflow-hidden border-4 border-[#C86D51] shadow-lg mb-6">
+              <div className="relative w-full max-w-[300px] sm:max-w-none sm:w-96 h-80 sm:h-[420px] rounded-3xl overflow-hidden shadow-2xl border-4 border-white flex flex-col items-center justify-center bg-[#EAE0D5] p-6 text-center">
+                <div className="relative w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden border-4 border-[#C86D51] shadow-lg mb-4 sm:mb-6">
                   <Image
                     src="/otantikos-logo.png"
                     alt="OtantikosConcept Logo"
@@ -65,7 +65,6 @@ export default function HomePage() {
                 </div>
                 <h3 className="font-serif text-2xl font-bold text-[#3E2E28]">{settings.siteTitle}</h3>
                 <span className="text-xs uppercase tracking-widest text-[#C86D51] mt-1 font-semibold">{settings.siteSubtitle}</span>
-                <p className="text-xs text-[#7C6354] mt-4 max-w-xs">{siteTexts?.hero?.cardBadgeDesc || "Bijuteri ve hediyelik eşya koleksiyonu."}</p>
               </div>
             </div>
 

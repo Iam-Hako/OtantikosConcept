@@ -17,6 +17,7 @@ export const metadata: Metadata = {
 };
 
 import MobileNav from "@/components/MobileNav";
+import LiveChat from "@/components/LiveChat";
 
 export default function RootLayout({
   children,
@@ -31,6 +32,7 @@ export default function RootLayout({
             <Header />
             <main className="flex-1 pb-20 md:pb-0">{children}</main>
             <Footer />
+            <LiveChat />
             <MobileNav />
           </CartProvider>
         </AuthProvider>

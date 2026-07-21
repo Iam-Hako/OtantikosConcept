@@ -11,7 +11,7 @@ export default function Footer() {
   return (
     <footer className="bg-[#3E2E28] text-[#F8F5F0] pt-12 pb-12 border-t-4 border-[#C86D51]">
       {/* Ana Footer İçeriği */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
         
         {/* Kolon 1: Marka Tanıtımı */}
         <div className="space-y-4">
@@ -40,19 +40,7 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Kolon 3: Müşteri Hizmetleri */}
-        <div>
-          <h4 className="text-sm font-bold uppercase tracking-wider text-[#C86D51] mb-4">
-            {siteTexts?.footer?.customerServiceTitle || "Müşteri Hizmetleri"}
-          </h4>
-          <ul className="space-y-2.5 text-xs text-[#D8C7B5]">
-            <li><Link href="/sss" className="hover:text-white transition">{siteTexts?.footer?.faqLink || "Sıkça Sorulan Sorular"}</Link></li>
-            <li><Link href="/kargo" className="hover:text-white transition">{siteTexts?.footer?.shippingPolicyLink || "Kargo ve Teslimat"}</Link></li>
-            <li><Link href="/iade" className="hover:text-white transition">{siteTexts?.footer?.returnPolicyLink || "İade ve Değişim Koşulları"}</Link></li>
-          </ul>
-        </div>
-
-        {/* Kolon 4: E-Bülten */}
+        {/* Kolon 3: E-Bülten */}
         <div>
           <h4 className="text-sm font-bold uppercase tracking-wider text-[#C86D51] mb-4">
             {siteTexts?.footer?.newsletterTitle || "E-Bülten"}

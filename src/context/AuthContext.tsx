@@ -6,8 +6,11 @@ import { SiteTexts, DEFAULT_SITE_TEXTS } from "@/data/siteTexts";
 
 interface AuthContextType {
   user: UserProfile | null;
+  registeredUsers: RegisteredUser[];
   login: (email: string, pass: string) => { success: boolean; error?: string };
   register: (name: string, email: string, pass: string) => { success: boolean; error?: string };
+  loginWithGoogle: (name: string, email: string) => { success: boolean };
+  updateUserRole: (userId: string, role: "admin" | "user") => void;
   logout: () => void;
   isAdmin: boolean;
   settings: SiteSettings;
@@ -248,14 +251,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem("otantikos_products", JSON.stringify(updated));
   };
 
+  const updateUserRole = (userId: string, newRole: "admin" | "user") => {
+    const updated = registeredUsers.map((u) => (u.id === userId ? { ...u, role: newRole } : u));
+    setRegisteredUsers(updated);
+    localStorage.setItem("otantikos_registered_users", JSON.stringify(updated));
+
+    if (user && user.id === userId) {
+      const updatedProfile: UserProfile = { ...user, role: newRole };
+      setUser(updatedProfile);
+      localStorage.setItem("otantikos_user", JSON.stringify(updatedProfile));
+    }
+  };
+
+  const loginWithGoogle = (name: string, email: string) => {
+    const existing = registeredUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    let userRole: "admin" | "user" = "user";
+
+    if (existing) {
+      userRole = existing.role;
+    } else {
+      const newUser: RegisteredUser = {
+        id: `usr-${Date.now()}`,
+        email,
+        password: "google-auth-pwd",
+        name,
+        role: "user",
+        createdAt: new Date().toISOString(),
+      };
+      const updatedList = [...registeredUsers, newUser];
+      setRegisteredUsers(updatedList);
+      localStorage.setItem("otantikos_registered_users", JSON.stringify(updatedList));
+    }
+
+    const userProfile: UserProfile = {
+      id: existing ? existing.id : `usr-g-${Date.now()}`,
+      email,
+      name,
+      role: userRole,
+      createdAt: new Date().toISOString(),
+    };
+    setUser(userProfile);
+    localStorage.setItem("otantikos_user", JSON.stringify(userProfile));
+    return { success: true };
+  };
+
   const isAdmin = user?.role === "admin";
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        registeredUsers,
         login,
         register,
+        loginWithGoogle,
+        updateUserRole,
         logout,
         isAdmin,
         settings,
