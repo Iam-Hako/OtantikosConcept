@@ -25,15 +25,29 @@ export const defaultAdminUser: RegisteredUser = {
   lastLoginDate: "2026-07-21T00:00:00.000Z",
 };
 
-const getStoreFilePath = () => {
+// Vercel Serverless ortamında tek yazılabilir dizin /tmp dizinidir.
+// Kök dizindeki persistentStore.json ise başlangıç (seed) verisi olarak kullanılır.
+const getWritableFilePath = () => {
+  return path.join("/tmp", "otantikos_persistentStore.json");
+};
+
+const getSeedFilePath = () => {
   return path.join(process.cwd(), "src", "data", "persistentStore.json");
 };
 
 export const loadStoreFromDisk = (): GlobalStore => {
   try {
-    const filePath = getStoreFilePath();
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, "utf-8");
+    const writablePath = getWritableFilePath();
+    const seedPath = getSeedFilePath();
+
+    let content = "";
+    if (fs.existsSync(writablePath)) {
+      content = fs.readFileSync(writablePath, "utf-8");
+    } else if (fs.existsSync(seedPath)) {
+      content = fs.readFileSync(seedPath, "utf-8");
+    }
+
+    if (content) {
       const parsed = JSON.parse(content);
       if (parsed && typeof parsed === "object") {
         const mergedTexts: SiteTexts = {
@@ -89,19 +103,27 @@ export const loadStoreFromDisk = (): GlobalStore => {
 
 export const saveStoreToDisk = (storeData: GlobalStore) => {
   try {
-    const filePath = getStoreFilePath();
-    const dir = path.dirname(filePath);
+    // 1. Vercel Serverless /tmp yazılabilir alanına kaydet
+    const writablePath = getWritableFilePath();
+    const dir = path.dirname(writablePath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    // Ensure primary admin is always preserved in stored JSON
     if (!storeData.registeredUsers.some(u => u.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
       storeData.registeredUsers.unshift(defaultAdminUser);
     }
 
-    fs.writeFileSync(filePath, JSON.stringify(storeData, null, 2), "utf-8");
+    fs.writeFileSync(writablePath, JSON.stringify(storeData, null, 2), "utf-8");
+
+    // 2. Yerel geliştirme ortamı için src/data/persistentStore.json üzerine yazmayı dene (Hata verirse yut)
+    try {
+      const seedPath = getSeedFilePath();
+      if (fs.existsSync(path.dirname(seedPath))) {
+        fs.writeFileSync(seedPath, JSON.stringify(storeData, null, 2), "utf-8");
+      }
+    } catch (e) {}
   } catch (e) {
-    console.error("Failed to save store to disk:", e);
+    console.error("Failed to save store to writable /tmp disk:", e);
   }
 };

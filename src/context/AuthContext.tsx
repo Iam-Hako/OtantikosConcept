@@ -28,7 +28,7 @@ interface AuthContextType {
   user: UserProfile | null;
   registeredUsers: RegisteredUser[];
   login: (email: string, pass: string) => { success: boolean; error?: string };
-  register: (name: string, email: string, pass: string) => { success: boolean; error?: string };
+  register: (name: string, email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: (name: string, email: string) => { success: boolean };
   updateUserRole: (userId: string, role: "admin" | "user") => void;
   updateUserPassword: (userId: string, newPass: string) => void;
@@ -243,7 +243,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
-  const register = (nameInput: string, emailInput: string, passInput: string) => {
+  const register = async (nameInput: string, emailInput: string, passInput: string) => {
     const cleanEmail = (emailInput || "").trim().toLowerCase();
 
     if (!nameInput?.trim()) {
@@ -281,8 +281,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       lastLoginDate: new Date().toISOString(),
     };
 
-    // Sunucuya doğrudan yeni kullanıcıyı kaydet
-    syncGlobal("register-user", newUserRecord);
+    // Sunucuya doğrudan yeni kullanıcıyı yazıp CEVAP ALANA KADAR BEKLE (100% Garanti Kayıt)
+    await syncGlobal("register-user", newUserRecord);
 
     const userProfile: UserProfile = {
       id: newUserRecord.id,

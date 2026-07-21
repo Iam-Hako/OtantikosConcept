@@ -112,7 +112,7 @@ export default function AccountPage() {
         return;
       }
 
-      const regRes = register(name.trim(), cleanEmail, password);
+      const regRes = await register(name.trim(), cleanEmail, password);
       if (regRes.success) {
         setMessage({ text: "Hesabınız başarıyla oluşturuldu! Hoş geldiniz!", type: "success" });
         if (cleanEmail === HARDCODED_ADMIN.email.toLowerCase()) {
