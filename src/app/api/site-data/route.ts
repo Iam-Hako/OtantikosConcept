@@ -8,7 +8,6 @@ export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
-  // Pass request URL to ensure Next.js never bakes this route into static pre-render
   const _reqUrl = request.url;
   const store = await fetchCloudStore();
 
@@ -21,6 +20,7 @@ export async function GET(request: NextRequest) {
         siteSettings: store.siteSettings,
         supportChats: store.supportChats,
         registeredUsers: store.registeredUsers,
+        activeVisitors: store.activeVisitors || {},
       },
     },
     {
@@ -44,22 +44,37 @@ export async function POST(request: NextRequest) {
       request.headers.get("x-real-ip") ||
       "185.190.140.22 (Türkiye / İstanbul)";
 
-    if (action === "hard-reset") {
+    if (action === "visitor-heartbeat") {
+      const { visitorId, activePage, userEmail, userName, isLoggedIn, deviceInfo } = payload || {};
+      if (visitorId) {
+        if (!store.activeVisitors) store.activeVisitors = {};
+        store.activeVisitors[visitorId] = {
+          visitorId,
+          ipAddress: clientIp,
+          location: "Türkiye / İstanbul",
+          activePage: activePage || "/",
+          userEmail: userEmail || undefined,
+          userName: userName || undefined,
+          isLoggedIn: !!isLoggedIn,
+          lastPing: new Date().toISOString(),
+          deviceInfo: deviceInfo || "Tarayıcı Ziyaretçisi",
+        };
+      }
+    } else if (action === "hard-reset") {
       const resetStore = {
         products: INITIAL_PRODUCTS,
         siteTexts: DEFAULT_SITE_TEXTS,
         siteSettings: DEFAULT_SITE_SETTINGS,
         supportChats: {},
         registeredUsers: [defaultAdminUser],
+        activeVisitors: {},
       };
       const finalReset = await saveCloudStore(resetStore);
       return NextResponse.json({
         success: true,
         data: finalReset,
       });
-    }
-
-    if (action === "update-products") {
+    } else if (action === "update-products") {
       store.products = payload;
     } else if (action === "update-texts") {
       store.siteTexts = { ...store.siteTexts, ...payload };
@@ -140,6 +155,7 @@ export async function POST(request: NextRequest) {
           siteSettings: finalSavedStore.siteSettings,
           supportChats: finalSavedStore.supportChats,
           registeredUsers: finalSavedStore.registeredUsers,
+          activeVisitors: finalSavedStore.activeVisitors || {},
         },
       },
       {

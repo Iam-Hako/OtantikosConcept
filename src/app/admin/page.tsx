@@ -40,6 +40,7 @@ export default function AdminDashboard() {
     user,
     isAdmin,
     registeredUsers,
+    activeVisitors,
     updateUserRole,
     updateUserPassword,
     deleteUser,
@@ -286,6 +287,8 @@ export default function AdminDashboard() {
     setNotification(msg);
     setTimeout(() => setNotification(""), 3500);
   };
+
+  const onlineVisitorsList = Object.values(activeVisitors || {});
 
   const filteredProducts = products.filter((p) =>
     p.title.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase())
@@ -543,6 +546,72 @@ export default function AdminDashboard() {
       {/* TAB 2: DETAYLI KULLANICI YÖNETİM & RÜTBE SIRALAMALI KONTROL MERKEZİ */}
       {activeTab === "users" && (
         <div className="bg-white rounded-2xl border border-[#E6DCD3] shadow-sm p-6 space-y-6 card-hover">
+          {/* 🟢 CANLI ZİYARETÇİ VE ANLIK ÇEVRİMİÇİ TAKİP MERKEZİ */}
+          <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-emerald-900 text-white p-5 rounded-2xl shadow-md border border-emerald-700/50 space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-emerald-800/80 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                  </span>
+                  <h4 className="font-serif font-bold text-base text-emerald-100">
+                    Canlı Sitedeki Ziyaretçiler & Anlık Çevrimiçi Müşteriler
+                  </h4>
+                </div>
+                <p className="text-[11px] text-emerald-300 mt-0.5">
+                  Sitenizde şu an gezen tüm ziyaretçiler (giriş yapmamış olsalar bile) anlık olarak sunucu tarafından tespit edilip listelenir.
+                </p>
+              </div>
+              <div className="bg-emerald-800/90 border border-emerald-600 px-3.5 py-1.5 rounded-full text-xs font-bold text-emerald-100 flex items-center gap-1.5 shrink-0 shadow-inner">
+                <Globe className="w-4 h-4 text-emerald-300 animate-spin" style={{ animationDuration: '6s' }} />
+                <span>Anlık {onlineVisitorsList.length} Aktif Ziyaretçi</span>
+              </div>
+            </div>
+
+            {onlineVisitorsList.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {onlineVisitorsList.map((v) => (
+                  <div
+                    key={v.visitorId}
+                    className="p-3.5 bg-emerald-950/70 border border-emerald-700/70 rounded-xl space-y-2 text-xs shadow-sm hover:border-emerald-500 transition"
+                  >
+                    <div className="flex items-center justify-between border-b border-emerald-800/60 pb-1.5">
+                      <div className="flex items-center gap-2 font-bold text-emerald-100">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span>{v.isLoggedIn && v.userName ? v.userName : "Misafir Ziyaretçi"}</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-900 text-emerald-200 border border-emerald-700 uppercase">
+                        {v.isLoggedIn ? "Giriş Yapmış Müşteri" : "Misafir Ziyaretçi"}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1 text-[11px] font-mono text-emerald-300">
+                      <div className="flex justify-between">
+                        <span className="text-emerald-400/80">IP & Konum:</span>
+                        <span className="font-bold text-emerald-100">{v.ipAddress}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-emerald-400/80">Bulunduğu Sayfa:</span>
+                        <span className="font-bold text-amber-300 truncate max-w-[140px]" title={v.activePage}>
+                          {v.activePage}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-emerald-400/80">Cihaz Türü:</span>
+                        <span className="text-emerald-200">{v.deviceInfo}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 bg-emerald-950/40 rounded-xl text-center text-xs text-emerald-300 border border-emerald-800/60">
+                Şu anda arka planda dinlenen aktif ziyaretçi bulunmuyor. Herhangi bir cihazdan veya gizli sekmeden siteye girildiği an burada canlı belirecektir.
+              </div>
+            )}
+          </div>
+
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
             <div>
               <h3 className="font-serif text-lg font-bold text-[#3E2E28] flex items-center gap-2">

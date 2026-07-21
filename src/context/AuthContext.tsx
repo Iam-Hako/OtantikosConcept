@@ -3,14 +3,15 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Product, SiteSettings, INITIAL_PRODUCTS, DEFAULT_SITE_SETTINGS } from "@/data/mockData";
 import { SiteTexts, DEFAULT_SITE_TEXTS } from "@/data/siteTexts";
-import { UserProfile, RegisteredUser, HARDCODED_ADMIN, defaultAdminUser } from "@/lib/constants";
+import { UserProfile, RegisteredUser, ActiveVisitorSession, HARDCODED_ADMIN, defaultAdminUser } from "@/lib/constants";
 
-export type { UserProfile, RegisteredUser };
+export type { UserProfile, RegisteredUser, ActiveVisitorSession };
 export { HARDCODED_ADMIN, defaultAdminUser };
 
 interface AuthContextType {
   user: UserProfile | null;
   registeredUsers: RegisteredUser[];
+  activeVisitors: Record<string, ActiveVisitorSession>;
   login: (email: string, pass: string) => { success: boolean; error?: string };
   register: (name: string, email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: (name: string, email: string) => { success: boolean };
@@ -36,6 +37,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([defaultAdminUser]);
+  const [activeVisitors, setActiveVisitors] = useState<Record<string, ActiveVisitorSession>>({});
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
   const [siteTexts, setSiteTexts] = useState<SiteTexts>(DEFAULT_SITE_TEXTS);
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
@@ -69,6 +71,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           setRegisteredUsers(cleanUsers);
         }
+        if (data.data.activeVisitors) {
+          setActiveVisitors(data.data.activeVisitors);
+        }
       }
     } catch (err) {
       console.error("Server API fetch error:", err);
@@ -96,11 +101,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           setRegisteredUsers(cleanUsers);
         }
+        if (data.data.activeVisitors) {
+          setActiveVisitors(data.data.activeVisitors);
+        }
       }
     } catch (err) {
       console.error("Server API sync error:", err);
     }
   };
+
+  // Ziyaretçi Kalp Atışı (Heartbeat Engine) - Sitede gezen HERKESİ (giriş yapsın ya da yapmasın) anında sunucuya raporlar
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let vId = localStorage.getItem("otantikos_visitor_id");
+    if (!vId) {
+      vId = `vis-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      localStorage.setItem("otantikos_visitor_id", vId);
+    }
+
+    const sendHeartbeat = () => {
+      fetch("/api/site-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "visitor-heartbeat",
+          payload: {
+            visitorId: vId,
+            activePage: window.location.pathname,
+            userEmail: user?.email,
+            userName: user?.name,
+            isLoggedIn: !!user,
+            deviceInfo: navigator.userAgent.includes("Mobile") ? "📱 Mobil Cihaz" : "💻 Masaüstü Bilgisayar",
+          },
+        }),
+      }).catch(() => {});
+    };
+
+    sendHeartbeat();
+    const heartbeatTimer = setInterval(sendHeartbeat, 4000);
+
+    return () => clearInterval(heartbeatTimer);
+  }, [user]);
 
   const hardResetSystem = async () => {
     try {
@@ -128,7 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Sayfa yüklendiğinde doğrudan SUNUCUDAN veri çek
     fetchGlobalData();
 
-    // 2 saniyede bir canli sunucu sorgusu
+    // 2 saniyede bir canlı sunucu sorgusu
     const timer = setInterval(() => {
       fetchGlobalData();
     }, 2000);
@@ -386,6 +428,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         registeredUsers,
+        activeVisitors,
         login,
         register,
         loginWithGoogle,

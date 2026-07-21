@@ -3,7 +3,7 @@ import path from "path";
 import https from "https";
 import { Product, SiteSettings, INITIAL_PRODUCTS, DEFAULT_SITE_SETTINGS } from "@/data/mockData";
 import { SiteTexts, DEFAULT_SITE_TEXTS } from "@/data/siteTexts";
-import { RegisteredUser, HARDCODED_ADMIN, defaultAdminUser } from "@/lib/constants";
+import { RegisteredUser, ActiveVisitorSession, HARDCODED_ADMIN, defaultAdminUser } from "@/lib/constants";
 import { SupportChat } from "@/components/LiveChat";
 
 export interface GlobalStore {
@@ -12,6 +12,7 @@ export interface GlobalStore {
   siteSettings: SiteSettings;
   supportChats: Record<string, SupportChat>;
   registeredUsers: RegisteredUser[];
+  activeVisitors: Record<string, ActiveVisitorSession>;
 }
 
 export { defaultAdminUser };
@@ -97,7 +98,6 @@ export const fetchCloudStoreFromNetwork = async (): Promise<GlobalStore> => {
 
 export const fetchCloudStore = async (): Promise<GlobalStore> => {
   if (inMemoryStoreCache) {
-    // Arka planda ag verisini guncelle, aninda in-memory veriyi dondur
     fetchCloudStoreFromNetwork().catch(() => {});
     return inMemoryStoreCache;
   }
@@ -126,6 +126,7 @@ export const sanitizeStore = (parsed: any): GlobalStore => {
       siteSettings: DEFAULT_SITE_SETTINGS,
       supportChats: {},
       registeredUsers: [defaultAdminUser],
+      activeVisitors: {},
     };
   }
 
@@ -159,12 +160,27 @@ export const sanitizeStore = (parsed: any): GlobalStore => {
     usersList.unshift(defaultAdminUser);
   }
 
+  const nowTime = Date.now();
+  const cleanVisitors: Record<string, ActiveVisitorSession> = {};
+  if (parsed.activeVisitors && typeof parsed.activeVisitors === "object") {
+    Object.entries(parsed.activeVisitors).forEach(([vId, session]: [string, any]) => {
+      if (session && session.lastPing) {
+        const pingTime = new Date(session.lastPing).getTime();
+        // 15 saniyeden eski olmayan aktif ziyaretcileri canlı olarak koru
+        if (nowTime - pingTime < 15000) {
+          cleanVisitors[vId] = session;
+        }
+      }
+    });
+  }
+
   return {
     products: Array.isArray(parsed.products) && parsed.products.length > 0 ? parsed.products : INITIAL_PRODUCTS,
     siteTexts: mergedTexts,
     siteSettings: { ...DEFAULT_SITE_SETTINGS, ...(parsed.siteSettings || {}) },
     supportChats: parsed.supportChats && typeof parsed.supportChats === "object" ? parsed.supportChats : {},
     registeredUsers: usersList,
+    activeVisitors: cleanVisitors,
   };
 };
 
@@ -196,6 +212,7 @@ export const loadStoreFromDisk = (): GlobalStore => {
     siteSettings: DEFAULT_SITE_SETTINGS,
     supportChats: {},
     registeredUsers: [defaultAdminUser],
+    activeVisitors: {},
   };
 };
 

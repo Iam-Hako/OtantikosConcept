@@ -18,6 +18,18 @@ export interface RegisteredUser {
   lastLoginDate?: string;
 }
 
+export interface ActiveVisitorSession {
+  visitorId: string;
+  ipAddress: string;
+  location: string;
+  activePage: string;
+  userEmail?: string;
+  userName?: string;
+  isLoggedIn: boolean;
+  lastPing: string;
+  deviceInfo: string;
+}
+
 // Sabit Admin Hesabı Bilgileri (Sunucu ve İstemci Tarafından Ortak Kullanılır)
 export const HARDCODED_ADMIN = {
   email: "chessvip11@gmail.com",
