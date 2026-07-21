@@ -19,10 +19,6 @@ export default function HomePage() {
             
             {/* Sol Taraf: Marka Sloganı & CTA */}
             <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#C86D51]/10 border border-[#C86D51]/30 text-[#C86D51] text-xs font-semibold uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{siteTexts?.hero?.badge || "Bijuteri & Trend Squishy Dünyası"}</span>
-              </div>
 
               <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#3E2E28] leading-[1.15]">
                 {siteTexts?.hero?.title || settings.heroTitle} <br />

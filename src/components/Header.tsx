@@ -37,25 +37,6 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full transition-all">
-      {/* Üst Duyuru Çubuğu (Top Bar) */}
-      <div className="bg-[#3E2E28] text-[#F8F5F0] text-xs py-2 px-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-[#C86D51]" />
-            <span>{siteTexts?.header?.topbarText || settings.announcementText}</span>
-          </div>
-          <div className="hidden md:flex items-center gap-4 text-xs text-[#D8C7B5]">
-            {user ? (
-              <span className="text-white font-medium">Hoş geldin, {user.name}</span>
-            ) : (
-              <Link href="/hesabim" className="hover:text-white transition font-medium">
-                Giriş Yap / Kayıt Ol
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Ana Header & Navbar */}
       <div className="bg-[#F8F5F0]/95 backdrop-blur-md border-b border-[#E6DCD3]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -94,25 +75,28 @@ export default function Header() {
                 <span className="font-serif text-2xl tracking-wide text-[#3E2E28] font-bold leading-tight">
                   {settings.siteTitle}
                 </span>
-                <span className="text-[9px] tracking-[0.15em] text-[#7C6354] uppercase font-sans font-semibold">
-                  {settings.siteSubtitle}
+                <span className="text-[10px] tracking-wider text-[#C86D51] uppercase font-sans font-semibold">
+                  Bijuteri & Hediyelik Eşya
                 </span>
               </div>
             </Link>
 
             {/* Masaüstü Navigasyon Linkleri */}
-            <nav className="hidden md:flex items-center space-x-8 text-sm font-medium text-[#3E2E28]">
+            <nav className="hidden md:flex items-center space-x-6 lg:space-x-8 text-sm font-medium text-[#3E2E28]">
               <Link href="/" className="hover:text-[#C86D51] transition">
                 {siteTexts?.header?.navHome || "Ana Sayfa"}
               </Link>
               <Link href="/urunler" className="hover:text-[#C86D51] transition">
                 {siteTexts?.header?.navAllProducts || "Tüm Ürünler"}
               </Link>
-              <Link href="/kategori/trend-oyuncak-squishy" className="hover:text-[#C86D51] transition">
-                {siteTexts?.header?.navSquishy || "Trend Oyuncak & Squishy"}
-              </Link>
               <Link href="/kategori/bijuteri-taki" className="hover:text-[#C86D51] transition">
-                {siteTexts?.header?.navJewelry || "Bijuteri & Takı"}
+                Bijuteri & Takı
+              </Link>
+              <Link href="/kategori/hediyelik-esya" className="hover:text-[#C86D51] transition">
+                Hediyelik Eşya
+              </Link>
+              <Link href="/kategori/trend-oyuncak-squishy" className="hover:text-[#C86D51] transition">
+                Trend Oyuncak & Squishy
               </Link>
 
               {/* Sadece Admin Kullanıcılar Görebilir */}
@@ -121,7 +105,7 @@ export default function Header() {
                   href="/admin"
                   className="text-xs bg-[#C86D51] text-white px-3.5 py-1.5 rounded-full hover:bg-[#B05B41] transition font-semibold flex items-center gap-1 shadow-sm"
                 >
-                  <ShieldAlert className="w-3.5 h-3.5" /> Site Yönetimi & Admin
+                  <ShieldAlert className="w-3.5 h-3.5" /> Site Yönetimi
                 </Link>
               )}
             </nav>

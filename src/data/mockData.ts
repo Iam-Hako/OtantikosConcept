@@ -55,29 +55,22 @@ export interface SiteSettings {
 // Varsayılan Site Ayarları (Bijuteri, Trend Oyuncaklar & NeeDoh Squishy Konseptine Uyarlanmış)
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   siteTitle: "OtantikosConcept",
-  siteSubtitle: "Specialist Local & Trend Products",
-  heroTitle: "Trend Oyuncaklar & Özgün",
-  heroHighlightText: "Bijuteri Koleksiyonu",
-  heroDescription: "NeeDoh Squishy Çin Mantısı, stres oyuncakları, trend hediyelikler ve göz alıcı bijuteri takı tasarımları tek adreste!",
-  topbarText: "OtantikosConcept • Trend Oyuncaklar, Squishy ve Şık Bijuteri Dünyası",
-  announcementText: "Yeni Gelen NeeDoh Squishy Çin Mantısı ve Trend Bijuterileri Keşfedin!",
+  siteSubtitle: "Bijuteri & Hediyelik Eşya",
+  heroTitle: "Bijuteri, Hediyelik &",
+  heroHighlightText: "Trend Oyuncak Mağazası",
+  heroDescription: "Özgün bijuteri takı tasarımları, şık hediyelik eşyalar ve sevilen trend oyuncaklar OtantikosConcept kalitesiyle!",
+  topbarText: "OtantikosConcept • Bijuteri, Hediyelik Eşya ve Trend Oyuncak Mağazası",
+  announcementText: "Bijuteri, Hediyelik Eşya ve Trend Oyuncak Koleksiyonumuzu Keşfedin!",
   navLinks: [
     { label: "Ana Sayfa", href: "/" },
     { label: "Tüm Ürünler", href: "/urunler" },
-    { label: "Trend Oyuncak & Squishy", href: "/kategori/trend-oyuncak-squishy" },
     { label: "Bijuteri & Takı", href: "/kategori/bijuteri-taki" },
+    { label: "Hediyelik Eşya", href: "/kategori/hediyelik-esya" },
+    { label: "Trend Oyuncak & Squishy", href: "/kategori/trend-oyuncak-squishy" },
   ],
   categories: [
     {
       id: "cat-1",
-      name: "Trend Oyuncak & Squishy",
-      slug: "trend-oyuncak-squishy",
-      description: "NeeDoh Squishy Çin Mantısı, stres topu ve popüler pop-it oyuncaklar.",
-      image: "/otantikos-logo.png",
-      itemCount: 0
-    },
-    {
-      id: "cat-2",
       name: "Bijuteri & Takı",
       slug: "bijuteri-taki",
       description: "Özel tasarım kolyeler, bileklikler, küpeler ve trend aksesuarlar.",
@@ -85,10 +78,18 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
       itemCount: 0
     },
     {
+      id: "cat-2",
+      name: "Hediyelik Eşya & Aksesuar",
+      slug: "hediyelik-esya",
+      description: "Sevdikleriniz için şık, estetik ve özgün hediyelik eşyalar.",
+      image: "/otantikos-logo.png",
+      itemCount: 0
+    },
+    {
       id: "cat-3",
-      name: "Trend Hediyelikler",
-      slug: "trend-hediyelikler",
-      description: "Sevdikleriniz için popüler ve eğlenceli konsept hediyeler.",
+      name: "Trend Oyuncak & Squishy",
+      slug: "trend-oyuncak-squishy",
+      description: "NeeDoh Squishy Çin Mantısı, stres topu ve popüler trend oyuncaklar.",
       image: "/otantikos-logo.png",
       itemCount: 0
     }

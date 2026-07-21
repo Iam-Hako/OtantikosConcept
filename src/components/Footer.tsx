@@ -3,7 +3,6 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Mail, Share2, Globe } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Footer() {
@@ -23,19 +22,8 @@ export default function Footer() {
             <span className="font-serif text-xl font-bold tracking-wide">OtantikosConcept</span>
           </div>
           <p className="text-xs text-[#D8C7B5] leading-relaxed">
-            {siteTexts?.footer?.brandDescription || "OtantikosConcept - Trend oyuncak ve bijuteri online satış mağazası."}
+            {siteTexts?.footer?.brandDescription || "OtantikosConcept - Bijuteri, Hediyelik Eşya ve Trend Oyuncak Mağazası."}
           </p>
-          <div className="flex items-center gap-3 pt-2">
-            <a href="#" className="w-8 h-8 rounded-full bg-[#4A3B32] flex items-center justify-center text-[#D8C7B5] hover:text-[#C86D51] hover:bg-white transition" title="Paylaş">
-              <Share2 className="w-4 h-4" />
-            </a>
-            <a href="#" className="w-8 h-8 rounded-full bg-[#4A3B32] flex items-center justify-center text-[#D8C7B5] hover:text-[#C86D51] hover:bg-white transition" title="Web">
-              <Globe className="w-4 h-4" />
-            </a>
-            <a href="#" className="w-8 h-8 rounded-full bg-[#4A3B32] flex items-center justify-center text-[#D8C7B5] hover:text-[#C86D51] hover:bg-white transition" title="E-Posta">
-              <Mail className="w-4 h-4" />
-            </a>
-          </div>
         </div>
 
         {/* Kolon 2: Hızlı Bağlantılar */}
@@ -58,9 +46,9 @@ export default function Footer() {
             {siteTexts?.footer?.customerServiceTitle || "Müşteri Hizmetleri"}
           </h4>
           <ul className="space-y-2.5 text-xs text-[#D8C7B5]">
-            <li><Link href="#" className="hover:text-white transition">{siteTexts?.footer?.faqLink || "Sıkça Sorulan Sorular"}</Link></li>
-            <li><Link href="#" className="hover:text-white transition">{siteTexts?.footer?.shippingPolicyLink || "Kargo ve Teslimat"}</Link></li>
-            <li><Link href="#" className="hover:text-white transition">{siteTexts?.footer?.returnPolicyLink || "İade ve Değişim Koşulları"}</Link></li>
+            <li><Link href="/sss" className="hover:text-white transition">{siteTexts?.footer?.faqLink || "Sıkça Sorulan Sorular"}</Link></li>
+            <li><Link href="/kargo" className="hover:text-white transition">{siteTexts?.footer?.shippingPolicyLink || "Kargo ve Teslimat"}</Link></li>
+            <li><Link href="/iade" className="hover:text-white transition">{siteTexts?.footer?.returnPolicyLink || "İade ve Değişim Koşulları"}</Link></li>
           </ul>
         </div>
 
