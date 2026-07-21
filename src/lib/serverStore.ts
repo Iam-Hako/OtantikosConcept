@@ -25,7 +25,12 @@ export const fetchCloudStore = async (): Promise<GlobalStore> => {
   try {
     const res = await fetch(CLOUD_DB_URL, {
       cache: "no-store",
-      headers: { Pragma: "no-cache", Accept: "application/json" },
+      next: { revalidate: 0 },
+      headers: {
+        Pragma: "no-cache",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Accept: "application/json",
+      },
     });
     if (res.ok) {
       const parsed = await res.json();
@@ -43,13 +48,22 @@ export const fetchCloudStore = async (): Promise<GlobalStore> => {
 export const saveCloudStore = async (storeData: GlobalStore): Promise<void> => {
   const sanitized = sanitizeStore(storeData);
 
-  // 1. Bulut Veritabanına Yaz
+  // 1. Bulut Veritabanına Yaz (Next.js Önbelleği Devre Dışı)
   try {
-    await fetch(CLOUD_DB_URL, {
+    const res = await fetch(CLOUD_DB_URL, {
       method: "PUT",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      cache: "no-store",
+      next: { revalidate: 0 },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "Cache-Control": "no-cache, no-store",
+      },
       body: JSON.stringify(sanitized),
     });
+    if (!res.ok) {
+      console.error("Cloud DB PUT failed with status:", res.status);
+    }
   } catch (e) {
     console.error("Cloud DB save error:", e);
   }
