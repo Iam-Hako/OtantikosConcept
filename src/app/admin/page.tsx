@@ -135,17 +135,33 @@ export default function AdminDashboard() {
     }
   };
 
+  const [newProductImages, setNewProductImages] = useState<string[]>([]);
+
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
+
+    let catSlug = "bijuteri-taki";
+    const catLower = (newProduct.category || "").toLowerCase();
+    if (catLower.includes("hediyelik")) {
+      catSlug = "hediyelik-esya";
+    } else if (catLower.includes("oyuncak") || catLower.includes("squishy")) {
+      catSlug = "squishy";
+    } else {
+      catSlug = "bijuteri-taki";
+    }
+
+    const allImgs = newProductImages.length > 0 ? newProductImages : [newProduct.image || "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop"];
+
     const created: Product = {
       id: `prod-${Date.now()}`,
       title: newProduct.title || "Yeni Ürün",
-      slug: (newProduct.title || "yeni-urun").toLowerCase().replace(/\s+/g, "-"),
+      slug: (newProduct.title || "yeni-urun").toLowerCase().replace(/\s+/g, "-") + "-" + Date.now().toString().slice(-4),
       description: newProduct.description,
       price: Number(newProduct.price),
       category: newProduct.category,
-      categorySlug: newProduct.category.toLowerCase().includes("bijuteri") ? "bijuteri-taki" : "trend-oyuncak-squishy",
-      images: [newProduct.image],
+      categorySlug: catSlug,
+      image: allImgs[0],
+      images: allImgs,
       stock: Number(newProduct.stock),
       rating: 5.0,
       reviewCount: 1,
@@ -155,7 +171,8 @@ export default function AdminDashboard() {
 
     addProduct(created);
     setIsModalOpen(false);
-    showNotify("Yeni ürün başarıyla eklendi!");
+    setNewProductImages([]);
+    showNotify("Yeni ürün mağazaya başarıyla eklendi!");
   };
 
   const handleSaveSettings = (e: React.FormEvent) => {
@@ -746,34 +763,60 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="block font-semibold mb-1 text-[#3E2E28]">Ürün Görseli (Bilgisayardan Seçin veya URL Yapıştırın)</label>
-                <div className="space-y-2">
+                <label className="block font-semibold mb-1 text-[#3E2E28]">
+                  Ürün Görselleri (Çoklu Resim Seçin veya Ekleme Yapın)
+                </label>
+                <div className="space-y-3">
                   <input
                     type="file"
+                    multiple
                     accept="image/*"
                     onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
+                      const files = Array.from(e.target.files || []);
+                      files.forEach((file) => {
                         const reader = new FileReader();
                         reader.onloadend = () => {
-                          setNewProduct({ ...newProduct, image: reader.result as string });
+                          if (reader.result) {
+                            setNewProductImages((prev) => [...prev, reader.result as string]);
+                          }
                         };
                         reader.readAsDataURL(file);
-                      }
+                      });
                     }}
                     className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2 text-xs file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#C86D51] file:text-white hover:file:bg-[#B05B41] cursor-pointer"
                   />
-                  {newProduct.image && (
-                    <div className="flex items-center gap-3 bg-[#F8F5F0] p-2 rounded-xl border border-[#D8C7B5]">
-                      <img src={newProduct.image} alt="Önizleme" className="w-12 h-12 object-cover rounded-lg border border-[#E6DCD3]" />
-                      <span className="text-[10px] text-emerald-700 font-bold">✓ Görsel Başarıyla Yüklendi</span>
+
+                  {/* Yüklenen Çoklu Resimlerin Önizleme Galerisi */}
+                  {newProductImages.length > 0 && (
+                    <div className="grid grid-cols-4 gap-2 bg-[#F8F5F0] p-3 rounded-2xl border border-[#D8C7B5]">
+                      {newProductImages.map((img, idx) => (
+                        <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border border-[#E6DCD3]">
+                          <img src={img} alt={`Görsel ${idx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setNewProductImages(newProductImages.filter((_, i) => i !== idx))}
+                            className="absolute top-1 right-1 bg-rose-600 text-white rounded-full w-5 h-5 text-[10px] font-bold flex items-center justify-center opacity-80 hover:opacity-100 shadow-md"
+                            title="Görseli Sil"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
+
                   <input
                     type="text"
-                    placeholder="veya https://... web adresi yapıştırın"
+                    placeholder="veya https://... web resmi ekleyin"
                     value={newProduct.image.startsWith("data:") ? "" : newProduct.image}
-                    onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setNewProduct({ ...newProduct, image: e.target.value });
+                        if (!newProductImages.includes(e.target.value)) {
+                          setNewProductImages((prev) => [...prev, e.target.value]);
+                        }
+                      }
+                    }}
                     className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2 text-xs"
                   />
                 </div>

@@ -14,7 +14,8 @@ import {
   ShieldCheck,
   Truck,
   ShieldAlert,
-  LogOut
+  LogOut,
+  ChevronDown
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -36,116 +37,143 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full transition-all">
-      {/* Ana Header & Navbar */}
-      <div className="bg-[#F8F5F0]/95 backdrop-blur-md border-b border-[#E6DCD3]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
+    <header className="sticky top-0 z-50 w-full shadow-sm">
+      {/* Şık Üst Duyuru Çubuğu (Top Bar) */}
+      <div className="bg-[#3E2E28] text-white py-1.5 px-4 text-[11px] font-medium tracking-wide border-b border-[#523E36]">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-[#C86D51] animate-pulse" />
+            <span>OtantikosConcept • Şık Aksesuarlar, Takı ve Hediyelik Eşyalar</span>
+          </div>
+          <div className="hidden md:flex items-center gap-6 text-[#D8C7B5] text-[10px]">
+            <span className="flex items-center gap-1.5">
+              <Truck className="w-3.5 h-3.5 text-[#C86D51]" /> 500 TL Üzeri Ücretsiz Kargo
+            </span>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> %100 Orijinal & Güvenli Alışveriş
+            </span>
+          </div>
+        </div>
+      </div>
 
-            {/* Sol: Mobil Menü & Arama Butonu */}
-            <div className="flex items-center gap-3 md:hidden">
+      {/* Ana Header & Navbar */}
+      <div className="bg-white/95 backdrop-blur-md border-b border-[#E6DCD3]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20 gap-4">
+
+            {/* Sol: Mobil Menü Butonu */}
+            <div className="flex items-center gap-2 md:hidden">
               <button
                 onClick={() => setMobileMenuOpen(true)}
-                className="p-2 text-[#3E2E28] hover:bg-[#EAE0D5] rounded-full transition"
+                className="p-2 text-[#3E2E28] hover:bg-[#F8F5F0] rounded-xl transition"
                 aria-label="Menü"
               >
                 <Menu className="w-6 h-6" />
               </button>
-              <button
-                onClick={() => setSearchOpen(!searchOpen)}
-                className="p-2 text-[#3E2E28] hover:bg-[#EAE0D5] rounded-full transition"
-                aria-label="Ara"
-              >
-                <Search className="w-5 h-5" />
-              </button>
             </div>
 
-            {/* Logo Entegrasyonu */}
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[#C86D51] shadow-sm bg-[#EAE0D5]">
+            {/* Marka Logosu */}
+            <Link href="/" className="flex items-center gap-3 group shrink-0">
+              <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-[#C86D51] shadow-sm bg-[#EAE0D5] group-hover:scale-105 transition-transform duration-300">
                 <Image
                   src="/otantikos-logo.png"
                   alt="OtantikosConcept Logo"
                   fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="object-cover"
                   priority
                 />
               </div>
               <div className="flex flex-col">
-                <span className="font-serif text-2xl tracking-wide text-[#3E2E28] font-bold leading-tight">
-                  {settings.siteTitle}
+                <span className="font-serif text-xl sm:text-2xl tracking-tight text-[#3E2E28] font-bold leading-none">
+                  {settings.siteTitle || "OtantikosConcept"}
                 </span>
-                <span className="text-[10px] tracking-wider text-[#C86D51] uppercase font-sans font-semibold">
+                <span className="text-[9px] tracking-widest text-[#C86D51] uppercase font-sans font-bold mt-1">
                   Bijuteri & Hediyelik Eşya
                 </span>
               </div>
             </Link>
 
             {/* Masaüstü Navigasyon Linkleri */}
-            <nav className="hidden md:flex flex-1 justify-center items-center gap-x-4 lg:gap-x-8 xl:gap-x-10 text-sm font-medium text-[#3E2E28] px-4">
-              <Link href="/" className="hover:text-[#C86D51] transition whitespace-nowrap">
+            <nav className="hidden lg:flex items-center gap-x-7 text-xs font-semibold text-[#3E2E28]">
+              <Link
+                href="/"
+                className="hover:text-[#C86D51] transition-colors py-2 border-b-2 border-transparent hover:border-[#C86D51]"
+              >
                 {siteTexts?.header?.navHome || "Ana Sayfa"}
               </Link>
-              <Link href="/urunler" className="hover:text-[#C86D51] transition whitespace-nowrap">
+              <Link
+                href="/urunler"
+                className="hover:text-[#C86D51] transition-colors py-2 border-b-2 border-transparent hover:border-[#C86D51]"
+              >
                 {siteTexts?.header?.navAllProducts || "Tüm Ürünler"}
               </Link>
-              <Link href="/kategori/bijuteri-taki" className="hover:text-[#C86D51] transition whitespace-nowrap">
+              <Link
+                href="/kategori/bijuteri-taki"
+                className="hover:text-[#C86D51] transition-colors py-2 border-b-2 border-transparent hover:border-[#C86D51]"
+              >
                 Bijuteri & Takı
               </Link>
-              <Link href="/kategori/hediyelik-esya" className="hover:text-[#C86D51] transition whitespace-nowrap">
+              <Link
+                href="/kategori/hediyelik-esya"
+                className="hover:text-[#C86D51] transition-colors py-2 border-b-2 border-transparent hover:border-[#C86D51]"
+              >
                 Hediyelik Eşya
               </Link>
-              <Link href="/kategori/trend-oyuncak-squishy" className="hover:text-[#C86D51] transition whitespace-nowrap">
+              <Link
+                href="/kategori/squishy"
+                className="hover:text-[#C86D51] transition-colors py-2 border-b-2 border-transparent hover:border-[#C86D51]"
+              >
                 Trend Oyuncak & Squishy
               </Link>
+            </nav>
 
-              {/* Sadece Admin Kullanıcılar Görebilir */}
+            {/* Sağ Taraf: Arama, Admin, Profil ve Sepet */}
+            <div className="flex items-center gap-3">
+              
+              {/* Arama Çubuğu */}
+              <form onSubmit={handleSearch} className="hidden md:flex relative items-center w-48 xl:w-60">
+                <input
+                  type="text"
+                  placeholder={siteTexts?.header?.searchPlaceholder || "Ürün ara..."}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-full py-2 pl-9 pr-4 text-xs text-[#3E2E28] focus:outline-none focus:ring-1 focus:ring-[#C86D51] focus:bg-white transition"
+                />
+                <Search className="w-3.5 h-3.5 text-[#7C6354] absolute left-3" />
+              </form>
+
+              {/* Admin Butonu */}
               {isAdmin && (
                 <Link
                   href="/admin"
-                  className="text-xs bg-[#C86D51] text-white px-3 py-1 rounded-full hover:bg-[#B05B41] transition font-semibold flex items-center gap-1 shadow-sm whitespace-nowrap"
+                  className="px-3.5 py-2 bg-[#C86D51] text-white text-xs font-bold rounded-full hover:bg-[#B05B41] transition shadow-sm flex items-center gap-1.5 shrink-0"
                 >
-                  <ShieldAlert className="w-3.5 h-3.5" /> Site Yönetimi
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline-block">Site Yönetimi</span>
                 </Link>
               )}
-            </nav>
 
-            {/* Sağ: Arama & Sepet & Profil */}
-            <div className="flex items-center gap-3">
-              <form onSubmit={handleSearch} className="hidden lg:flex items-center relative">
-                <input
-                  type="text"
-                  placeholder={siteTexts?.header?.searchPlaceholder || "Squishy, bijuteri ara..."}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-48 xl:w-64 bg-[#EAE0D5]/50 border border-[#D8C7B5] rounded-full py-2 pl-4 pr-10 text-xs text-[#3E2E28] placeholder-[#7C6354] focus:outline-none focus:ring-2 focus:ring-[#C86D51] transition"
-                />
-                <button type="submit" className="absolute right-3 text-[#7C6354] hover:text-[#C86D51]">
-                  <Search className="w-4 h-4" />
-                </button>
-              </form>
-
-              {/* Kullanıcı Hesabı Linki */}
+              {/* Kullanıcı Hesabım */}
               <Link
                 href="/hesabim"
-                className="hidden sm:flex p-2 text-[#3E2E28] hover:text-[#C86D51] hover:bg-[#EAE0D5]/50 rounded-full transition items-center gap-1.5"
-                title={user ? `Hesabım (${user.name})` : "Giriş Yap / Kayıt Ol"}
+                className="flex items-center gap-2 p-2 hover:bg-[#F8F5F0] rounded-full transition text-[#3E2E28] font-bold text-xs"
+                title="Hesabım"
               >
-                <User className="w-5 h-5" />
-                <span className="text-xs font-semibold max-w-[80px] truncate">
-                  {user ? user.name : (siteTexts?.header?.accountLabel || "Hesabım")}
-                </span>
+                <div className="w-8 h-8 rounded-full bg-[#EAE0D5] text-[#C86D51] flex items-center justify-center font-serif font-bold text-sm">
+                  {user ? user.name.charAt(0).toUpperCase() : <User className="w-4 h-4 text-[#C86D51]" />}
+                </div>
+                {user && <span className="hidden xl:inline-block max-w-[100px] truncate text-xs">{user.name}</span>}
               </Link>
 
               {/* Sepet Butonu */}
               <Link
                 href="/sepet"
-                className="relative p-2.5 bg-[#C86D51] text-white rounded-full hover:bg-[#B05B41] transition shadow-md flex items-center justify-center group"
-                aria-label="Sepet"
+                className="relative p-2.5 bg-[#C86D51] text-white rounded-full hover:bg-[#B05B41] transition shadow-md flex items-center justify-center shrink-0"
+                aria-label="Sepetim"
               >
-                <ShoppingBag className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <ShoppingBag className="w-4 h-4" />
                 {totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#3E2E28] text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#F8F5F0]">
+                  <span className="absolute -top-1 -right-1 bg-[#3E2E28] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
                     {totalItems}
                   </span>
                 )}
@@ -156,90 +184,80 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobil Arama Çubuğu */}
-      {searchOpen && (
-        <div className="md:hidden bg-[#F8F5F0] border-b border-[#E6DCD3] p-4">
-          <form onSubmit={handleSearch} className="flex items-center gap-2">
-            <input
-              type="text"
-              placeholder={siteTexts?.header?.searchPlaceholder || "Squishy, bijuteri ara..."}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-white border border-[#D8C7B5] rounded-lg py-2 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#C86D51]"
-              autoFocus
-            />
-            <button type="submit" className="bg-[#C86D51] text-white px-4 py-2 rounded-lg text-sm font-medium">
-              Ara
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* Mobil Menü Drawer */}
+      {/* Mobil Menü Çekmecesi (Drawer) */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-          <div className="relative w-4/5 max-w-xs bg-[#F8F5F0] h-full shadow-2xl p-6 flex flex-col justify-between z-10 overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden flex justify-end">
+          <div className="w-4/5 max-w-sm bg-white h-full p-6 space-y-6 flex flex-col justify-between shadow-2xl animate-in slide-in-from-right duration-300">
             <div>
-              <div className="flex items-center justify-between pb-6 border-b border-[#E6DCD3]">
+              <div className="flex justify-between items-center border-b border-[#E6DCD3] pb-4">
                 <div className="flex items-center gap-2">
-                  <div className="relative w-9 h-9 rounded-full overflow-hidden border border-[#C86D51]">
-                    <Image src="/otantikos-logo.png" alt="Logo" fill className="object-cover" />
+                  <div className="w-8 h-8 rounded-full bg-[#C86D51] text-white flex items-center justify-center font-bold text-sm">
+                    O
                   </div>
-                  <span className="font-serif text-lg font-bold text-[#3E2E28]">{settings.siteTitle}</span>
+                  <span className="font-serif font-bold text-lg text-[#3E2E28]">Menü</span>
                 </div>
-                <button onClick={() => setMobileMenuOpen(false)} className="p-1 text-[#3E2E28]">
+                <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-gray-500 hover:text-black">
                   <X className="w-6 h-6" />
                 </button>
               </div>
 
-              <div className="py-6 flex flex-col space-y-4">
-                <Link href="/" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-[#3E2E28]">
-                  {siteTexts?.header?.navHome || "Ana Sayfa"}
-                </Link>
-                <Link href="/urunler" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-[#3E2E28]">
-                  {siteTexts?.header?.navAllProducts || "Tüm Ürünler"}
-                </Link>
-                <Link href="/kategori/trend-oyuncak-squishy" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-[#3E2E28]">
-                  {siteTexts?.header?.navSquishy || "Trend Oyuncak & Squishy"}
-                </Link>
-                <Link href="/kategori/bijuteri-taki" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-[#3E2E28]">
-                  {siteTexts?.header?.navJewelry || "Bijuteri & Takı"}
-                </Link>
+              <form onSubmit={handleSearch} className="mt-4 relative">
+                <input
+                  type="text"
+                  placeholder="Ürün veya bijuteri ara..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3 pl-10 text-xs focus:outline-none focus:ring-1 focus:ring-[#C86D51]"
+                />
+                <Search className="w-4 h-4 text-[#7C6354] absolute left-3 top-3.5" />
+              </form>
 
-                {isAdmin && (
-                  <Link
-                    href="/admin"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="text-base font-bold text-[#C86D51] pt-2"
-                  >
-                    Site Yönetimi (Admin)
-                  </Link>
-                )}
-              </div>
+              <nav className="mt-6 flex flex-col space-y-3 font-semibold text-sm text-[#3E2E28]">
+                <Link onClick={() => setMobileMenuOpen(false)} href="/" className="p-2.5 rounded-xl hover:bg-[#F8F5F0]">
+                  Ana Sayfa
+                </Link>
+                <Link onClick={() => setMobileMenuOpen(false)} href="/urunler" className="p-2.5 rounded-xl hover:bg-[#F8F5F0]">
+                  Tüm Ürünler
+                </Link>
+                <Link onClick={() => setMobileMenuOpen(false)} href="/kategori/bijuteri-taki" className="p-2.5 rounded-xl hover:bg-[#F8F5F0]">
+                  Bijuteri & Takı
+                </Link>
+                <Link onClick={() => setMobileMenuOpen(false)} href="/kategori/hediyelik-esya" className="p-2.5 rounded-xl hover:bg-[#F8F5F0]">
+                  Hediyelik Eşya
+                </Link>
+                <Link onClick={() => setMobileMenuOpen(false)} href="/kategori/squishy" className="p-2.5 rounded-xl hover:bg-[#F8F5F0]">
+                  Trend Oyuncak & Squishy
+                </Link>
+              </nav>
             </div>
 
-            <div className="pt-6 border-t border-[#E6DCD3]">
+            <div className="border-t border-[#E6DCD3] pt-4 space-y-3">
+              {isAdmin && (
+                <Link
+                  onClick={() => setMobileMenuOpen(false)}
+                  href="/admin"
+                  className="w-full py-3 bg-[#C86D51] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2"
+                >
+                  <ShieldAlert className="w-4 h-4" /> Admin Paneli
+                </Link>
+              )}
               {user ? (
-                <div className="space-y-3">
-                  <p className="text-xs text-[#7C6354]">Oturum Açıldı: <strong>{user.email}</strong></p>
-                  <button
-                    onClick={() => {
-                      logout();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full py-2 bg-rose-600 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-2"
-                  >
-                    <LogOut className="w-4 h-4" /> Çıkış Yap
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    logout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full py-3 bg-gray-100 text-rose-600 text-xs font-bold rounded-xl flex items-center justify-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" /> Çıkış Yap
+                </button>
               ) : (
                 <Link
-                  href="/hesabim"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 text-sm text-[#3E2E28] font-medium"
+                  href="/hesabim"
+                  className="w-full py-3 bg-[#3E2E28] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2"
                 >
-                  <User className="w-5 h-5 text-[#C86D51]" /> Giriş Yap / Kayıt Ol
+                  <User className="w-4 h-4" /> Giriş Yap / Kayıt Ol
                 </Link>
               )}
             </div>

@@ -27,12 +27,22 @@ export default function ProductCard({ product }: { product: Product }) {
         {/* Ürün Görseli & Etiketler */}
         <Link href={`/urun/${product.slug}`} className="block relative aspect-square overflow-hidden bg-[#F8F5F0]">
           <Image
-            src={product.images[0]}
+            src={(product.images && product.images[0]) || product.image || "/otantikos-logo.png"}
             alt={product.title}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
+
+          {product.images && product.images.length > 1 && (
+            <Image
+              src={product.images[1]}
+              alt={`${product.title} ikincil görsel`}
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+            />
+          )}
 
           {/* İndirim / Öne Çıkan Etiketi */}
           <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">

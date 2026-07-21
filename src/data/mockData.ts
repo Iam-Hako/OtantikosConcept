@@ -7,6 +7,7 @@ export interface Product {
   compareAtPrice?: number;
   category: string;
   categorySlug: string;
+  image?: string;
   images: string[];
   stock: number;
   isFeatured?: boolean;

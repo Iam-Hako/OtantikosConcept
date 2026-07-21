@@ -73,32 +73,35 @@ export default function AccountPage() {
     }
   }, [registeredUsers]);
 
-  // Google Giriş Başarılı Olduğunda
+  // Google Giriş Başarılı Olduğunda (Güvenli Null-Check)
   const handleGoogleSuccess = (googleName: string, googleEmail: string) => {
-    const cleanEmail = googleEmail.trim().toLowerCase();
+    try {
+      if (!googleEmail) return;
+      const cleanEmail = googleEmail.trim().toLowerCase();
 
-    // Bu email ile kayıtlı hesap zaten var mı?
-    const existing = registeredUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+      // Bu email ile kayıtlı hesap zaten var mı?
+      const existing = (registeredUsers || []).find((u) => u?.email && u.email.toLowerCase() === cleanEmail);
 
-    if (existing) {
-      // Zaten varsa direkt oturumu başlat
-      loginWithGoogle(existing.name, cleanEmail);
-      setMessage({ text: "Giriş başarılı! Yönlendiriliyorsunuz...", type: "success" });
-      if (cleanEmail === HARDCODED_ADMIN.email.toLowerCase()) {
-        setTimeout(() => router.push("/admin"), 800);
+      if (existing) {
+        loginWithGoogle(existing.name || googleName || "Google Kullanıcısı", cleanEmail);
+        setMessage({ text: "Giriş başarılı! Yönlendiriliyorsunuz...", type: "success" });
+        if (cleanEmail === HARDCODED_ADMIN.email.toLowerCase()) {
+          setTimeout(() => router.push("/admin"), 600);
+        }
+      } else {
+        setPendingDisplayNameCompletion({
+          email: cleanEmail,
+          isGoogle: true,
+          defaultName: cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? HARDCODED_ADMIN.name : (googleName || "Google Kullanıcısı"),
+        });
+        setCustomDisplayName(cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? HARDCODED_ADMIN.name : (googleName || "Google Kullanıcısı"));
       }
-    } else {
-      // Eğer ilk defa Google ile giriş yapıyorsa (yani kaydoluyorsa) son aşama olarak kullanıcı adı sorma ekranını tetikle
-      setPendingDisplayNameCompletion({
-        email: cleanEmail,
-        isGoogle: true,
-        defaultName: cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? HARDCODED_ADMIN.name : googleName,
-      });
-      setCustomDisplayName(cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? HARDCODED_ADMIN.name : googleName);
+    } catch (err) {
+      console.error("Google Success Processing Error:", err);
     }
   };
 
-  // E-Posta Gönderme İşlemi (Zoho SMTP Gerçek API Çağrısı)
+  // Doğrudan E-Posta ile Giriş / Kayıt Ol (OTP Şimdilik Devre Dışı)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
@@ -108,48 +111,34 @@ export default function AccountPage() {
       return;
     }
 
-    // Sabit Admin Kontrolü
-    if (isLoginView && email.trim().toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
-      if (password !== HARDCODED_ADMIN.password) {
-        setMessage({ text: "Hatalı yönetici şifresi girdiniz!", type: "error" });
-        return;
-      }
-    }
+    const cleanEmail = email.trim().toLowerCase();
 
-    // Kayıt olma aşamasında mükerrer e-posta kontrolü
-    if (!isLoginView) {
-      const existing = registeredUsers.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
+    if (isLoginView) {
+      // Doğrudan Giriş Yap
+      const loginRes = login(cleanEmail, password);
+      if (loginRes.success) {
+        setMessage({ text: "Giriş başarılı! Yönlendiriliyorsunuz...", type: "success" });
+        if (cleanEmail === HARDCODED_ADMIN.email.toLowerCase()) {
+          setTimeout(() => router.push("/admin"), 600);
+        }
+      } else {
+        setMessage({ text: loginRes.error || "Giriş yapılamadı.", type: "error" });
+      }
+    } else {
+      // Kayıt Olma İşlemi
+      const existing = (registeredUsers || []).find((u) => u?.email && u.email.toLowerCase() === cleanEmail);
       if (existing) {
         setMessage({ text: "Bu e-posta adresi ile zaten kayıtlı bir hesap var! Lütfen giriş yapın.", type: "error" });
         return;
       }
-    }
 
-    setIsLoading(true);
-
-    try {
-      const res = await fetch("/api/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+      setPendingDisplayNameCompletion({
+        email: cleanEmail,
+        isGoogle: false,
+        defaultName: name || "",
+        password: password,
       });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setMessage({ text: data.message || "Doğrulama kodu e-postanıza gönderildi.", type: "success" });
-        setVerificationModal({
-          isOpen: true,
-          targetEmail: email.trim(),
-          isLogin: isLoginView,
-        });
-      } else {
-        setMessage({ text: data.error || "E-posta gönderimi başarısız oldu.", type: "error" });
-      }
-    } catch (err: any) {
-      setMessage({ text: "Sunucuyla iletişim kurulurken bir hata oluştu.", type: "error" });
-    } finally {
-      setIsLoading(false);
+      setCustomDisplayName(name || "");
     }
   };
 

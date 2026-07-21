@@ -4,20 +4,20 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
+import MobileNav from "@/components/MobileNav";
+import LiveChat from "@/components/LiveChat";
+import PageTransitionLoader from "@/components/PageTransitionLoader";
 
 export const metadata: Metadata = {
-  title: "OtantikosConcept | Trend Oyuncaklar, NeeDoh Squishy & Bijuteri",
-  description: "NeeDoh Squishy Çin Mantısı, stres oyuncakları, trend bijuteri takılar ve özgün aksesuarlar OtantikosConcept güvencesiyle.",
-  keywords: "otantikosconcept, needoh squishy, çin mantısı squishy, trend oyuncak, bijuteri, takı, hediyelik",
+  title: "OtantikosConcept | Bijuteri, Takı & Hediyelik Eşya",
+  description: "Özgün bijuteri takı tasarımları, şık aksesuarlar ve hediyelik eşyalar OtantikosConcept güvencesiyle.",
+  keywords: "otantikosconcept, bijuteri, takı, hediyelik eşya, aksesuar",
   icons: {
     icon: "/otantikos-logo.png",
     shortcut: "/otantikos-logo.png",
     apple: "/otantikos-logo.png",
   },
 };
-
-import MobileNav from "@/components/MobileNav";
-import LiveChat from "@/components/LiveChat";
 
 export default function RootLayout({
   children,
@@ -26,9 +26,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr">
-      <body className="antialiased min-h-screen flex flex-col justify-between selection:bg-[#C86D51] selection:text-white">
+      <body className="antialiased min-h-screen flex flex-col justify-between selection:bg-[#C86D51] selection:text-white bg-[#FDFBF7]">
         <AuthProvider>
           <CartProvider>
+            <PageTransitionLoader />
             <Header />
             <main className="flex-1 pb-20 md:pb-0">{children}</main>
             <Footer />
