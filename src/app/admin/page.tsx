@@ -5,10 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { INITIAL_PRODUCTS, Product, SiteSettings } from "@/data/mockData";
+import { Product, SiteSettings } from "@/data/mockData";
+import { SiteTexts } from "@/data/siteTexts";
 import {
   Plus,
-  Edit,
   Trash2,
   Package,
   ShoppingCart,
@@ -19,24 +19,30 @@ import {
   Settings,
   Layout,
   Save,
-  Lock
+  Lock,
+  FileText
 } from "lucide-react";
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { user, isAdmin, settings, updateSettings, products, addProduct, deleteProduct } = useAuth();
+  const { user, isAdmin, settings, updateSettings, siteTexts, updateSiteTexts, products, addProduct, deleteProduct } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<"products" | "site-settings">("products");
+  const [activeTab, setActiveTab] = useState<"products" | "site-settings" | "gui-texts">("products");
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notification, setNotification] = useState("");
 
   // Site Ayarları Form State
   const [siteForm, setSiteForm] = useState<SiteSettings>(settings);
+  const [textsForm, setTextsForm] = useState<SiteTexts>(siteTexts);
 
   useEffect(() => {
     setSiteForm(settings);
   }, [settings]);
+
+  useEffect(() => {
+    setTextsForm(siteTexts);
+  }, [siteTexts]);
 
   // Yeni Ürün Form State
   const [newProduct, setNewProduct] = useState({
@@ -103,7 +109,8 @@ export default function AdminDashboard() {
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
     updateSettings(siteForm);
-    showNotify("Website yazıları ve menü ayarları başarıyla kaydedildi!");
+    updateSiteTexts(textsForm);
+    showNotify("Website yazıları ve site ayarları başarıyla kaydedildi!");
   };
 
   const showNotify = (msg: string) => {
@@ -134,7 +141,7 @@ export default function AdminDashboard() {
           <h1 className="font-serif text-3xl font-bold text-[#3E2E28] mt-1">Site & Ürün Yönetimi</h1>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => setActiveTab("products")}
             className={`px-5 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
@@ -146,6 +153,16 @@ export default function AdminDashboard() {
             <Package className="w-4 h-4" /> Ürün Kataloğu ({products.length})
           </button>
           <button
+            onClick={() => setActiveTab("gui-texts")}
+            className={`px-5 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
+              activeTab === "gui-texts"
+                ? "bg-[#3E2E28] text-white"
+                : "bg-white text-[#3E2E28] border border-[#D8C7B5]"
+            }`}
+          >
+            <FileText className="w-4 h-4 text-[#C86D51]" /> Tüm Site Yazılarını Düzenle
+          </button>
+          <button
             onClick={() => setActiveTab("site-settings")}
             className={`px-5 py-2.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
               activeTab === "site-settings"
@@ -153,7 +170,7 @@ export default function AdminDashboard() {
                 : "bg-white text-[#3E2E28] border border-[#D8C7B5]"
             }`}
           >
-            <Settings className="w-4 h-4" /> Website Yazılarını Düzenle
+            <Settings className="w-4 h-4" /> Genel Ayarlar
           </button>
         </div>
       </div>
@@ -162,7 +179,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-2xl border border-[#E6DCD3] shadow-sm flex items-center gap-4">
           <div className="p-3 bg-[#F8F5F0] rounded-xl text-[#C86D51]">
-            <Package className="w-6 h-[#C86D51]" />
+            <Package className="w-6 h-6" />
           </div>
           <div>
             <span className="text-xs text-[#7C6354]">Katalogdaki Ürünler</span>
@@ -280,16 +297,192 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* TAB 2: WEBSİTE YAZILARINI DÜZENLEME & KAYDETME */}
+      {/* TAB 2: TÜM SİTE YAZILARINI DÜZENLEME */}
+      {activeTab === "gui-texts" && (
+        <form onSubmit={handleSaveSettings} className="bg-white p-8 rounded-2xl border border-[#E6DCD3] shadow-sm space-y-8">
+          <div className="flex items-center justify-between border-b border-[#E6DCD3] pb-4">
+            <div>
+              <h3 className="font-serif text-xl font-bold text-[#3E2E28] flex items-center gap-2">
+                <FileText className="w-5 h-5 text-[#C86D51]" /> Tüm Site GUI Metinleri Editörü
+              </h3>
+              <p className="text-xs text-[#7C6354] mt-0.5">
+                Sitenizin tüm sayfalarındaki metinleri tek ekrandan değiştirip anında güncelleyebilirsiniz.
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              className="px-6 py-3 bg-[#C86D51] text-white text-xs font-semibold rounded-full hover:bg-[#B05B41] transition shadow-md flex items-center gap-2"
+            >
+              <Save className="w-4 h-4" /> Tüm Metinleri Kaydet
+            </button>
+          </div>
+
+          {/* 1. HEADER YAZILARI */}
+          <div className="space-y-4">
+            <h4 className="font-serif text-base font-bold text-[#3E2E28] border-b border-[#E6DCD3] pb-2 text-[#C86D51]">
+              1. Üst Menü & Header Yazıları
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="sm:col-span-2">
+                <label className="block font-semibold mb-1">Üst Duyuru Çubuğu Metni</label>
+                <input
+                  type="text"
+                  value={textsForm.header.topbarText}
+                  onChange={(e) => setTextsForm({ ...textsForm, header: { ...textsForm.header, topbarText: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Arama Kutusu İpucu (Placeholder)</label>
+                <input
+                  type="text"
+                  value={textsForm.header.searchPlaceholder}
+                  onChange={(e) => setTextsForm({ ...textsForm, header: { ...textsForm.header, searchPlaceholder: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Ana Sayfa Menü İsmi</label>
+                <input
+                  type="text"
+                  value={textsForm.header.navHome}
+                  onChange={(e) => setTextsForm({ ...textsForm, header: { ...textsForm.header, navHome: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Tüm Ürünler Menü İsmi</label>
+                <input
+                  type="text"
+                  value={textsForm.header.navAllProducts}
+                  onChange={(e) => setTextsForm({ ...textsForm, header: { ...textsForm.header, navAllProducts: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Squishy & Oyuncak Menü İsmi</label>
+                <input
+                  type="text"
+                  value={textsForm.header.navSquishy}
+                  onChange={(e) => setTextsForm({ ...textsForm, header: { ...textsForm.header, navSquishy: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Bijuteri & Takı Menü İsmi</label>
+                <input
+                  type="text"
+                  value={textsForm.header.navJewelry}
+                  onChange={(e) => setTextsForm({ ...textsForm, header: { ...textsForm.header, navJewelry: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 2. HERO SLOGAN YAZILARI */}
+          <div className="space-y-4">
+            <h4 className="font-serif text-base font-bold text-[#3E2E28] border-b border-[#E6DCD3] pb-2 text-[#C86D51]">
+              2. Ana Sayfa Manşet / Hero Bölümü
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="block font-semibold mb-1">Üst Rozet Metni (Badge)</label>
+                <input
+                  type="text"
+                  value={textsForm.hero.badge}
+                  onChange={(e) => setTextsForm({ ...textsForm, hero: { ...textsForm.hero, badge: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Ana Başlık (Metin 1)</label>
+                <input
+                  type="text"
+                  value={textsForm.hero.title}
+                  onChange={(e) => setTextsForm({ ...textsForm, hero: { ...textsForm.hero, title: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Renkli Vurgu Başlığı (Metin 2)</label>
+                <input
+                  type="text"
+                  value={textsForm.hero.highlightTitle}
+                  onChange={(e) => setTextsForm({ ...textsForm, hero: { ...textsForm.hero, highlightTitle: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5 font-bold text-[#C86D51]"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Birincil Buton Yazısı</label>
+                <input
+                  type="text"
+                  value={textsForm.hero.buttonText}
+                  onChange={(e) => setTextsForm({ ...textsForm, hero: { ...textsForm.hero, buttonText: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block font-semibold mb-1">Açıklama Paragrafı</label>
+                <textarea
+                  rows={2}
+                  value={textsForm.hero.description}
+                  onChange={(e) => setTextsForm({ ...textsForm, hero: { ...textsForm.hero, description: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 3. MARKA HİKAYESİ */}
+          <div className="space-y-4">
+            <h4 className="font-serif text-base font-bold text-[#3E2E28] border-b border-[#E6DCD3] pb-2 text-[#C86D51]">
+              3. Marka Hikayesi ve Hakkımızda
+            </h4>
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold mb-1">Hikaye Başlığı</label>
+                <input
+                  type="text"
+                  value={textsForm.brandStory.title}
+                  onChange={(e) => setTextsForm({ ...textsForm, brandStory: { ...textsForm.brandStory, title: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Hikaye Metni</label>
+                <textarea
+                  rows={3}
+                  value={textsForm.brandStory.content}
+                  onChange={(e) => setTextsForm({ ...textsForm, brandStory: { ...textsForm.brandStory, content: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-[#E6DCD3]">
+            <button
+              type="submit"
+              className="w-full py-4 bg-[#C86D51] text-white text-xs font-semibold rounded-full hover:bg-[#B05B41] transition shadow-lg flex items-center justify-center gap-2"
+            >
+              <Save className="w-4 h-4" /> Değişiklikleri Kaydet & Sitede Yayınla
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* TAB 3: GENEL AYARLAR */}
       {activeTab === "site-settings" && (
         <form onSubmit={handleSaveSettings} className="bg-white p-8 rounded-2xl border border-[#E6DCD3] shadow-sm space-y-6">
           <div className="flex items-center justify-between border-b border-[#E6DCD3] pb-4">
             <div>
               <h3 className="font-serif text-xl font-bold text-[#3E2E28] flex items-center gap-2">
-                <Layout className="w-5 h-5 text-[#C86D51]" /> Website İçerik & Yazı Editörü
+                <Layout className="w-5 h-5 text-[#C86D51]" /> Genel Mağaza Ayarları
               </h3>
               <p className="text-xs text-[#7C6354] mt-0.5">
-                Sitenin başlıklarını, sloganlarını, menü isimlerini buradan güncelleyip kaydet tuşuna basarak anında sitenize yansıtabilirsiniz.
+                Mağaza adı, slogan ve genel sistem ayarları.
               </p>
             </div>
 
@@ -321,77 +514,6 @@ export default function AdminDashboard() {
                 className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3"
               />
             </div>
-
-            <div className="sm:col-span-2">
-              <label className="block font-bold text-[#3E2E28] mb-1">Üst Duyuru Çubuğu Metni (Topbar Announcement)</label>
-              <input
-                type="text"
-                value={siteForm.announcementText}
-                onChange={(e) => setSiteForm({ ...siteForm, announcementText: e.target.value })}
-                className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3"
-              />
-            </div>
-
-            <div>
-              <label className="block font-bold text-[#3E2E28] mb-1">Ana Sayfa Hero Başlığı</label>
-              <input
-                type="text"
-                value={siteForm.heroTitle}
-                onChange={(e) => setSiteForm({ ...siteForm, heroTitle: e.target.value })}
-                className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3"
-              />
-            </div>
-
-            <div>
-              <label className="block font-bold text-[#3E2E28] mb-1">Ana Sayfa Renkli Vurgu Metni</label>
-              <input
-                type="text"
-                value={siteForm.heroHighlightText}
-                onChange={(e) => setSiteForm({ ...siteForm, heroHighlightText: e.target.value })}
-                className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3 text-[#C86D51] font-bold"
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block font-bold text-[#3E2E28] mb-1">Ana Sayfa Açıklama Metni</label>
-              <textarea
-                rows={3}
-                value={siteForm.heroDescription}
-                onChange={(e) => setSiteForm({ ...siteForm, heroDescription: e.target.value })}
-                className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3"
-              />
-            </div>
-          </div>
-
-          {/* Menü Linklerini Düzenleme */}
-          <div className="border-t border-[#E6DCD3] pt-6 space-y-3">
-            <h4 className="font-serif font-bold text-sm text-[#3E2E28]">Ana Menü Bağlantı İsimleri</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {siteForm.navLinks.map((link, idx) => (
-                <div key={idx} className="flex gap-2 items-center">
-                  <input
-                    type="text"
-                    value={link.label}
-                    onChange={(e) => {
-                      const updatedLinks = [...siteForm.navLinks];
-                      updatedLinks[idx].label = e.target.value;
-                      setSiteForm({ ...siteForm, navLinks: updatedLinks });
-                    }}
-                    className="flex-1 bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5 text-xs font-medium"
-                  />
-                  <span className="text-[10px] text-[#7C6354] font-mono">{link.href}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-[#E6DCD3]">
-            <button
-              type="submit"
-              className="w-full py-4 bg-[#C86D51] text-white text-xs font-semibold rounded-full hover:bg-[#B05B41] transition shadow-lg flex items-center justify-center gap-2"
-            >
-              <Save className="w-4 h-4" /> Değişiklikleri Kaydet & Sitede Yayınla
-            </button>
           </div>
         </form>
       )}

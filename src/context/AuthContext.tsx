@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { UserProfile, SiteSettings, DEFAULT_SITE_SETTINGS, Product } from "@/data/mockData";
+import { SiteTexts, DEFAULT_SITE_TEXTS } from "@/data/siteTexts";
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -11,6 +12,8 @@ interface AuthContextType {
   isAdmin: boolean;
   settings: SiteSettings;
   updateSettings: (newSettings: SiteSettings) => void;
+  siteTexts: SiteTexts;
+  updateSiteTexts: (newTexts: SiteTexts) => void;
   products: Product[];
   addProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
@@ -29,6 +32,7 @@ export const HARDCODED_ADMIN = {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
+  const [siteTexts, setSiteTexts] = useState<SiteTexts>(DEFAULT_SITE_TEXTS);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -43,6 +47,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Site ayarları yükle
       const savedSettings = localStorage.getItem("otantikos_settings");
       if (savedSettings) setSettings(JSON.parse(savedSettings));
+
+      // Site yazıları yükle
+      const savedSiteTexts = localStorage.getItem("otantikos_site_texts");
+      if (savedSiteTexts) setSiteTexts(JSON.parse(savedSiteTexts));
 
       // Ürünleri yükle
       const savedProducts = localStorage.getItem("otantikos_products");
@@ -119,6 +127,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem("otantikos_settings", JSON.stringify(newSettings));
   };
 
+  const updateSiteTexts = (newTexts: SiteTexts) => {
+    setSiteTexts(newTexts);
+    localStorage.setItem("otantikos_site_texts", JSON.stringify(newTexts));
+  };
+
   const addProduct = (prod: Product) => {
     const updated = [prod, ...products];
     setProducts(updated);
@@ -149,6 +162,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAdmin,
         settings,
         updateSettings,
+        siteTexts,
+        updateSiteTexts,
         products,
         addProduct,
         deleteProduct,

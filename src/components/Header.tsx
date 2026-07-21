@@ -10,7 +10,6 @@ import {
   User,
   Menu,
   X,
-  ChevronDown,
   Sparkles,
   ShieldCheck,
   Truck,
@@ -23,7 +22,7 @@ import { useAuth } from "@/context/AuthContext";
 export default function Header() {
   const router = useRouter();
   const { totalItems } = useCart();
-  const { user, isAdmin, logout, settings } = useAuth();
+  const { user, isAdmin, logout, settings, siteTexts } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -38,12 +37,12 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full transition-all">
-      {/* Üst Duyuru Çubuğu (Top Bar - Admin Panelinden Düzenlenebilir) */}
+      {/* Üst Duyuru Çubuğu (Top Bar) */}
       <div className="bg-[#3E2E28] text-[#F8F5F0] text-xs py-2 px-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5 text-[#C86D51] animate-pulse" />
-            <span>{settings.announcementText}</span>
+            <span>{siteTexts?.header?.topbarText || settings.announcementText}</span>
           </div>
           <div className="hidden md:flex items-center gap-6 text-[11px] text-[#D8C7B5]">
             <span className="flex items-center gap-1"><Truck className="w-3 h-3" /> Hızlı & Özenli Teslimat</span>
@@ -101,13 +100,20 @@ export default function Header() {
               </div>
             </Link>
 
-            {/* Masaüstü Navigasyon Linkleri (Admin Paneli ile dinamik düzenlenebilir) */}
+            {/* Masaüstü Navigasyon Linkleri */}
             <nav className="hidden md:flex items-center space-x-8 text-sm font-medium text-[#3E2E28]">
-              {settings.navLinks.map((link, idx) => (
-                <Link key={idx} href={link.href} className="hover:text-[#C86D51] transition">
-                  {link.label}
-                </Link>
-              ))}
+              <Link href="/" className="hover:text-[#C86D51] transition">
+                {siteTexts?.header?.navHome || "Ana Sayfa"}
+              </Link>
+              <Link href="/urunler" className="hover:text-[#C86D51] transition">
+                {siteTexts?.header?.navAllProducts || "Tüm Ürünler"}
+              </Link>
+              <Link href="/kategori/trend-oyuncak-squishy" className="hover:text-[#C86D51] transition">
+                {siteTexts?.header?.navSquishy || "Trend Oyuncak & Squishy"}
+              </Link>
+              <Link href="/kategori/bijuteri-taki" className="hover:text-[#C86D51] transition">
+                {siteTexts?.header?.navJewelry || "Bijuteri & Takı"}
+              </Link>
 
               {/* Sadece Admin Kullanıcılar Görebilir */}
               {isAdmin && (
@@ -125,7 +131,7 @@ export default function Header() {
               <form onSubmit={handleSearch} className="hidden lg:flex items-center relative">
                 <input
                   type="text"
-                  placeholder="Squishy, bijuteri, oyuncak ara..."
+                  placeholder={siteTexts?.header?.searchPlaceholder || "Squishy, bijuteri ara..."}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-48 xl:w-64 bg-[#EAE0D5]/50 border border-[#D8C7B5] rounded-full py-2 pl-4 pr-10 text-xs text-[#3E2E28] placeholder-[#7C6354] focus:outline-none focus:ring-2 focus:ring-[#C86D51] transition"
@@ -142,7 +148,9 @@ export default function Header() {
                 title={user ? `Hesabım (${user.name})` : "Giriş Yap / Kayıt Ol"}
               >
                 <User className="w-5 h-5" />
-                {user && <span className="text-xs font-semibold max-w-[80px] truncate">{user.name}</span>}
+                <span className="text-xs font-semibold max-w-[80px] truncate">
+                  {user ? user.name : (siteTexts?.header?.accountLabel || "Hesabım")}
+                </span>
               </Link>
 
               {/* Sepet Butonu */}
@@ -170,7 +178,7 @@ export default function Header() {
           <form onSubmit={handleSearch} className="flex items-center gap-2">
             <input
               type="text"
-              placeholder="Squishy, bijuteri, oyuncak ara..."
+              placeholder={siteTexts?.header?.searchPlaceholder || "Squishy, bijuteri ara..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 bg-white border border-[#D8C7B5] rounded-lg py-2 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#C86D51]"
@@ -202,16 +210,18 @@ export default function Header() {
               </div>
 
               <div className="py-6 flex flex-col space-y-4">
-                {settings.navLinks.map((link, idx) => (
-                  <Link
-                    key={idx}
-                    href={link.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="text-base font-medium text-[#3E2E28]"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
+                <Link href="/" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-[#3E2E28]">
+                  {siteTexts?.header?.navHome || "Ana Sayfa"}
+                </Link>
+                <Link href="/urunler" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-[#3E2E28]">
+                  {siteTexts?.header?.navAllProducts || "Tüm Ürünler"}
+                </Link>
+                <Link href="/kategori/trend-oyuncak-squishy" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-[#3E2E28]">
+                  {siteTexts?.header?.navSquishy || "Trend Oyuncak & Squishy"}
+                </Link>
+                <Link href="/kategori/bijuteri-taki" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-[#3E2E28]">
+                  {siteTexts?.header?.navJewelry || "Bijuteri & Takı"}
+                </Link>
 
                 {isAdmin && (
                   <Link
