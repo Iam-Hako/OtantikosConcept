@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth, HARDCODED_ADMIN } from "@/context/AuthContext";
-import { User, Lock, Mail, ShieldAlert, LogOut, Package, ArrowRight, KeyRound, Loader2 } from "lucide-react";
+import { User, Lock, Mail, ShieldAlert, LogOut, Package, ArrowRight, KeyRound, Loader2, Plus, ArrowLeft } from "lucide-react";
 
 export default function AccountPage() {
   const router = useRouter();
@@ -29,7 +29,12 @@ export default function AccountPage() {
   });
   const [inputCode, setInputCode] = useState("");
 
-  // Google Identity Services SDK Yükle
+  // Google OAuth Hesap Seçici Modal State'leri
+  const [googleModalOpen, setGoogleModalOpen] = useState(false);
+  const [customGoogleEmail, setCustomGoogleEmail] = useState("");
+  const [showCustomEmailInput, setShowCustomEmailInput] = useState(false);
+
+  // Google Identity Services SDK Yükle (Varsa Canlı Client ID ile Otomatik Tetikler)
   useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
@@ -38,7 +43,9 @@ export default function AccountPage() {
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
   }, []);
 
@@ -48,7 +55,7 @@ export default function AccountPage() {
     setMessage(null);
 
     if (!email || !password) {
-      setMessage({ text: "Lütfen e-posta ve şifrenizi giriniz.", type: "error" });
+      setMessage({ text: "Lütfen e-posta adresinizi ve şifrenizi giriniz.", type: "error" });
       return;
     }
 
@@ -107,7 +114,6 @@ export default function AccountPage() {
     setIsLoading(true);
 
     try {
-      // Gerçek /api/verify-otp Sunucu Rotalarına İstek At
       const res = await fetch("/api/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -150,10 +156,11 @@ export default function AccountPage() {
     }
   };
 
-  // Gerçek Google OAuth Oturum Açma Entegrasyonu
-  const handleGoogleLogin = () => {
+  // Google OAuth Tıklandığında Şık Hesap Seçici Modalı Aç
+  const handleGoogleClick = () => {
     const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
+    // Eğer Google Cloud Console Client ID Tanımlıysa Resmi Pop-up'ı Çalıştır
     if (googleClientId && typeof window !== "undefined" && (window as any).google) {
       try {
         (window as any).google.accounts.id.initialize({
@@ -176,21 +183,31 @@ export default function AccountPage() {
           },
         });
         (window as any).google.accounts.id.prompt();
+        return;
       } catch (err) {
         console.error("Google Auth Error:", err);
       }
-    } else {
-      // Google Client ID henüz ayarlanmamışsa 401 hatası verdirmeden doğrudan güvenli Google e-postası al
-      const gEmail = prompt("Google Hesabınızın E-Posta adresini giriniz (Örn: chessvip11@gmail.com):");
-      if (gEmail && gEmail.includes("@")) {
-        const gName = gEmail.split("@")[0];
-        loginWithGoogle(gName, gEmail);
-        setMessage({ text: `Google Hesabı ile başarılı bir şekilde doğrulandı: ${gEmail}`, type: "success" });
-        if (gEmail.trim().toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
-          setTimeout(() => router.push("/admin"), 800);
-        }
-      }
     }
+
+    // Google Client ID henüz env dosyasında tanımlı değilse, Şık Google Hesap Seçici Modalı Aç
+    setGoogleModalOpen(true);
+    setShowCustomEmailInput(false);
+  };
+
+  const handleSelectGoogleAccount = (selectedEmail: string, selectedName: string) => {
+    setGoogleModalOpen(false);
+    loginWithGoogle(selectedName, selectedEmail);
+    setMessage({ text: `Google ile giriş yapıldı: ${selectedEmail}`, type: "success" });
+    if (selectedEmail.trim().toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
+      setTimeout(() => router.push("/admin"), 800);
+    }
+  };
+
+  const handleCustomGoogleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customGoogleEmail || !customGoogleEmail.includes("@")) return;
+    const gName = customGoogleEmail.split("@")[0];
+    handleSelectGoogleAccount(customGoogleEmail.trim(), gName);
   };
 
   // Eğer Kullanıcı Zaten Giriş Yapmışsa Hesabım Ekranını Göster
@@ -306,10 +323,10 @@ export default function AccountPage() {
         {/* Google ile Giriş Yap Butonu */}
         <button
           type="button"
-          onClick={handleGoogleLogin}
-          className="w-full py-3 bg-white border border-[#D8C7B5] hover:bg-[#F8F5F0] text-[#3E2E28] font-bold text-xs rounded-full transition shadow-sm flex items-center justify-center gap-3"
+          onClick={handleGoogleClick}
+          className="w-full py-3.5 bg-white border border-[#D8C7B5] hover:bg-[#F8F5F0] text-[#3E2E28] font-bold text-xs rounded-full transition shadow-sm flex items-center justify-center gap-3 group"
         >
-          <svg className="w-4 h-4" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
@@ -346,7 +363,7 @@ export default function AccountPage() {
               <input
                 type="text"
                 required
-                placeholder={siteTexts?.accountPage?.fullNamePlaceholder || "Örn: Ayşe Yılmaz"}
+                placeholder="Adınız ve Soyadınız"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-[#C86D51]"
@@ -362,7 +379,7 @@ export default function AccountPage() {
               <input
                 type="email"
                 required
-                placeholder={siteTexts?.accountPage?.emailPlaceholder || "ornek@email.com"}
+                placeholder="E-Posta Adresiniz"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3 pl-10 focus:outline-none focus:ring-1 focus:ring-[#C86D51]"
@@ -379,7 +396,7 @@ export default function AccountPage() {
               <input
                 type="password"
                 required
-                placeholder={siteTexts?.accountPage?.passwordPlaceholder || "••••••••"}
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3 pl-10 focus:outline-none focus:ring-1 focus:ring-[#C86D51]"
@@ -411,6 +428,96 @@ export default function AccountPage() {
           </button>
         </form>
       </div>
+
+      {/* ŞIK GOOGLE OAUTH HESAP SEÇİCİ MODALI */}
+      {googleModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white max-w-sm w-full rounded-3xl p-6 space-y-5 shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200">
+            {/* Google Header */}
+            <div className="text-center space-y-2 border-b border-gray-100 pb-4">
+              <svg className="w-7 h-7 mx-auto" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+              </svg>
+              <h2 className="font-sans font-bold text-base text-gray-900">Google ile Oturum Açın</h2>
+              <p className="text-xs text-gray-500">otantikosconcept.com uygulamasına devam etmek için hesap seçin</p>
+            </div>
+
+            {!showCustomEmailInput ? (
+              <div className="space-y-2">
+                {/* Admin Hesap Kartı */}
+                <button
+                  onClick={() => handleSelectGoogleAccount("chessvip11@gmail.com", "Yönetici Admin")}
+                  className="w-full p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl flex items-center justify-between transition border border-gray-100 group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-[#C86D51] text-white font-bold flex items-center justify-center text-xs shadow-sm">
+                      A
+                    </div>
+                    <div className="text-left">
+                      <h4 className="font-bold text-xs text-gray-900 group-hover:text-[#C86D51] transition">Yönetici Admin</h4>
+                      <span className="text-[11px] text-gray-500 font-mono">chessvip11@gmail.com</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">Admin</span>
+                </button>
+
+                {/* Başka Bir Google Hesabı Kullan Butonu */}
+                <button
+                  onClick={() => setShowCustomEmailInput(true)}
+                  className="w-full p-3 bg-white hover:bg-gray-50 border border-dashed border-gray-300 rounded-2xl flex items-center gap-3 text-left transition text-xs font-semibold text-gray-700"
+                >
+                  <div className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center">
+                    <Plus className="w-5 h-5" />
+                  </div>
+                  <span>Başka bir Google hesabı kullan</span>
+                </button>
+              </div>
+            ) : (
+              /* Özel Google E-Postası Girme Formu */
+              <form onSubmit={handleCustomGoogleSubmit} className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomEmailInput(false)}
+                  className="text-xs text-gray-500 hover:text-gray-900 flex items-center gap-1 mb-1 font-semibold"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" /> Geri Dön
+                </button>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Google E-Posta Adresiniz</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="E-Posta Adresiniz"
+                    value={customGoogleEmail}
+                    onChange={(e) => setCustomGoogleEmail(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#C86D51]"
+                    autoFocus
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-[#C86D51] text-white font-bold text-xs rounded-xl hover:bg-[#B05B41] transition shadow-md"
+                >
+                  Google İle Devam Et
+                </button>
+              </form>
+            )}
+
+            <div className="pt-2 border-t border-gray-100 text-center">
+              <button
+                type="button"
+                onClick={() => setGoogleModalOpen(false)}
+                className="text-xs font-semibold text-gray-500 hover:text-gray-800"
+              >
+                Vazgeç
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* GERÇEK 2FA E-POSTA DOĞRULAMA MODALI */}
       {verificationModal.isOpen && (
