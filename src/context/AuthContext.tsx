@@ -52,9 +52,38 @@ export const HARDCODED_ADMIN = {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
-  const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
-  const [siteTexts, setSiteTexts] = useState<SiteTexts>(DEFAULT_SITE_TEXTS);
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+
+  // Senkron İlk Yükleme (Sayfa Yenilenirken Eski Metinlerin Yanıp Sönmesini Engellemek İçin)
+  const [settings, setSettings] = useState<SiteSettings>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("otantikos_permanent_settings");
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+    }
+    return DEFAULT_SITE_SETTINGS;
+  });
+
+  const [siteTexts, setSiteTexts] = useState<SiteTexts>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("otantikos_permanent_texts");
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+    }
+    return DEFAULT_SITE_TEXTS;
+  });
+
+  const [products, setProducts] = useState<Product[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("otantikos_permanent_products");
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+    }
+    return INITIAL_PRODUCTS;
+  });
+
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Global Sunucu Verisini Çek ve Senkronize Et
@@ -64,7 +93,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await res.json();
       if (data.success && data.data) {
         if (data.data.products && data.data.products.length > 0) {
-          // Eğer yerel kalıcı depo boşsa sunucu verisini al
           const savedPermProducts = localStorage.getItem("otantikos_permanent_products");
           if (!savedPermProducts) {
             setProducts(data.data.products);
@@ -105,29 +133,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
-      // 1. Önce Kalıcı Yerel Verileri Yükle (Yeni Güncelleme veya Repo Push Sonrası Kaybolmaması İçin)
-      const savedPermProducts = localStorage.getItem("otantikos_permanent_products");
-      if (savedPermProducts) {
-        try { setProducts(JSON.parse(savedPermProducts)); } catch (e) {}
-      }
-
-      const savedPermTexts = localStorage.getItem("otantikos_permanent_texts");
-      if (savedPermTexts) {
-        try { setSiteTexts(JSON.parse(savedPermTexts)); } catch (e) {}
-      }
-
-      const savedPermSettings = localStorage.getItem("otantikos_permanent_settings");
-      if (savedPermSettings) {
-        try { setSettings(JSON.parse(savedPermSettings)); } catch (e) {}
-      }
-
-      // 2. Sunucu Verilerini Çek
       fetchGlobalData();
 
       const savedUser = localStorage.getItem("otantikos_user");
       if (savedUser) {
         const parsedUser = JSON.parse(savedUser);
-        if (parsedUser.email?.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
+        if (parsedUser?.email?.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
           const freshAdmin: UserProfile = {
             id: "usr-admin-primary",
             email: HARDCODED_ADMIN.email,
@@ -149,7 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = (emailInput: string, passInput: string) => {
-    const cleanEmail = emailInput.trim().toLowerCase();
+    const cleanEmail = (emailInput || "").trim().toLowerCase();
 
     // 1. Yönetici Hesabı Kontrolü
     if (cleanEmail === HARDCODED_ADMIN.email.toLowerCase()) {
@@ -171,7 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 2. Kayıtlı Normal Kullanıcı Kontrolü
     const foundUser = registeredUsers.find(
-      (u) => u.email.toLowerCase() === cleanEmail
+      (u) => u?.email?.toLowerCase() === cleanEmail
     );
 
     if (!foundUser) {
@@ -202,9 +213,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = (nameInput: string, emailInput: string, passInput: string) => {
-    const cleanEmail = emailInput.trim().toLowerCase();
+    const cleanEmail = (emailInput || "").trim().toLowerCase();
 
-    if (!nameInput.trim()) {
+    if (!nameInput?.trim()) {
       return { success: false, error: "Lütfen ad ve soyadınızı giriniz." };
     }
 
@@ -217,7 +228,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const existing = registeredUsers.find(
-      (u) => u.email.toLowerCase() === cleanEmail
+      (u) => u?.email?.toLowerCase() === cleanEmail
     );
 
     if (existing) {
@@ -304,8 +315,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginWithGoogle = (name: string, email: string) => {
-    const cleanEmail = email.toLowerCase().trim();
-    const existing = registeredUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+    const cleanEmail = (email || "").toLowerCase().trim();
+    const existing = registeredUsers.find((u) => u?.email?.toLowerCase() === cleanEmail);
     let userRole: "admin" | "user" = cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? "admin" : "user";
     let displayName = cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? HARDCODED_ADMIN.name : name;
 

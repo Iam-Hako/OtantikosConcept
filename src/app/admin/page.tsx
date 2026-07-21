@@ -45,6 +45,7 @@ export default function AdminDashboard() {
 
   const [activeTab, setActiveTab] = useState<"products" | "users" | "chats" | "gui-texts" | "site-settings">("products");
   const [search, setSearch] = useState("");
+  const [userSearchQuery, setUserSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notification, setNotification] = useState("");
 
@@ -362,13 +363,27 @@ export default function AdminDashboard() {
       {/* TAB 2: KULLANICI YETKİLENDİRME (MULTI-ADMIN) */}
       {activeTab === "users" && (
         <div className="bg-white rounded-2xl border border-[#E6DCD3] shadow-sm p-6 space-y-6">
-          <div>
-            <h3 className="font-serif text-lg font-bold text-[#3E2E28] flex items-center gap-2">
-              <Users className="w-5 h-5 text-[#C86D51]" /> Kullanıcı & Admin Yetkilendirme Masası
-            </h3>
-            <p className="text-xs text-[#7C6354] mt-1">
-              Buradan kayıtlı kullanıcıları **Admin (Yönetici)** yetkisine yükseltebilir veya yetkilerini kaldırabilirsiniz. Admin yapılan tüm kullanıcılar ürün ekleyebilir ve canlı desteklere bakabilir.
-            </p>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-serif text-lg font-bold text-[#3E2E28] flex items-center gap-2">
+                <Users className="w-5 h-5 text-[#C86D51]" /> Kullanıcı & Admin Yetkilendirme Masası
+              </h3>
+              <p className="text-xs text-[#7C6354] mt-1">
+                Kayıtlı kullanıcılar arasında arama yapabilir, istediğiniz kullanıcılara <strong>Admin (Yönetici)</strong> yetkisi verebilir veya yetkilerini kaldırabilirsiniz.
+              </p>
+            </div>
+
+            {/* Kullanıcı Arama Çubuğu */}
+            <div className="relative w-full sm:w-72">
+              <input
+                type="text"
+                placeholder="Kullanıcı adı veya e-posta ara..."
+                value={userSearchQuery}
+                onChange={(e) => setUserSearchQuery(e.target.value)}
+                className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5 pl-9 text-xs focus:outline-none focus:ring-1 focus:ring-[#C86D51]"
+              />
+              <Search className="w-4 h-4 text-[#7C6354] absolute left-3 top-3" />
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -383,65 +398,72 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E6DCD3]">
-                {/* Sabit Ana Admin */}
+                {/* Sabit Ana Admin: Haktan Fetih Durmuş (chessvip11@gmail.com) */}
                 <tr className="bg-amber-50/40">
                   <td className="py-3.5 px-4 font-bold text-[#3E2E28] flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-[#C86D51]" /> Ana Sistem Yöneticisi
+                    <Sparkles className="w-4 h-4 text-[#C86D51]" /> Haktan Fetih Durmuş
                   </td>
-                  <td className="py-3.5 px-4 font-mono text-[#7C6354]">admin@otantikosconcept.com</td>
+                  <td className="py-3.5 px-4 font-mono text-[#7C6354]">chessvip11@gmail.com</td>
                   <td className="py-3.5 px-4">
                     <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
-                      Süper Admin
+                      Süper Admin / Developer
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-[#7C6354]">Sistem Tanımlı</td>
-                  <td className="py-3.5 px-4 text-right font-bold text-gray-400 text-[10px]">Değiştirilemez</td>
+                  <td className="py-3.5 px-4 text-right font-bold text-gray-400 text-[10px]">Ana Geliştirici</td>
                 </tr>
 
-                {/* Kayıtlı Diğer Kullanıcılar */}
-                {registeredUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-[#F8F5F0]/50 transition">
-                    <td className="py-3.5 px-4 font-bold text-[#3E2E28]">{u.name}</td>
-                    <td className="py-3.5 px-4 text-[#7C6354] font-mono">{u.email}</td>
-                    <td className="py-3.5 px-4">
-                      {u.role === "admin" ? (
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
-                          Yönetici (Admin)
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                          Müşteri
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 text-[#7C6354]">
-                      {new Date(u.createdAt).toLocaleDateString("tr-TR")}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      {u.role === "admin" ? (
-                        <button
-                          onClick={() => {
-                            updateUserRole(u.id, "user");
-                            showNotify(`${u.name} kullanıcısının admin yetkisi kaldırıldı.`);
-                          }}
-                          className="px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-xs font-semibold flex items-center gap-1 ml-auto"
-                        >
-                          <UserMinus className="w-3.5 h-3.5" /> Admin Yetkisini Al
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            updateUserRole(u.id, "admin");
-                            showNotify(`${u.name} kullanıcısına Admin yetkisi verildi!`);
-                          }}
-                          className="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg text-xs font-semibold flex items-center gap-1 ml-auto shadow-sm"
-                        >
-                          <UserCheck className="w-3.5 h-3.5" /> Admin Yap (Yetkilendir)
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {/* Kayıtlı Diğer Kullanıcılar (Filtreli) */}
+                {registeredUsers
+                  .filter(
+                    (u) =>
+                      u?.email?.toLowerCase() !== "chessvip11@gmail.com" &&
+                      (u?.name?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+                        u?.email?.toLowerCase().includes(userSearchQuery.toLowerCase()))
+                  )
+                  .map((u) => (
+                    <tr key={u.id} className="hover:bg-[#F8F5F0]/50 transition">
+                      <td className="py-3.5 px-4 font-bold text-[#3E2E28]">{u.name}</td>
+                      <td className="py-3.5 px-4 text-[#7C6354] font-mono">{u.email}</td>
+                      <td className="py-3.5 px-4">
+                        {u.role === "admin" ? (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
+                            Yönetici (Admin)
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                            Müşteri
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-[#7C6354]">
+                        {new Date(u.createdAt).toLocaleDateString("tr-TR")}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        {u.role === "admin" ? (
+                          <button
+                            onClick={() => {
+                              updateUserRole(u.id, "user");
+                              showNotify(`${u.name} kullanıcısının admin yetkisi kaldırıldı.`);
+                            }}
+                            className="px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-xs font-semibold flex items-center gap-1 ml-auto"
+                          >
+                            <UserMinus className="w-3.5 h-3.5" /> Admin Yetkisini Al
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              updateUserRole(u.id, "admin");
+                              showNotify(`${u.name} kullanıcısına Admin yetkisi verildi!`);
+                            }}
+                            className="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg text-xs font-semibold flex items-center gap-1 ml-auto shadow-sm"
+                          >
+                            <UserCheck className="w-3.5 h-3.5" /> Admin Yap (Yetkilendir)
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
