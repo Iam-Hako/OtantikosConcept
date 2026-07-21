@@ -3,40 +3,14 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ShieldCheck, RefreshCw, Headphones, Mail, Share2, Globe, Truck } from "lucide-react";
+import { Mail, Share2, Globe } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Footer() {
   const { siteTexts, isAdmin } = useAuth();
 
   return (
-    <footer className="bg-[#3E2E28] text-[#F8F5F0] pt-16 pb-12 border-t-4 border-[#C86D51]">
-      {/* Güven Rozetleri Çubuğu */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 border-b border-[#5A453C]">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-          <div className="flex flex-col items-center p-4 rounded-xl bg-[#4A3B32]/40">
-            <Truck className="w-8 h-8 text-[#C86D51] mb-2" />
-            <h4 className="text-sm font-semibold">{siteTexts?.footer?.trust1Title || "Özenli Paketleme"}</h4>
-            <p className="text-xs text-[#D8C7B5] mt-1">{siteTexts?.footer?.trust1Desc || "Hasarsız & Hızlı Teslimat"}</p>
-          </div>
-          <div className="flex flex-col items-center p-4 rounded-xl bg-[#4A3B32]/40">
-            <ShieldCheck className="w-8 h-8 text-[#C86D51] mb-2" />
-            <h4 className="text-sm font-semibold">{siteTexts?.footer?.trust2Title || "Güvenli Ödeme"}</h4>
-            <p className="text-xs text-[#D8C7B5] mt-1">{siteTexts?.footer?.trust2Desc || "SSL Koruma"}</p>
-          </div>
-          <div className="flex flex-col items-center p-4 rounded-xl bg-[#4A3B32]/40">
-            <RefreshCw className="w-8 h-8 text-[#C86D51] mb-2" />
-            <h4 className="text-sm font-semibold">{siteTexts?.footer?.trust3Title || "Kolay İade"}</h4>
-            <p className="text-xs text-[#D8C7B5] mt-1">{siteTexts?.footer?.trust3Desc || "İade Garantisi"}</p>
-          </div>
-          <div className="flex flex-col items-center p-4 rounded-xl bg-[#4A3B32]/40">
-            <Headphones className="w-8 h-8 text-[#C86D51] mb-2" />
-            <h4 className="text-sm font-semibold">{siteTexts?.footer?.trust4Title || "Müşteri Desteği"}</h4>
-            <p className="text-xs text-[#D8C7B5] mt-1">{siteTexts?.footer?.trust4Desc || "Kesintisiz Hizmet"}</p>
-          </div>
-        </div>
-      </div>
-
+    <footer className="bg-[#3E2E28] text-[#F8F5F0] pt-12 pb-12 border-t-4 border-[#C86D51]">
       {/* Ana Footer İçeriği */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
         
