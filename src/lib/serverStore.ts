@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import https from "https";
 import { Product, SiteSettings, INITIAL_PRODUCTS, DEFAULT_SITE_SETTINGS } from "@/data/mockData";
 import { SiteTexts, DEFAULT_SITE_TEXTS } from "@/data/siteTexts";
 import { RegisteredUser, HARDCODED_ADMIN, defaultAdminUser } from "@/lib/constants";
@@ -15,33 +16,74 @@ export interface GlobalStore {
 
 export { defaultAdminUser };
 
-// 100% CANLI KESİNTİSİZ BULUT VERİTABANI BLOB URL'Sİ
+// 100% CANLI KESİNTİSİZ BULUT VERİTABANI BLOB URL'Sİ (NODE HTTPS ENGINE)
 const CLOUD_DB_URL = "https://jsonblob.com/api/jsonBlob/019f85f9-d806-7a17-9be6-11288979e091";
 
 const getWritableFilePath = () => path.join("/tmp", "otantikos_persistentStore.json");
 const getSeedFilePath = () => path.join(process.cwd(), "src", "data", "persistentStore.json");
 
+const httpGetCloudStore = (): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    https
+      .get(`${CLOUD_DB_URL}?t=${Date.now()}`, { headers: { Accept: "application/json" } }, (res) => {
+        let body = "";
+        res.on("data", (chunk) => (body += chunk));
+        res.on("end", () => {
+          try {
+            if (res.statusCode === 200) {
+              resolve(JSON.parse(body));
+            } else {
+              reject(new Error(`HTTP GET Status: ${res.statusCode}`));
+            }
+          } catch (e) {
+            reject(e);
+          }
+        });
+      })
+      .on("error", (e) => reject(e));
+  });
+};
+
+const httpPutCloudStore = (storeData: any): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify(storeData);
+    const req = https.request(
+      CLOUD_DB_URL,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(payload),
+          Accept: "application/json",
+        },
+      },
+      (res) => {
+        let body = "";
+        res.on("data", (chunk) => (body += chunk));
+        res.on("end", () => {
+          if (res.statusCode === 200 || res.statusCode === 201) {
+            resolve();
+          } else {
+            reject(new Error(`HTTP PUT Status: ${res.statusCode}`));
+          }
+        });
+      }
+    );
+
+    req.on("error", (e) => reject(e));
+    req.write(payload);
+    req.end();
+  });
+};
+
 export const fetchCloudStore = async (): Promise<GlobalStore> => {
   try {
-    const freshUrl = `${CLOUD_DB_URL}?t=${Date.now()}`;
-    const res = await fetch(freshUrl, {
-      cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-    });
-    if (res.ok) {
-      const parsed = await res.json();
-      console.log("[FETCH_CLOUD] OK. Users in cloud:", parsed?.registeredUsers?.length);
-      if (parsed && typeof parsed === "object") {
-        return sanitizeStore(parsed);
-      }
-    } else {
-      console.error("[FETCH_CLOUD] non-ok status:", res.status);
+    const parsed = await httpGetCloudStore();
+    if (parsed && typeof parsed === "object") {
+      return sanitizeStore(parsed);
     }
   } catch (e) {
-    console.error("[FETCH_CLOUD] exception:", e);
+    console.error("Native HTTPS Cloud DB fetch exception:", e);
   }
 
   return loadStoreFromDisk();
@@ -51,20 +93,9 @@ export const saveCloudStore = async (storeData: GlobalStore): Promise<GlobalStor
   const sanitized = sanitizeStore(storeData);
 
   try {
-    const res = await fetch(CLOUD_DB_URL, {
-      method: "PUT",
-      cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(sanitized),
-    });
-    if (!res.ok) {
-      console.error("Cloud DB PUT failed with status:", res.status);
-    }
+    await httpPutCloudStore(sanitized);
   } catch (e) {
-    console.error("Cloud DB save exception:", e);
+    console.error("Native HTTPS Cloud DB save exception:", e);
   }
 
   saveStoreToDisk(sanitized);
