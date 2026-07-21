@@ -212,7 +212,7 @@ export default function CheckoutPage() {
                     : "bg-[#F8F5F0] text-[#3E2E28] border-[#D8C7B5]"
                 }`}
               >
-                <CreditCard className="w-4 h-4" /> {siteTexts?.checkoutPage?.cardOptionTitle || "Kredi / Banka Kartı"}
+                <CreditCard className="w-4 h-4" /> Kredi / Banka Kartı
               </button>
               <button
                 type="button"
@@ -223,7 +223,7 @@ export default function CheckoutPage() {
                     : "bg-[#F8F5F0] text-[#3E2E28] border-[#D8C7B5]"
                 }`}
               >
-                {siteTexts?.checkoutPage?.codOptionTitle || "Kapıda Ödeme"}
+                Havale / EFT ile Ödeme
               </button>
             </div>
 
@@ -283,8 +283,8 @@ export default function CheckoutPage() {
               </div>
             ) : (
               <div className="p-4 bg-[#F8F5F0] rounded-xl text-xs text-[#7C6354] space-y-2 border border-[#D8C7B5]">
-                <p className="font-bold text-[#3E2E28]">Kapıda Ödeme Bilgileri:</p>
-                <p>Siparişiniz teslim edilirken kapıda kuryeye nakit veya Kredi Kartı (POS) ile ödeme yapabilirsiniz.</p>
+                <p className="font-bold text-[#3E2E28]">Havale / EFT Hesap Bilgileri:</p>
+                <p>Sipariş tutarını <strong>TR98 0006 2000 0000 1234 5678 90</strong> IBAN numarasına göndererek siparişinizi onaylayabilirsiniz.</p>
               </div>
             )}
           </div>
