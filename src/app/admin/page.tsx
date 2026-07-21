@@ -724,14 +724,37 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="block font-semibold mb-1 text-[#3E2E28]">Görsel URL</label>
-                <input
-                  type="text"
-                  required
-                  value={newProduct.image}
-                  onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
-                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
-                />
+                <label className="block font-semibold mb-1 text-[#3E2E28]">Ürün Görseli (Bilgisayardan Seçin veya URL Yapıştırın)</label>
+                <div className="space-y-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setNewProduct({ ...newProduct, image: reader.result as string });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2 text-xs file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#C86D51] file:text-white hover:file:bg-[#B05B41] cursor-pointer"
+                  />
+                  {newProduct.image && (
+                    <div className="flex items-center gap-3 bg-[#F8F5F0] p-2 rounded-xl border border-[#D8C7B5]">
+                      <img src={newProduct.image} alt="Önizleme" className="w-12 h-12 object-cover rounded-lg border border-[#E6DCD3]" />
+                      <span className="text-[10px] text-emerald-700 font-bold">✓ Görsel Başarıyla Yüklendi</span>
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    placeholder="veya https://... web adresi yapıştırın"
+                    value={newProduct.image.startsWith("data:") ? "" : newProduct.image}
+                    onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
+                    className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2 text-xs"
+                  />
+                </div>
               </div>
 
               <div>

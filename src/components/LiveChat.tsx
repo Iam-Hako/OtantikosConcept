@@ -58,12 +58,6 @@ export default function LiveChat() {
         setChatData(chats[activeEmail.toLowerCase()]);
         setHasStarted(true);
       }
-
-      if (selectedCustomerEmail && chats[selectedCustomerEmail.toLowerCase()]) {
-        // Sohbet güncel tutuluyor
-      } else if (!selectedCustomerEmail && Object.keys(chats).length > 0) {
-        setSelectedCustomerEmail(Object.keys(chats)[0]);
-      }
     } catch (e) {
       console.error("Chat loading error:", e);
     }
@@ -77,8 +71,9 @@ export default function LiveChat() {
   }, [user, activeEmail]);
 
   useEffect(() => {
+    if (!isOpen) return;
     loadChats();
-    const interval = setInterval(loadChats, 800);
+    const interval = setInterval(loadChats, 2000);
     const handleStorage = () => loadChats();
 
     window.addEventListener("storage", handleStorage);
