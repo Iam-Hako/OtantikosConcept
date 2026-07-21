@@ -64,13 +64,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await res.json();
       if (data.success && data.data) {
         if (data.data.products && data.data.products.length > 0) {
-          setProducts(data.data.products);
+          // Eğer yerel kalıcı depo boşsa sunucu verisini al
+          const savedPermProducts = localStorage.getItem("otantikos_permanent_products");
+          if (!savedPermProducts) {
+            setProducts(data.data.products);
+          }
         }
         if (data.data.siteTexts) {
-          setSiteTexts(data.data.siteTexts);
+          const savedPermTexts = localStorage.getItem("otantikos_permanent_texts");
+          if (!savedPermTexts) {
+            setSiteTexts(data.data.siteTexts);
+          }
         }
         if (data.data.siteSettings) {
-          setSettings(data.data.siteSettings);
+          const savedPermSettings = localStorage.getItem("otantikos_permanent_settings");
+          if (!savedPermSettings) {
+            setSettings(data.data.siteSettings);
+          }
         }
         if (data.data.registeredUsers && data.data.registeredUsers.length > 0) {
           setRegisteredUsers(data.data.registeredUsers);
@@ -95,8 +105,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
+      // 1. Önce Kalıcı Yerel Verileri Yükle (Yeni Güncelleme veya Repo Push Sonrası Kaybolmaması İçin)
+      const savedPermProducts = localStorage.getItem("otantikos_permanent_products");
+      if (savedPermProducts) {
+        try { setProducts(JSON.parse(savedPermProducts)); } catch (e) {}
+      }
+
+      const savedPermTexts = localStorage.getItem("otantikos_permanent_texts");
+      if (savedPermTexts) {
+        try { setSiteTexts(JSON.parse(savedPermTexts)); } catch (e) {}
+      }
+
+      const savedPermSettings = localStorage.getItem("otantikos_permanent_settings");
+      if (savedPermSettings) {
+        try { setSettings(JSON.parse(savedPermSettings)); } catch (e) {}
+      }
+
+      // 2. Sunucu Verilerini Çek
       fetchGlobalData();
-      const interval = setInterval(fetchGlobalData, 3000);
 
       const savedUser = localStorage.getItem("otantikos_user");
       if (savedUser) {
@@ -115,7 +141,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(parsedUser);
         }
       }
-      return () => clearInterval(interval);
     } catch (e) {
       console.error("AuthContext loading error:", e);
     } finally {
@@ -235,34 +260,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateSettings = (newSettings: SiteSettings) => {
     setSettings(newSettings);
-    localStorage.setItem("otantikos_settings", JSON.stringify(newSettings));
+    localStorage.setItem("otantikos_permanent_settings", JSON.stringify(newSettings));
     syncGlobal("update-settings", newSettings);
   };
 
   const updateSiteTexts = (newTexts: SiteTexts) => {
     setSiteTexts(newTexts);
-    localStorage.setItem("otantikos_site_texts", JSON.stringify(newTexts));
+    localStorage.setItem("otantikos_permanent_texts", JSON.stringify(newTexts));
     syncGlobal("update-texts", newTexts);
   };
 
   const addProduct = (prod: Product) => {
     const updated = [prod, ...products];
     setProducts(updated);
-    localStorage.setItem("otantikos_products", JSON.stringify(updated));
+    localStorage.setItem("otantikos_permanent_products", JSON.stringify(updated));
     syncGlobal("update-products", updated);
   };
 
   const deleteProduct = (id: string) => {
     const updated = products.filter((p) => p.id !== id);
     setProducts(updated);
-    localStorage.setItem("otantikos_products", JSON.stringify(updated));
+    localStorage.setItem("otantikos_permanent_products", JSON.stringify(updated));
     syncGlobal("update-products", updated);
   };
 
   const updateProduct = (updatedProd: Product) => {
     const updated = products.map((p) => (p.id === updatedProd.id ? updatedProd : p));
     setProducts(updated);
-    localStorage.setItem("otantikos_products", JSON.stringify(updated));
+    localStorage.setItem("otantikos_permanent_products", JSON.stringify(updated));
     syncGlobal("update-products", updated);
   };
 
