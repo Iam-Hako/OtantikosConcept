@@ -349,40 +349,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const existing = registeredUsers.find((u) => u?.email?.toLowerCase() === cleanEmail);
     let userRole: "admin" | "user" = cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? "admin" : "user";
-    let displayName = cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? HARDCODED_ADMIN.name : name;
+    let displayName = cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? HARDCODED_ADMIN.name : (name || "Google Kullanıcısı");
 
     if (existing) {
+      // 1. Zaten aynı e-posta ile kayıtlı hesabı varsa: Doğrudan o hesaba giriş yap!
       userRole = existing.role;
-      if (cleanEmail === HARDCODED_ADMIN.email.toLowerCase()) {
-        displayName = HARDCODED_ADMIN.name;
-      } else {
-        displayName = existing.name;
-      }
+      displayName = existing.name || displayName;
+
+      const userProfile: UserProfile = {
+        id: existing.id,
+        email: cleanEmail,
+        name: displayName,
+        role: userRole,
+        createdAt: existing.createdAt || "2026-07-21T00:00:00.000Z",
+      };
+
+      setUser(userProfile);
+      localStorage.setItem("otantikos_user", JSON.stringify(userProfile));
+      return { success: true };
     } else {
+      // 2. Hesabı yoksa: Google bilgileriyle sunucuya TEK TIKLA kaydet ve giriş yaptır!
       const newUser: RegisteredUser = {
         id: `usr-${Date.now()}`,
         email: cleanEmail,
         password: "google-auth-pwd",
-        name: displayName || "Google Kullanıcısı",
+        name: displayName,
         role: userRole,
         createdAt: new Date().toISOString(),
         ipAddress: "185.190.140.22 (Türkiye / İstanbul)",
         lastLoginLocation: "Türkiye / İstanbul",
         lastLoginDate: new Date().toISOString(),
       };
-      syncGlobal("register-user", newUser);
-    }
 
-    const userProfile: UserProfile = {
-      id: existing ? existing.id : `usr-g-${Date.now()}`,
-      email: cleanEmail,
-      name: displayName || "Google Kullanıcısı",
-      role: userRole,
-      createdAt: "2026-07-21T00:00:00.000Z",
-    };
-    setUser(userProfile);
-    localStorage.setItem("otantikos_user", JSON.stringify(userProfile));
-    return { success: true };
+      syncGlobal("register-user", newUser);
+
+      const userProfile: UserProfile = {
+        id: newUser.id,
+        email: cleanEmail,
+        name: displayName,
+        role: userRole,
+        createdAt: newUser.createdAt,
+      };
+
+      setUser(userProfile);
+      localStorage.setItem("otantikos_user", JSON.stringify(userProfile));
+      return { success: true };
+    }
   };
 
   const isAdmin = user?.email?.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase() || user?.role === "admin";

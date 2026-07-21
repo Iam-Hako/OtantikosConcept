@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth, HARDCODED_ADMIN } from "@/context/AuthContext";
-import { User, Lock, Mail, ShieldAlert, LogOut, Package, ArrowRight, Loader2, Edit3 } from "lucide-react";
+import { User, Lock, Mail, ShieldAlert, LogOut, Package, ArrowRight, Loader2 } from "lucide-react";
 
 export default function AccountPage() {
   const router = useRouter();
@@ -16,15 +16,6 @@ export default function AccountPage() {
   const [name, setName] = useState("");
   const [message, setMessage] = useState<{ text: string; type: "error" | "success" } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Kullanıcı Adı Belirleme Aşaması State'i (Kaydolurken Son Aşama)
-  const [pendingDisplayNameCompletion, setPendingDisplayNameCompletion] = useState<{
-    email: string;
-    isGoogle: boolean;
-    defaultName: string;
-    password?: string;
-  } | null>(null);
-  const [customDisplayName, setCustomDisplayName] = useState("");
 
   // Google Identity Services SDK Yükle
   useEffect(() => {
@@ -61,27 +52,23 @@ export default function AccountPage() {
     }
   }, [registeredUsers]);
 
-  // Google Giriş Başarılı
+  // Google Giriş / Kayıt İşlemi (1-Tık Otomatik Mantık)
   const handleGoogleSuccess = (googleName: string, googleEmail: string) => {
     try {
       if (!googleEmail) return;
       const cleanEmail = googleEmail.trim().toLowerCase();
+      const finalName = googleName?.trim() || cleanEmail.split("@")[0];
 
-      const existing = (registeredUsers || []).find((u) => u?.email && u.email.toLowerCase() === cleanEmail);
-
-      if (existing) {
-        loginWithGoogle(existing.name || googleName || "Google Kullanıcısı", cleanEmail);
-        setMessage({ text: "Giriş başarılı! Yönlendiriliyorsunuz...", type: "success" });
+      // Eğer kullanıcı zaten kayıtlıysa mevcut hesaba anında giriş yapar,
+      // kayıtlı değilse Google ad ve e-postasıyla hesabı anında oluşturup giriş yapar!
+      const res = loginWithGoogle(finalName, cleanEmail);
+      if (res.success) {
+        setMessage({ text: "Google ile giriş başarılı! Yönlendiriliyorsunuz...", type: "success" });
         if (cleanEmail === HARDCODED_ADMIN.email.toLowerCase()) {
-          setTimeout(() => router.push("/admin"), 600);
+          setTimeout(() => router.push("/admin"), 500);
         }
       } else {
-        setPendingDisplayNameCompletion({
-          email: cleanEmail,
-          isGoogle: true,
-          defaultName: cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? HARDCODED_ADMIN.name : (googleName || "Google Kullanıcısı"),
-        });
-        setCustomDisplayName(cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? HARDCODED_ADMIN.name : (googleName || "Google Kullanıcısı"));
+        setMessage({ text: "Google ile giriş tamamlanamadı.", type: "error" });
       }
     } catch (err) {
       console.error("Google Success Processing Error:", err);
@@ -89,7 +76,7 @@ export default function AccountPage() {
     }
   };
 
-  // E-Posta ile Giriş / Kayıt (OTP Devre Dışı)
+  // E-Posta ile Giriş / Kayıt Formu
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
@@ -113,7 +100,7 @@ export default function AccountPage() {
         setMessage({ text: loginRes.error || "Giriş yapılamadı.", type: "error" });
       }
     } else {
-      // Kayıt Olma (Ad Soyad -> Şifre -> Tamamla)
+      // Kayıt Olma
       if (!name.trim()) {
         setMessage({ text: "Lütfen adınızı ve soyadınızı giriniz.", type: "error" });
         return;
@@ -125,7 +112,6 @@ export default function AccountPage() {
         return;
       }
 
-      // Doğrudan kayıt (OTP yok)
       const regRes = register(name.trim(), cleanEmail, password);
       if (regRes.success) {
         setMessage({ text: "Hesabınız başarıyla oluşturuldu! Hoş geldiniz!", type: "success" });
@@ -138,39 +124,7 @@ export default function AccountPage() {
     }
   };
 
-  // Kullanıcı Adı Son Aşama (Google kayıt)
-  const handleCompleteDisplayName = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!pendingDisplayNameCompletion) return;
-
-    const { email: finalEmail, isGoogle, password: finalPassword } = pendingDisplayNameCompletion;
-    const finalName = customDisplayName.trim();
-
-    if (!finalName) {
-      setMessage({ text: "Lütfen adınızı ve soyadınızı yazın.", type: "error" });
-      return;
-    }
-
-    if (isGoogle) {
-      loginWithGoogle(finalName, finalEmail);
-      setMessage({ text: "Google ile kaydınız tamamlandı!", type: "success" });
-    } else {
-      const regRes = register(finalName, finalEmail, finalPassword || "");
-      if (regRes.success) {
-        setMessage({ text: "Hesabınız başarıyla oluşturuldu!", type: "success" });
-      } else {
-        setMessage({ text: regRes.error || "Kayıt tamamlanamadı.", type: "error" });
-        return;
-      }
-    }
-
-    setPendingDisplayNameCompletion(null);
-    if (finalEmail.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
-      setTimeout(() => router.push("/admin"), 800);
-    }
-  };
-
-  // Google Pop-up
+  // Google Pop-up Tıklama
   const handleGoogleClick = () => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "766304598844-equfq1204ln5mtjqdc5hk53prunqnc2m.apps.googleusercontent.com";
 
@@ -275,48 +229,6 @@ export default function AccountPage() {
     );
   }
 
-  // Kullanıcı Adı Belirleme (Google kayıt son adımı)
-  if (pendingDisplayNameCompletion) {
-    return (
-      <div className="max-w-md mx-auto px-4 py-16 animate-page-in">
-        <div className="bg-white p-8 rounded-3xl border border-[#E6DCD3] shadow-xl space-y-6">
-          <div className="text-center space-y-2">
-            <div className="w-12 h-12 bg-[#C86D51]/10 text-[#C86D51] rounded-full flex items-center justify-center mx-auto mb-2">
-              <Edit3 className="w-6 h-6" />
-            </div>
-            <h1 className="font-serif text-2xl font-bold text-[#3E2E28]">Profil Adınızı Belirleyin</h1>
-            <p className="text-xs text-[#7C6354]">Sitede ve siparişlerinizde görünecek adınızı onaylayın.</p>
-          </div>
-
-          {message && (
-            <div className={`p-3 border rounded-xl text-xs text-center font-medium ${message.type === "error" ? "bg-rose-50 text-rose-800 border-rose-200" : "bg-emerald-50 text-emerald-800 border-emerald-200"}`}>
-              {message.text}
-            </div>
-          )}
-
-          <form onSubmit={handleCompleteDisplayName} className="space-y-4 text-xs">
-            <div>
-              <label className="block font-semibold text-[#3E2E28] mb-1">Adınız Soyadınız</label>
-              <input
-                type="text"
-                required
-                placeholder="Ad Soyad"
-                value={customDisplayName}
-                onChange={(e) => setCustomDisplayName(e.target.value)}
-                className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-[#C86D51]/30 font-bold text-[#3E2E28]"
-              />
-            </div>
-
-            <button type="submit" className="w-full py-3.5 bg-[#C86D51] text-white font-semibold rounded-full hover:bg-[#B05B41] transition shadow-md text-xs flex items-center justify-center gap-2 btn-press">
-              <span>Hesabı Tamamla & Giriş Yap</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
   // Giriş / Kayıt Formu
   return (
     <div className="max-w-md mx-auto px-4 py-16 animate-page-in">
@@ -382,7 +294,6 @@ export default function AccountPage() {
 
         {/* Giriş / Kayıt Formu */}
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          {/* Ad Soyad - sadece kayıt olurken */}
           {!isLoginView && (
             <div>
               <label className="block font-semibold text-[#3E2E28] mb-1">Ad Soyad</label>
