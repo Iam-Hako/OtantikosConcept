@@ -19,6 +19,8 @@ export { defaultAdminUser };
 // 100% CANLI KESİNTİSİZ BULUT VERİTABANI BLOB URL'Sİ (NODE HTTPS ENGINE)
 const CLOUD_DB_URL = "https://jsonblob.com/api/jsonBlob/019f85f9-d806-7a17-9be6-11288979e091";
 
+let inMemoryStoreCache: GlobalStore | null = null;
+
 const getWritableFilePath = () => path.join("/tmp", "otantikos_persistentStore.json");
 const getSeedFilePath = () => path.join(process.cwd(), "src", "data", "persistentStore.json");
 
@@ -76,21 +78,35 @@ const httpPutCloudStore = (storeData: any): Promise<void> => {
   });
 };
 
-export const fetchCloudStore = async (): Promise<GlobalStore> => {
+export const fetchCloudStoreFromNetwork = async (): Promise<GlobalStore> => {
   try {
     const parsed = await httpGetCloudStore();
     if (parsed && typeof parsed === "object") {
-      return sanitizeStore(parsed);
+      const sanitized = sanitizeStore(parsed);
+      inMemoryStoreCache = sanitized;
+      return sanitized;
     }
   } catch (e) {
     console.error("Native HTTPS Cloud DB fetch exception:", e);
   }
 
-  return loadStoreFromDisk();
+  const diskStore = loadStoreFromDisk();
+  inMemoryStoreCache = diskStore;
+  return diskStore;
+};
+
+export const fetchCloudStore = async (): Promise<GlobalStore> => {
+  if (inMemoryStoreCache) {
+    // Arka planda ag verisini guncelle, aninda in-memory veriyi dondur
+    fetchCloudStoreFromNetwork().catch(() => {});
+    return inMemoryStoreCache;
+  }
+  return fetchCloudStoreFromNetwork();
 };
 
 export const saveCloudStore = async (storeData: GlobalStore): Promise<GlobalStore> => {
   const sanitized = sanitizeStore(storeData);
+  inMemoryStoreCache = sanitized;
 
   try {
     await httpPutCloudStore(sanitized);

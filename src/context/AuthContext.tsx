@@ -291,20 +291,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUserRole = (userId: string, newRole: "admin" | "user") => {
-    syncGlobal("update-user-role", { userId, role: newRole });
+    setRegisteredUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+    );
 
     if (user && user.id === userId) {
       const updatedProfile: UserProfile = { ...user, role: newRole };
       setUser(updatedProfile);
       localStorage.setItem("otantikos_user", JSON.stringify(updatedProfile));
     }
+
+    syncGlobal("update-user-role", { userId, role: newRole });
   };
 
   const updateUserPassword = (userId: string, newPass: string) => {
+    setRegisteredUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, password: newPass } : u))
+    );
+
     syncGlobal("update-user-password", { userId, newPassword: newPass });
   };
 
   const deleteUser = (userId: string) => {
+    setRegisteredUsers((prev) => prev.filter((u) => u.id !== userId));
     syncGlobal("delete-user", { userId });
   };
 
