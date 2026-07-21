@@ -33,14 +33,15 @@ export const fetchCloudStore = async (): Promise<GlobalStore> => {
     });
     if (res.ok) {
       const parsed = await res.json();
+      console.log("[FETCH_CLOUD] OK. Users in cloud:", parsed?.registeredUsers?.length);
       if (parsed && typeof parsed === "object") {
         return sanitizeStore(parsed);
       }
     } else {
-      console.error("Cloud DB fetch non-ok status:", res.status);
+      console.error("[FETCH_CLOUD] non-ok status:", res.status);
     }
   } catch (e) {
-    console.error("Cloud DB fetch exception:", e);
+    console.error("[FETCH_CLOUD] exception:", e);
   }
 
   return loadStoreFromDisk();
