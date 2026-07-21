@@ -235,29 +235,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateSettings = (newSettings: SiteSettings) => {
     setSettings(newSettings);
+    localStorage.setItem("otantikos_settings", JSON.stringify(newSettings));
     syncGlobal("update-settings", newSettings);
   };
 
   const updateSiteTexts = (newTexts: SiteTexts) => {
     setSiteTexts(newTexts);
+    localStorage.setItem("otantikos_site_texts", JSON.stringify(newTexts));
     syncGlobal("update-texts", newTexts);
   };
 
   const addProduct = (prod: Product) => {
     const updated = [prod, ...products];
     setProducts(updated);
+    localStorage.setItem("otantikos_products", JSON.stringify(updated));
     syncGlobal("update-products", updated);
   };
 
   const deleteProduct = (id: string) => {
     const updated = products.filter((p) => p.id !== id);
     setProducts(updated);
+    localStorage.setItem("otantikos_products", JSON.stringify(updated));
     syncGlobal("update-products", updated);
   };
 
   const updateProduct = (updatedProd: Product) => {
     const updated = products.map((p) => (p.id === updatedProd.id ? updatedProd : p));
     setProducts(updated);
+    localStorage.setItem("otantikos_products", JSON.stringify(updated));
     syncGlobal("update-products", updated);
   };
 

@@ -57,13 +57,15 @@ export default function AdminDashboard() {
   const [selectedChatEmail, setSelectedChatEmail] = useState<string | null>(null);
   const [adminReplyText, setAdminReplyText] = useState("");
 
-  useEffect(() => {
-    setSiteForm(settings);
-  }, [settings]);
+  const [hasInitializedForm, setHasInitializedForm] = useState(false);
 
   useEffect(() => {
-    setTextsForm(siteTexts);
-  }, [siteTexts]);
+    if (!hasInitializedForm && siteTexts && settings) {
+      setSiteForm(settings);
+      setTextsForm(siteTexts);
+      setHasInitializedForm(true);
+    }
+  }, [siteTexts, settings, hasInitializedForm]);
 
   // LocalStorage'dan Canlı Destek Sohbetlerini Çek
   const loadSupportChats = () => {
