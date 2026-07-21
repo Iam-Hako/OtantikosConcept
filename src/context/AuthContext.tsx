@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
 
   // ========================
-  // SUNUCU TEMELLİ VERİ ÇEKME (SERVER-DRIVEN ENGINE)
+  // SMART SUNUCU VERİ ÇEKME (TITREME / GIDIP GELME ENGELLEYICI RE-RENDER GUARDIAN)
   // ========================
   const fetchGlobalData = useCallback(async () => {
     try {
@@ -52,13 +52,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await res.json();
       if (data.success && data.data) {
         if (data.data.products && Array.isArray(data.data.products)) {
-          setProducts(data.data.products);
+          setProducts((prev) => (JSON.stringify(prev) !== JSON.stringify(data.data.products) ? data.data.products : prev));
         }
         if (data.data.siteTexts) {
-          setSiteTexts({ ...DEFAULT_SITE_TEXTS, ...data.data.siteTexts });
+          const mergedTexts = { ...DEFAULT_SITE_TEXTS, ...data.data.siteTexts };
+          setSiteTexts((prev) => (JSON.stringify(prev) !== JSON.stringify(mergedTexts) ? mergedTexts : prev));
         }
         if (data.data.siteSettings) {
-          setSettings(data.data.siteSettings);
+          setSettings((prev) => (JSON.stringify(prev) !== JSON.stringify(data.data.siteSettings) ? data.data.siteSettings : prev));
         }
         if (data.data.registeredUsers && Array.isArray(data.data.registeredUsers)) {
           let cleanUsers = data.data.registeredUsers.filter(
@@ -67,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!cleanUsers.some((u: RegisteredUser) => (u?.email || "").toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
             cleanUsers = [defaultAdminUser, ...cleanUsers];
           }
-          setRegisteredUsers(cleanUsers);
+          setRegisteredUsers((prev) => (JSON.stringify(prev) !== JSON.stringify(cleanUsers) ? cleanUsers : prev));
         }
       }
     } catch (err) {
@@ -84,9 +85,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       const data = await res.json();
       if (data.success && data.data) {
-        if (data.data.products) setProducts(data.data.products);
-        if (data.data.siteTexts) setSiteTexts({ ...DEFAULT_SITE_TEXTS, ...data.data.siteTexts });
-        if (data.data.siteSettings) setSettings(data.data.siteSettings);
+        if (data.data.products) {
+          setProducts((prev) => (JSON.stringify(prev) !== JSON.stringify(data.data.products) ? data.data.products : prev));
+        }
+        if (data.data.siteTexts) {
+          const merged = { ...DEFAULT_SITE_TEXTS, ...data.data.siteTexts };
+          setSiteTexts((prev) => (JSON.stringify(prev) !== JSON.stringify(merged) ? merged : prev));
+        }
+        if (data.data.siteSettings) {
+          setSettings((prev) => (JSON.stringify(prev) !== JSON.stringify(data.data.siteSettings) ? data.data.siteSettings : prev));
+        }
         if (data.data.registeredUsers) {
           let cleanUsers = data.data.registeredUsers.filter(
             (u: RegisteredUser) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
@@ -94,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!cleanUsers.some((u: RegisteredUser) => (u?.email || "").toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
             cleanUsers = [defaultAdminUser, ...cleanUsers];
           }
-          setRegisteredUsers(cleanUsers);
+          setRegisteredUsers((prev) => (JSON.stringify(prev) !== JSON.stringify(cleanUsers) ? cleanUsers : prev));
         }
       }
     } catch (err) {
@@ -128,10 +136,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Sayfa yüklendiğinde doğrudan SUNUCUDAN veri çek
     fetchGlobalData();
 
-    // 2 saniyede bir doğrudan SUNUCUDAN güncel verileri sorgula (Canlı Sunucu Polling)
+    // 3 saniyede bir akıllı arkaplan sorgusu (Smart Deep-Equal Guard ile Re-render engellenir)
     const timer = setInterval(() => {
       fetchGlobalData();
-    }, 2000);
+    }, 3000);
 
     try {
       const savedUser = localStorage.getItem("otantikos_user");
@@ -246,7 +254,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       lastLoginDate: new Date().toISOString(),
     };
 
-    // Sunucuya doğrudan yeni kullanıcıyı yazıp CEVAP ALANA KADAR BEKLE (100% Garanti Kayıt)
+    // İstemci durumunu anında guncelle
+    setRegisteredUsers((prev) => [newUserRecord, ...prev]);
+
+    // Sunucuya doğrudan yeni kullanıcıyı kaydet
     await syncGlobal("register-user", newUserRecord);
 
     const userProfile: UserProfile = {
@@ -268,25 +279,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateSettings = (newSettings: SiteSettings) => {
+    setSettings(newSettings);
     syncGlobal("update-settings", newSettings);
   };
 
   const updateSiteTexts = (newTexts: SiteTexts) => {
+    setSiteTexts(newTexts);
     syncGlobal("update-texts", newTexts);
   };
 
   const addProduct = (prod: Product) => {
     const updated = [prod, ...products];
+    setProducts(updated);
     syncGlobal("update-products", updated);
   };
 
   const deleteProduct = (id: string) => {
     const updated = products.filter((p) => p.id !== id);
+    setProducts(updated);
     syncGlobal("update-products", updated);
   };
 
   const updateProduct = (updatedProd: Product) => {
     const updated = products.map((p) => (p.id === updatedProd.id ? updatedProd : p));
+    setProducts(updated);
     syncGlobal("update-products", updated);
   };
 
@@ -326,7 +342,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let displayName = cleanEmail === HARDCODED_ADMIN.email.toLowerCase() ? HARDCODED_ADMIN.name : (name || "Google Kullanıcısı");
 
     if (existing) {
-      // 1. Zaten aynı e-posta ile kayıtlı hesabı varsa: Doğrudan o hesaba giriş yap!
       userRole = existing.role;
       displayName = existing.name || displayName;
 
@@ -342,7 +357,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem("otantikos_user", JSON.stringify(userProfile));
       return { success: true };
     } else {
-      // 2. Hesabı yoksa: Google bilgileriyle sunucuya TEK TIKLA kaydet ve giriş yaptır!
       const newUser: RegisteredUser = {
         id: `usr-${Date.now()}`,
         email: cleanEmail,
@@ -355,6 +369,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         lastLoginDate: new Date().toISOString(),
       };
 
+      setRegisteredUsers((prev) => [newUser, ...prev]);
       syncGlobal("register-user", newUser);
 
       const userProfile: UserProfile = {
