@@ -64,8 +64,8 @@ export default function HomePage() {
                   />
                 </div>
                 <h3 className="font-serif text-2xl font-bold text-[#3E2E28]">{settings.siteTitle}</h3>
-                <span className="text-xs uppercase tracking-widest text-[#7C6354] mt-1 font-semibold">{settings.siteSubtitle}</span>
-                <p className="text-xs text-[#7C6354] mt-4 max-w-xs">{siteTexts?.hero?.description || "NeeDoh Squishy Çin Mantısı, stres oyuncakları ve trend bijuteri takı tasarımları."}</p>
+                <span className="text-xs uppercase tracking-widest text-[#C86D51] mt-1 font-semibold">{settings.siteSubtitle}</span>
+                <p className="text-xs text-[#7C6354] mt-4 max-w-xs">{siteTexts?.hero?.cardBadgeDesc || "Bijuteri ve hediyelik eşya koleksiyonu."}</p>
               </div>
             </div>
 

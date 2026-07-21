@@ -62,11 +62,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Site ayarları yükle
       const savedSettings = localStorage.getItem("otantikos_settings");
-      if (savedSettings) setSettings(JSON.parse(savedSettings));
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        if (parsed.heroDescription?.includes("NeeDoh") || parsed.siteSubtitle?.includes("Specialist") || parsed.heroTitle?.includes("Trend Oyuncaklar")) {
+          setSettings(DEFAULT_SITE_SETTINGS);
+          localStorage.setItem("otantikos_settings", JSON.stringify(DEFAULT_SITE_SETTINGS));
+        } else {
+          setSettings(parsed);
+        }
+      } else {
+        setSettings(DEFAULT_SITE_SETTINGS);
+      }
 
       // Site yazıları yükle
       const savedSiteTexts = localStorage.getItem("otantikos_site_texts");
-      if (savedSiteTexts) setSiteTexts(JSON.parse(savedSiteTexts));
+      if (savedSiteTexts) {
+        const parsed = JSON.parse(savedSiteTexts);
+        if (parsed.hero?.description?.includes("NeeDoh") || parsed.hero?.title?.includes("Trend Oyuncaklar")) {
+          setSiteTexts(DEFAULT_SITE_TEXTS);
+          localStorage.setItem("otantikos_site_texts", JSON.stringify(DEFAULT_SITE_TEXTS));
+        } else {
+          setSiteTexts(parsed);
+        }
+      } else {
+        setSiteTexts(DEFAULT_SITE_TEXTS);
+      }
 
       // Ürünleri yükle
       const savedProducts = localStorage.getItem("otantikos_products");

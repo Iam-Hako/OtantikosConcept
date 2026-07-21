@@ -82,7 +82,7 @@ export default function Header() {
             </Link>
 
             {/* Masaüstü Navigasyon Linkleri */}
-            <nav className="hidden md:flex items-center space-x-6 lg:space-x-8 text-sm font-medium text-[#3E2E28]">
+            <nav className="hidden md:flex flex-1 justify-center space-x-8 lg:space-x-12 xl:space-x-16 text-sm font-medium text-[#3E2E28] px-6">
               <Link href="/" className="hover:text-[#C86D51] transition">
                 {siteTexts?.header?.navHome || "Ana Sayfa"}
               </Link>
