@@ -25,10 +25,8 @@ export const fetchCloudStore = async (): Promise<GlobalStore> => {
   try {
     const res = await fetch(CLOUD_DB_URL, {
       cache: "no-store",
-      next: { revalidate: 0 },
       headers: {
-        Pragma: "no-cache",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Content-Type": "application/json",
         Accept: "application/json",
       },
     });
@@ -48,16 +46,13 @@ export const fetchCloudStore = async (): Promise<GlobalStore> => {
 export const saveCloudStore = async (storeData: GlobalStore): Promise<void> => {
   const sanitized = sanitizeStore(storeData);
 
-  // 1. Bulut Veritabanına Yaz (Next.js Önbelleği Devre Dışı)
   try {
     const res = await fetch(CLOUD_DB_URL, {
       method: "PUT",
       cache: "no-store",
-      next: { revalidate: 0 },
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        "Cache-Control": "no-cache, no-store",
       },
       body: JSON.stringify(sanitized),
     });
@@ -68,7 +63,6 @@ export const saveCloudStore = async (storeData: GlobalStore): Promise<void> => {
     console.error("Cloud DB save error:", e);
   }
 
-  // 2. Disk Yedeklemesi Yap
   saveStoreToDisk(sanitized);
 };
 
