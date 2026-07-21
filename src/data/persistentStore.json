@@ -178,11 +178,26 @@
     "topbarText": "OtantikosConcept • Bijuteri, Hediyelik Eşya ve Trend Oyuncak Mağazası",
     "announcementText": "Bijuteri, Hediyelik Eşya ve Trend Oyuncak Koleksiyonumuzu Keşfedin!",
     "navLinks": [
-      { "label": "Ana Sayfa", "href": "/" },
-      { "label": "Tüm Ürünler", "href": "/urunler" },
-      { "label": "Bijuteri & Takı", "href": "/kategori/bijuteri-taki" },
-      { "label": "Hediyelik Eşya", "href": "/kategori/hediyelik-esya" },
-      { "label": "Trend Oyuncak & Squishy", "href": "/kategori/trend-oyuncak-squishy" }
+      {
+        "label": "Ana Sayfa",
+        "href": "/"
+      },
+      {
+        "label": "Tüm Ürünler",
+        "href": "/urunler"
+      },
+      {
+        "label": "Bijuteri & Takı",
+        "href": "/kategori/bijuteri-taki"
+      },
+      {
+        "label": "Hediyelik Eşya",
+        "href": "/kategori/hediyelik-esya"
+      },
+      {
+        "label": "Trend Oyuncak & Squishy",
+        "href": "/kategori/trend-oyuncak-squishy"
+      }
     ],
     "categories": [
       {
@@ -229,7 +244,7 @@
       "email": "azizardacanturk@gmail.com",
       "password": "ArdaPassword123",
       "name": "Arda Aziz Cantürk",
-      "role": "admin",
+      "role": "user",
       "createdAt": "2026-07-21T18:00:00.000Z",
       "ipAddress": "185.190.140.22 (Türkiye / İstanbul)",
       "lastLoginLocation": "Türkiye / İstanbul",

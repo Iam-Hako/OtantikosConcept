@@ -73,12 +73,17 @@ export async function POST(request: NextRequest) {
         }
       }
     } else if (action === "update-user-role") {
-      const { userId, role } = payload || {};
-      if (userId) {
-        store.registeredUsers = store.registeredUsers.map((u) =>
-          u && u.id === userId ? { ...u, role } : u
-        );
-      }
+      const { userId, email, role } = payload || {};
+      const cleanEmail = (email || "").toLowerCase().trim();
+      store.registeredUsers = store.registeredUsers.map((u) => {
+        if (!u) return u;
+        const matchId = userId && u.id === userId;
+        const matchEmail = cleanEmail && (u.email || "").toLowerCase().trim() === cleanEmail;
+        if (matchId || matchEmail) {
+          return { ...u, role };
+        }
+        return u;
+      });
     } else if (action === "update-user-password") {
       const { userId, newPassword } = payload || {};
       if (userId) {

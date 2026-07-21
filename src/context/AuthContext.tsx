@@ -297,17 +297,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUserRole = (userId: string, newRole: "admin" | "user") => {
+    const targetUser = registeredUsers.find((u) => u.id === userId);
+    const targetEmail = targetUser?.email;
+
     setRegisteredUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+      prev.map((u) => (u.id === userId || (targetEmail && u.email === targetEmail) ? { ...u, role: newRole } : u))
     );
 
-    if (user && user.id === userId) {
+    if (user && (user.id === userId || (targetEmail && user.email === targetEmail))) {
       const updatedProfile: UserProfile = { ...user, role: newRole };
       setUser(updatedProfile);
       localStorage.setItem("otantikos_user", JSON.stringify(updatedProfile));
     }
 
-    syncGlobal("update-user-role", { userId, role: newRole });
+    syncGlobal("update-user-role", { userId, email: targetEmail, role: newRole });
   };
 
   const updateUserPassword = (userId: string, newPass: string) => {
