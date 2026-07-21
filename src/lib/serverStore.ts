@@ -28,7 +28,8 @@ const getSeedFilePath = () => path.join(process.cwd(), "src", "data", "persisten
 
 const httpGetCloudStore = (): Promise<any> => {
   return new Promise((resolve, reject) => {
-    const fetchUrl = `${SUPABASE_URL}/storage/v1/object/public/otantikos_store/store.json?t=${Date.now()}`;
+    // Authenticated endpoint CDN cache'i 100% bypass eder
+    const fetchUrl = `${SUPABASE_URL}/storage/v1/object/authenticated/otantikos_store/store.json?t=${Date.now()}`;
     https
       .get(
         fetchUrl,
@@ -37,6 +38,8 @@ const httpGetCloudStore = (): Promise<any> => {
             apikey: SUPABASE_SERVICE_KEY,
             Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
             Accept: "application/json",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
           },
         },
         (res) => {

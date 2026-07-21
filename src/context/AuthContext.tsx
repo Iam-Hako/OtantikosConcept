@@ -69,7 +69,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!cleanUsers.some((u: RegisteredUser) => (u?.email || "").toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
             cleanUsers = [defaultAdminUser, ...cleanUsers];
           }
-          setRegisteredUsers(cleanUsers);
+          setRegisteredUsers((prev) => {
+            const mergedMap = new Map<string, RegisteredUser>();
+            cleanUsers.forEach((u: RegisteredUser) => {
+              if (u && u.email) mergedMap.set(u.email.toLowerCase(), u);
+            });
+            prev.forEach((u: RegisteredUser) => {
+              if (u && u.email && !mergedMap.has(u.email.toLowerCase())) {
+                mergedMap.set(u.email.toLowerCase(), u);
+              }
+            });
+            return Array.from(mergedMap.values());
+          });
         }
         if (data.data.activeVisitors) {
           setActiveVisitors(data.data.activeVisitors);
@@ -99,7 +110,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!cleanUsers.some((u: RegisteredUser) => (u?.email || "").toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
             cleanUsers = [defaultAdminUser, ...cleanUsers];
           }
-          setRegisteredUsers(cleanUsers);
+          setRegisteredUsers((prev) => {
+            const mergedMap = new Map<string, RegisteredUser>();
+            cleanUsers.forEach((u: RegisteredUser) => {
+              if (u && u.email) mergedMap.set(u.email.toLowerCase(), u);
+            });
+            prev.forEach((u: RegisteredUser) => {
+              if (u && u.email && !mergedMap.has(u.email.toLowerCase())) {
+                mergedMap.set(u.email.toLowerCase(), u);
+              }
+            });
+            return Array.from(mergedMap.values());
+          });
         }
         if (data.data.activeVisitors) {
           setActiveVisitors(data.data.activeVisitors);
