@@ -40,35 +40,35 @@ export default function ProductsPage() {
       </div>
 
       {filteredProducts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
           {filteredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-[#E6DCD3] p-12 text-center space-y-4 max-w-2xl mx-auto">
-          <div className="w-16 h-16 bg-[#F8F5F0] text-[#C86D51] rounded-full flex items-center justify-center mx-auto">
+        <div className="bg-white rounded-3xl border border-[#E6DCD3] p-8 sm:p-12 text-center space-y-4 max-w-xl mx-auto shadow-sm">
+          <div className="w-16 h-16 bg-[#F8F5F0] text-[#C86D51] rounded-full flex items-center justify-center mx-auto shadow-inner">
             <Plus className="w-8 h-8" />
           </div>
-          <h3 className="text-xl font-serif font-bold text-[#3E2E28]">
-            {siteTexts?.productsSection?.emptyCatalogTitle || "Henüz Ürün Eklenmedi"}
+          <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#3E2E28]">
+            {siteTexts?.productsSection?.emptyCatalogTitle || "Yakında Yeni Ürünlerimizle Buradayız!"}
           </h3>
-          <p className="text-xs text-[#7C6354]">
-            {siteTexts?.productsSection?.emptyCatalogDesc || "Mağazanıza ürün eklemek için Admin Paneli'ni kullanabilirsiniz."}
+          <p className="text-xs sm:text-sm text-[#7C6354] leading-relaxed">
+            {siteTexts?.productsSection?.emptyCatalogDesc || "Koleksiyonumuz hazırlanıyor, çok yakında harika ürünlerimizle hizmetinizde olacağız."}
           </p>
           {isAdmin ? (
             <Link
               href="/admin"
-              className="px-6 py-3 bg-[#C86D51] text-white text-xs font-semibold rounded-full hover:bg-[#B05B41] transition inline-block"
+              className="px-6 py-3 bg-[#C86D51] text-white text-xs font-semibold rounded-full hover:bg-[#B05B41] transition inline-flex items-center gap-2 shadow-md mt-2"
             >
-              {siteTexts?.productsSection?.emptyCatalogAdminAction || "Yönetici Paneline Git ve Ürün Ekle"}
+              <Plus className="w-4 h-4" /> {siteTexts?.productsSection?.emptyCatalogAdminAction || "Yönetici Panelinden Ürün Ekle"}
             </Link>
           ) : (
             <Link
-              href="/hesabim"
-              className="px-6 py-3 bg-[#C86D51] text-white text-xs font-semibold rounded-full hover:bg-[#B05B41] transition inline-block"
+              href="/"
+              className="px-6 py-3 bg-[#3E2E28] text-white text-xs font-semibold rounded-full hover:bg-[#C86D51] transition inline-block shadow-md mt-2"
             >
-              {siteTexts?.accountPage?.goToAdminButton || "Admin Hesabı İle Giriş Yap"}
+              Ana Sayfaya Dön
             </Link>
           )}
         </div>

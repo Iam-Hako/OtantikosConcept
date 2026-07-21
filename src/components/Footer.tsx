@@ -7,7 +7,7 @@ import { ShieldCheck, RefreshCw, Headphones, Mail, Share2, Globe, Truck } from "
 import { useAuth } from "@/context/AuthContext";
 
 export default function Footer() {
-  const { siteTexts } = useAuth();
+  const { siteTexts, isAdmin } = useAuth();
 
   return (
     <footer className="bg-[#3E2E28] text-[#F8F5F0] pt-16 pb-12 border-t-4 border-[#C86D51]">
@@ -22,17 +22,17 @@ export default function Footer() {
           <div className="flex flex-col items-center p-4 rounded-xl bg-[#4A3B32]/40">
             <ShieldCheck className="w-8 h-8 text-[#C86D51] mb-2" />
             <h4 className="text-sm font-semibold">{siteTexts?.footer?.trust2Title || "Güvenli Ödeme"}</h4>
-            <p className="text-xs text-[#D8C7B5] mt-1">{siteTexts?.footer?.trust2Desc || "256-Bit SSL Şifreleme"}</p>
+            <p className="text-xs text-[#D8C7B5] mt-1">{siteTexts?.footer?.trust2Desc || "SSL Koruma"}</p>
           </div>
           <div className="flex flex-col items-center p-4 rounded-xl bg-[#4A3B32]/40">
             <RefreshCw className="w-8 h-8 text-[#C86D51] mb-2" />
             <h4 className="text-sm font-semibold">{siteTexts?.footer?.trust3Title || "Kolay İade"}</h4>
-            <p className="text-xs text-[#D8C7B5] mt-1">{siteTexts?.footer?.trust3Desc || "14 Gün İade Garantisi"}</p>
+            <p className="text-xs text-[#D8C7B5] mt-1">{siteTexts?.footer?.trust3Desc || "İade Garantisi"}</p>
           </div>
           <div className="flex flex-col items-center p-4 rounded-xl bg-[#4A3B32]/40">
             <Headphones className="w-8 h-8 text-[#C86D51] mb-2" />
-            <h4 className="text-sm font-semibold">{siteTexts?.footer?.trust4Title || "7/24 Destek"}</h4>
-            <p className="text-xs text-[#D8C7B5] mt-1">{siteTexts?.footer?.trust4Desc || "Samimi Müşteri Hizmetleri"}</p>
+            <h4 className="text-sm font-semibold">{siteTexts?.footer?.trust4Title || "Müşteri Desteği"}</h4>
+            <p className="text-xs text-[#D8C7B5] mt-1">{siteTexts?.footer?.trust4Desc || "Kesintisiz Hizmet"}</p>
           </div>
         </div>
       </div>
@@ -49,7 +49,7 @@ export default function Footer() {
             <span className="font-serif text-xl font-bold tracking-wide">OtantikosConcept</span>
           </div>
           <p className="text-xs text-[#D8C7B5] leading-relaxed">
-            {siteTexts?.footer?.brandDescription || "OtantikosConcept - Trend oyuncaklar, NeeDoh Squishy Çin Mantısı ve özgün bijuteri tasarımları."}
+            {siteTexts?.footer?.brandDescription || "OtantikosConcept - Trend oyuncak ve bijuteri online satış mağazası."}
           </p>
           <div className="flex items-center gap-3 pt-2">
             <a href="#" className="w-8 h-8 rounded-full bg-[#4A3B32] flex items-center justify-center text-[#D8C7B5] hover:text-[#C86D51] hover:bg-white transition" title="Paylaş">
@@ -72,7 +72,9 @@ export default function Footer() {
           <ul className="space-y-2.5 text-xs text-[#D8C7B5]">
             <li><Link href="/" className="hover:text-white transition">{siteTexts?.header?.navHome || "Ana Sayfa"}</Link></li>
             <li><Link href="/urunler" className="hover:text-white transition">{siteTexts?.header?.navAllProducts || "Tüm Ürünler"}</Link></li>
-            <li><Link href="/admin" className="hover:text-white transition font-medium">{siteTexts?.header?.adminButton || "Yönetici Paneli"}</Link></li>
+            {isAdmin && (
+              <li><Link href="/admin" className="hover:text-white transition font-medium text-[#C86D51]">{siteTexts?.header?.adminButton || "Yönetici Paneli"}</Link></li>
+            )}
           </ul>
         </div>
 
@@ -112,9 +114,11 @@ export default function Footer() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 border-t border-[#5A453C] flex flex-col md:flex-row justify-between items-center text-xs text-[#D8C7B5] gap-4">
         <p>{siteTexts?.footer?.copyrightText || `© ${new Date().getFullYear()} OtantikosConcept. Tüm hakları saklıdır.`}</p>
-        <div className="flex items-center gap-3 font-mono text-[10px] uppercase bg-[#4A3B32] px-3 py-1.5 rounded-md text-[#D8C7B5]">
-          <span>{siteTexts?.footer?.paymentMethodsBadge || "💳 Visa / Mastercard / Troy / Iyzico / Stripe Uyumlu"}</span>
-        </div>
+        {siteTexts?.footer?.paymentMethodsBadge ? (
+          <div className="flex items-center gap-3 font-mono text-[10px] uppercase bg-[#4A3B32] px-3 py-1.5 rounded-md text-[#D8C7B5]">
+            <span>{siteTexts.footer.paymentMethodsBadge}</span>
+          </div>
+        ) : null}
       </div>
     </footer>
   );

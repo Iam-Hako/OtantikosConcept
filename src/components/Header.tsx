@@ -41,16 +41,16 @@ export default function Header() {
       <div className="bg-[#3E2E28] text-[#F8F5F0] text-xs py-2 px-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-[#C86D51] animate-pulse" />
+            <Sparkles className="w-3.5 h-3.5 text-[#C86D51]" />
             <span>{siteTexts?.header?.topbarText || settings.announcementText}</span>
           </div>
-          <div className="hidden md:flex items-center gap-6 text-[11px] text-[#D8C7B5]">
-            <span className="flex items-center gap-1"><Truck className="w-3 h-3" /> Hızlı & Özenli Teslimat</span>
-            <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> %100 Orijinal Ürünler</span>
+          <div className="hidden md:flex items-center gap-4 text-xs text-[#D8C7B5]">
             {user ? (
               <span className="text-white font-medium">Hoş geldin, {user.name}</span>
             ) : (
-              <Link href="/hesabim" className="hover:text-white transition">Giriş Yap / Kayıt Ol</Link>
+              <Link href="/hesabim" className="hover:text-white transition font-medium">
+                Giriş Yap / Kayıt Ol
+              </Link>
             )}
           </div>
         </div>

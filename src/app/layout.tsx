@@ -16,6 +16,8 @@ export const metadata: Metadata = {
   },
 };
 
+import MobileNav from "@/components/MobileNav";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,8 +29,9 @@ export default function RootLayout({
         <AuthProvider>
           <CartProvider>
             <Header />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 pb-20 md:pb-0">{children}</main>
             <Footer />
+            <MobileNav />
           </CartProvider>
         </AuthProvider>
       </body>
