@@ -5,8 +5,8 @@ import { UserProfile, SiteSettings, DEFAULT_SITE_SETTINGS, Product } from "@/dat
 
 interface AuthContextType {
   user: UserProfile | null;
-  login: (email: string, pass: string) => boolean;
-  register: (name: string, email: string, pass: string) => boolean;
+  login: (email: string, pass: string) => { success: boolean; error?: string };
+  register: (name: string, email: string, pass: string) => { success: boolean; error?: string };
   logout: () => void;
   isAdmin: boolean;
   settings: SiteSettings;
@@ -19,6 +19,13 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Sabit Admin Hesabı Bilgileri
+export const HARDCODED_ADMIN = {
+  email: "admin@otantikosconcept.com",
+  password: "OtantikosAdmin2026!#SecurePass",
+  name: "Admin",
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
@@ -27,15 +34,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
-      // Oturum kontrolü
+      // Kayıtlı oturum varsa yükle
       const savedUser = localStorage.getItem("otantikos_user");
-      if (savedUser) setUser(JSON.parse(savedUser));
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
 
-      // Site ayarları kontrolü
+      // Site ayarları yükle
       const savedSettings = localStorage.getItem("otantikos_settings");
       if (savedSettings) setSettings(JSON.parse(savedSettings));
 
-      // Ürünler kontrolü
+      // Ürünleri yükle
       const savedProducts = localStorage.getItem("otantikos_products");
       if (savedProducts) setProducts(JSON.parse(savedProducts));
     } catch (e) {
@@ -45,35 +54,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = (email: string, pass: string): boolean => {
-    // Admin girişi simülasyonu (admin@otantikos.com) veya normal kullanıcı
-    const role = email.toLowerCase().includes("admin") ? "admin" : "user";
-    const loggedUser: UserProfile = {
+  const login = (emailInput: string, passInput: string) => {
+    const cleanEmail = emailInput.trim().toLowerCase();
+
+    // 1. Sabit Admin Hesabı Kontrolü
+    if (cleanEmail === HARDCODED_ADMIN.email.toLowerCase()) {
+      if (passInput === HARDCODED_ADMIN.password) {
+        const adminUser: UserProfile = {
+          id: "usr-admin-primary",
+          email: HARDCODED_ADMIN.email,
+          name: HARDCODED_ADMIN.name,
+          role: "admin",
+          createdAt: new Date().toISOString(),
+        };
+        setUser(adminUser);
+        localStorage.setItem("otantikos_user", JSON.stringify(adminUser));
+        return { success: true };
+      } else {
+        return { success: false, error: "Hatalı Admin şifresi girdiniz!" };
+      }
+    }
+
+    // 2. Normal Kullanıcı Girişi
+    const normalUser: UserProfile = {
       id: `usr-${Date.now()}`,
-      email,
-      name: email.split("@")[0],
-      role: role,
+      email: cleanEmail,
+      name: cleanEmail.split("@")[0],
+      role: "user",
       createdAt: new Date().toISOString(),
     };
 
-    setUser(loggedUser);
-    localStorage.setItem("otantikos_user", JSON.stringify(loggedUser));
-    return true;
+    setUser(normalUser);
+    localStorage.setItem("otantikos_user", JSON.stringify(normalUser));
+    return { success: true };
   };
 
-  const register = (name: string, email: string, pass: string): boolean => {
-    const role = email.toLowerCase().includes("admin") ? "admin" : "user";
+  const register = (nameInput: string, emailInput: string, passInput: string) => {
+    const cleanEmail = emailInput.trim().toLowerCase();
+
+    if (cleanEmail === HARDCODED_ADMIN.email.toLowerCase()) {
+      return { success: false, error: "Bu e-posta adresi yöneticiye ait özel adrestir." };
+    }
+
     const newUser: UserProfile = {
       id: `usr-${Date.now()}`,
-      email,
-      name,
-      role: role,
+      email: cleanEmail,
+      name: nameInput,
+      role: "user",
       createdAt: new Date().toISOString(),
     };
 
     setUser(newUser);
     localStorage.setItem("otantikos_user", JSON.stringify(newUser));
-    return true;
+    return { success: true };
   };
 
   const logout = () => {

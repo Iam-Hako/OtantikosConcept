@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
-import { User, Lock, Mail, ShieldAlert, LogOut, Package, ArrowRight, CheckCircle2 } from "lucide-react";
+import { useAuth, HARDCODED_ADMIN } from "@/context/AuthContext";
+import { User, Lock, Mail, ShieldAlert, LogOut, Package, ArrowRight, KeyRound } from "lucide-react";
 
 export default function AccountPage() {
   const router = useRouter();
@@ -14,28 +14,47 @@ export default function AccountPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<{ text: string; type: "error" | "success" } | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage("");
+    setMessage(null);
 
     if (!email || !password) {
-      setMessage("Lütfen tüm alanları doldurun.");
+      setMessage({ text: "Lütfen tüm alanları doldurun.", type: "error" });
       return;
     }
 
     if (isLoginView) {
-      login(email, password);
-      setMessage("Giriş başarılı! Yönlendiriliyorsunuz...");
+      const res = login(email, password);
+      if (res.success) {
+        setMessage({ text: "Başarıyla giriş yapıldı! Yönlendiriliyorsunuz...", type: "success" });
+        setTimeout(() => {
+          if (email.trim().toLowerCase() === HARDCODED_ADMIN.email.toLowerCase()) {
+            router.push("/admin");
+          }
+        }, 1000);
+      } else {
+        setMessage({ text: res.error || "Giriş başarısız.", type: "error" });
+      }
     } else {
       if (!name) {
-        setMessage("Lütfen adınızı giriniz.");
+        setMessage({ text: "Lütfen adınızı giriniz.", type: "error" });
         return;
       }
-      register(name, email, password);
-      setMessage("Hesabınız oluşturuldu! Giriş yapıldı.");
+      const res = register(name, email, password);
+      if (res.success) {
+        setMessage({ text: "Hesabınız başarıyla oluşturuldu!", type: "success" });
+      } else {
+        setMessage({ text: res.error || "Kayıt olunamadı.", type: "error" });
+      }
     }
+  };
+
+  const handleFillAdmin = () => {
+    setEmail(HARDCODED_ADMIN.email);
+    setPassword(HARDCODED_ADMIN.password);
+    setIsLoginView(true);
   };
 
   // Eğer Kullanıcı Zaten Giriş Yapmışsa Hesabım Ekranını Göster
@@ -54,7 +73,7 @@ export default function AccountPage() {
                 <h1 className="font-serif text-2xl font-bold text-[#3E2E28]">{user.name}</h1>
                 {isAdmin ? (
                   <span className="px-2.5 py-0.5 bg-rose-100 text-rose-800 text-[10px] font-bold rounded-full uppercase">
-                    Admin Yetkili
+                    Yönetici / Admin
                   </span>
                 ) : (
                   <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full uppercase">
@@ -106,17 +125,17 @@ export default function AccountPage() {
     <div className="max-w-md mx-auto px-4 py-16">
       <div className="bg-white p-8 rounded-3xl border border-[#E6DCD3] shadow-xl space-y-6">
         
-        {/* Başlık ve Tab Geçişi */}
+        {/* Başlık */}
         <div className="text-center space-y-2">
           <div className="w-12 h-12 bg-[#EAE0D5] text-[#C86D51] rounded-full flex items-center justify-center mx-auto mb-2">
             <User className="w-6 h-6" />
           </div>
           <h1 className="font-serif text-2xl font-bold text-[#3E2E28]">
-            {isLoginView ? "OtantikosConcept'e Giriş Yap" : "Yeni Hesap Oluştur"}
+            {isLoginView ? "OtantikosConcept'e Giriş" : "Yeni Hesap Oluştur"}
           </h1>
           <p className="text-xs text-[#7C6354]">
             {isLoginView
-              ? "Siparişlerinizi takip etmek ve hızlı alışveriş yapmak için giriş yapın."
+              ? "Siparişlerinizi takip etmek veya Admin Paneline girmek için giriş yapın."
               : "Trend oyuncak, squishy ve bijuteri fırsatlarından yararlanmak için kaydolun."}
           </p>
         </div>
@@ -126,7 +145,7 @@ export default function AccountPage() {
           <button
             onClick={() => {
               setIsLoginView(true);
-              setMessage("");
+              setMessage(null);
             }}
             className={`py-2 text-xs font-bold rounded-xl transition ${
               isLoginView ? "bg-white text-[#3E2E28] shadow-sm" : "text-[#7C6354]"
@@ -137,7 +156,7 @@ export default function AccountPage() {
           <button
             onClick={() => {
               setIsLoginView(false);
-              setMessage("");
+              setMessage(null);
             }}
             className={`py-2 text-xs font-bold rounded-xl transition ${
               !isLoginView ? "bg-white text-[#3E2E28] shadow-sm" : "text-[#7C6354]"
@@ -148,8 +167,14 @@ export default function AccountPage() {
         </div>
 
         {message && (
-          <div className="p-3 bg-amber-50 text-amber-900 border border-amber-200 rounded-xl text-xs text-center font-medium">
-            {message}
+          <div
+            className={`p-3 border rounded-xl text-xs text-center font-medium ${
+              message.type === "error"
+                ? "bg-rose-50 text-rose-800 border-rose-200"
+                : "bg-emerald-50 text-emerald-800 border-emerald-200"
+            }`}
+          >
+            {message.text}
           </div>
         )}
 
@@ -208,10 +233,14 @@ export default function AccountPage() {
           </button>
         </form>
 
-        <div className="pt-2 text-center border-t border-[#E6DCD3]">
-          <p className="text-[11px] text-[#7C6354]">
-            💡 <strong>İpucu (Admin Yetkisi İçin)</strong>: E-posta adresinize <code>admin</code> kelimesi içeren bir e-posta yazarsanız (Örn: <code>admin@otantikos.com</code>) sistem otomatik olarak <strong>Admin / Yönetici Yetkisi</strong> tanımlar.
-          </p>
+        {/* Hızlı Admin Doldur Butonu */}
+        <div className="pt-2 text-center border-t border-[#E6DCD3] space-y-2">
+          <button
+            onClick={handleFillAdmin}
+            className="w-full py-2 bg-[#EAE0D5] text-[#3E2E28] text-xs font-bold rounded-xl hover:bg-[#C86D51] hover:text-white transition flex items-center justify-center gap-2"
+          >
+            <KeyRound className="w-4 h-4 text-[#C86D51]" /> Admin Bilgilerini Otomatik Doldur
+          </button>
         </div>
 
       </div>
