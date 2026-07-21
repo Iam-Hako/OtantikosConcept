@@ -22,6 +22,15 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+export interface RegisteredUser {
+  id: string;
+  email: string;
+  password: string;
+  name: string;
+  role: "admin" | "user";
+  createdAt: string;
+}
+
 // Sabit Admin Hesabı Bilgileri
 export const HARDCODED_ADMIN = {
   email: "admin@otantikosconcept.com",
@@ -31,6 +40,7 @@ export const HARDCODED_ADMIN = {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
   const [siteTexts, setSiteTexts] = useState<SiteTexts>(DEFAULT_SITE_TEXTS);
   const [products, setProducts] = useState<Product[]>([]);
@@ -42,6 +52,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const savedUser = localStorage.getItem("otantikos_user");
       if (savedUser) {
         setUser(JSON.parse(savedUser));
+      }
+
+      // Kayıtlı tüm kullanıcıları yükle
+      const savedRegUsers = localStorage.getItem("otantikos_registered_users");
+      if (savedRegUsers) {
+        setRegisteredUsers(JSON.parse(savedRegUsers));
       }
 
       // Site ayarları yükle
@@ -79,41 +95,103 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem("otantikos_user", JSON.stringify(adminUser));
         return { success: true };
       } else {
-        return { success: false, error: "Hatalı Admin şifresi girdiniz!" };
+        return { success: false, error: "Hatalı yönetici şifresi girdiniz!" };
       }
     }
 
-    // 2. Normal Kullanıcı Girişi
-    const normalUser: UserProfile = {
-      id: `usr-${Date.now()}`,
-      email: cleanEmail,
-      name: cleanEmail.split("@")[0],
-      role: "user",
-      createdAt: new Date().toISOString(),
+    // 2. Kayıtlı Normal Kullanıcı Kontrolü
+    const foundUser = registeredUsers.find(
+      (u) => u.email.toLowerCase() === cleanEmail
+    );
+
+    if (!foundUser) {
+      return {
+        success: false,
+        error: "Bu e-posta adresiyle kayıtlı bir hesap bulunamadı! Lütfen önce Kayıt Olun.",
+      };
+    }
+
+    // Şifre Doğrulama
+    if (foundUser.password !== passInput) {
+      return {
+        success: false,
+        error: "Hatalı şifre girdiniz! Lütfen şifrenizi kontrol edip tekrar deneyin.",
+      };
+    }
+
+    // Şifre Doğru - Oturum Aç
+    const userProfile: UserProfile = {
+      id: foundUser.id,
+      email: foundUser.email,
+      name: foundUser.name,
+      role: foundUser.role,
+      createdAt: foundUser.createdAt,
     };
 
-    setUser(normalUser);
-    localStorage.setItem("otantikos_user", JSON.stringify(normalUser));
+    setUser(userProfile);
+    localStorage.setItem("otantikos_user", JSON.stringify(userProfile));
     return { success: true };
   };
 
   const register = (nameInput: string, emailInput: string, passInput: string) => {
     const cleanEmail = emailInput.trim().toLowerCase();
 
-    if (cleanEmail === HARDCODED_ADMIN.email.toLowerCase()) {
-      return { success: false, error: "Bu e-posta adresi yöneticiye ait özel adrestir." };
+    if (!nameInput.trim()) {
+      return { success: false, error: "Lütfen ad ve soyadınızı giriniz." };
     }
 
-    const newUser: UserProfile = {
+    if (!cleanEmail.includes("@")) {
+      return { success: false, error: "Geçerli bir e-posta adresi giriniz." };
+    }
+
+    if (!passInput || passInput.length < 4) {
+      return { success: false, error: "Şifreniz en az 4 karakter olmalıdır." };
+    }
+
+    if (cleanEmail === HARDCODED_ADMIN.email.toLowerCase()) {
+      return {
+        success: false,
+        error: "Bu e-posta adresi yöneticiye ait özel adrestir. Lütfen Giriş Yap sekmesinden giriş yapın.",
+      };
+    }
+
+    // E-posta adresi daha önce kayıt olmuş mu?
+    const existing = registeredUsers.find(
+      (u) => u.email.toLowerCase() === cleanEmail
+    );
+
+    if (existing) {
+      return {
+        success: false,
+        error: "Bu e-posta adresi ile zaten bir hesap oluşturulmuş! Lütfen Giriş Yapın.",
+      };
+    }
+
+    // Yeni Kullanıcı Oluştur ve Veritabanına (localStorage) Kaydet
+    const newUserRecord: RegisteredUser = {
       id: `usr-${Date.now()}`,
       email: cleanEmail,
-      name: nameInput,
+      password: passInput,
+      name: nameInput.trim(),
       role: "user",
       createdAt: new Date().toISOString(),
     };
 
-    setUser(newUser);
-    localStorage.setItem("otantikos_user", JSON.stringify(newUser));
+    const updatedUsers = [...registeredUsers, newUserRecord];
+    setRegisteredUsers(updatedUsers);
+    localStorage.setItem("otantikos_registered_users", JSON.stringify(updatedUsers));
+
+    // Yeni Kullanıcı Oturumunu Başlat
+    const userProfile: UserProfile = {
+      id: newUserRecord.id,
+      email: newUserRecord.email,
+      name: newUserRecord.name,
+      role: newUserRecord.role,
+      createdAt: newUserRecord.createdAt,
+    };
+
+    setUser(userProfile);
+    localStorage.setItem("otantikos_user", JSON.stringify(userProfile));
     return { success: true };
   };
 
