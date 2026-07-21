@@ -298,8 +298,8 @@ export default function AdminDashboard() {
 
   // 2. RÜTBE SIRALAMASI (Rank 1: Primary Super Admin -> Rank 2: Admins -> Rank 3: Customers newest first)
   const sortedUsersList = [...validUsersList].sort((a, b) => {
-    const isAPrimary = a.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase();
-    const isBPrimary = b.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase();
+    const isAPrimary = (a?.email || "").toLowerCase() === HARDCODED_ADMIN.email.toLowerCase();
+    const isBPrimary = (b?.email || "").toLowerCase() === HARDCODED_ADMIN.email.toLowerCase();
     if (isAPrimary) return -1;
     if (isBPrimary) return 1;
 
@@ -313,7 +313,7 @@ export default function AdminDashboard() {
 
   // 3. Filtreleme (Arama ve Rol Filtresi)
   const filteredUsersList = sortedUsersList.filter((u) => {
-    const isPrimary = u.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase();
+    const isPrimary = (u?.email || "").toLowerCase() === HARDCODED_ADMIN.email.toLowerCase();
     const isUserAdmin = u.role === "admin" || isPrimary;
 
     if (userRoleFilter === "admin" && !isUserAdmin) return false;
@@ -322,11 +322,11 @@ export default function AdminDashboard() {
     if (userSearchQuery.trim()) {
       const q = userSearchQuery.toLowerCase();
       return (
-        u.name.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q) ||
-        (u.password && u.password.toLowerCase().includes(q)) ||
-        (u.id && u.id.toLowerCase().includes(q)) ||
-        (u.ipAddress && u.ipAddress.toLowerCase().includes(q))
+        (u?.name || "").toLowerCase().includes(q) ||
+        (u?.email || "").toLowerCase().includes(q) ||
+        (u?.password && u.password.toLowerCase().includes(q)) ||
+        (u?.id && u.id.toLowerCase().includes(q)) ||
+        (u?.ipAddress && u.ipAddress.toLowerCase().includes(q))
       );
     }
     return true;

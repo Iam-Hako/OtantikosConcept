@@ -156,7 +156,7 @@ export const saveStoreToDisk = (storeData: GlobalStore) => {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    if (!storeData.registeredUsers.some(u => u && u.email && u.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
+    if (!storeData.registeredUsers.some(u => (u?.email || "").toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
       storeData.registeredUsers.unshift(defaultAdminUser);
     }
 

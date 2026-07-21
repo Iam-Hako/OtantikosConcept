@@ -99,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           let cleanUsers = data.data.registeredUsers.filter(
             (u: RegisteredUser) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
           );
-          if (!cleanUsers.some((u: RegisteredUser) => u.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
+          if (!cleanUsers.some((u: RegisteredUser) => (u?.email || "").toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
             cleanUsers = [defaultAdminUser, ...cleanUsers];
           }
           setRegisteredUsers(cleanUsers);
@@ -126,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           let cleanUsers = data.data.registeredUsers.filter(
             (u: RegisteredUser) => u && u.email && u.email.trim() !== "" && u.name && u.name.trim() !== ""
           );
-          if (!cleanUsers.some((u: RegisteredUser) => u.email.toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
+          if (!cleanUsers.some((u: RegisteredUser) => (u?.email || "").toLowerCase() === HARDCODED_ADMIN.email.toLowerCase())) {
             cleanUsers = [defaultAdminUser, ...cleanUsers];
           }
           setRegisteredUsers(cleanUsers);
