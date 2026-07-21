@@ -36,9 +36,9 @@ export interface RegisteredUser {
 
 // Sabit Admin Hesabı Bilgileri
 export const HARDCODED_ADMIN = {
-  email: "admin@otantikosconcept.com",
-  password: "OtantikosAdmin2026!#SecurePass",
-  name: "Admin",
+  email: "chessvip11@gmail.com",
+  password: "32843284FF",
+  name: "Yönetici Admin",
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -51,16 +51,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
-      // Kayıtlı oturum varsa yükle
+      // Tüm eski hesapları ve oturumları sıfırla (Kullanıcı Talebi)
+      localStorage.removeItem("otantikos_registered_users");
+      setRegisteredUsers([]);
+
       const savedUser = localStorage.getItem("otantikos_user");
       if (savedUser) {
-        setUser(JSON.parse(savedUser));
-      }
-
-      // Kayıtlı tüm kullanıcıları yükle
-      const savedRegUsers = localStorage.getItem("otantikos_registered_users");
-      if (savedRegUsers) {
-        setRegisteredUsers(JSON.parse(savedRegUsers));
+        const parsedUser = JSON.parse(savedUser);
+        // Admin hesabı güncellendiği için eski admin oturumunu da yenile
+        if (parsedUser.email?.toLowerCase() === "admin@otantikosconcept.com") {
+          const freshAdmin: UserProfile = {
+            id: "usr-admin-primary",
+            email: HARDCODED_ADMIN.email,
+            name: HARDCODED_ADMIN.name,
+            role: "admin",
+            createdAt: new Date().toISOString(),
+          };
+          setUser(freshAdmin);
+          localStorage.setItem("otantikos_user", JSON.stringify(freshAdmin));
+        } else {
+          setUser(parsedUser);
+        }
       }
 
       // Site ayarları yükle
