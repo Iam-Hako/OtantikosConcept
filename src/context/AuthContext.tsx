@@ -33,6 +33,7 @@ interface AuthContextType {
   updateUserRole: (userId: string, role: "admin" | "user") => void;
   updateUserPassword: (userId: string, newPass: string) => void;
   deleteUser: (userId: string) => void;
+  hardResetSystem: () => Promise<void>;
   logout: () => void;
   isAdmin: boolean;
   settings: SiteSettings;
@@ -75,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
 
   // ========================
-  // %100 SUNUCU TEMELLİ VERİ ÇEKME (SERVER-DRIVEN DATA ENGINE)
+  // SUNUCU TEMELLİ VERİ ÇEKME (SERVER-DRIVEN ENGINE)
   // ========================
   const fetchGlobalData = useCallback(async () => {
     try {
@@ -133,6 +134,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (err) {
       console.error("Server API sync error:", err);
+    }
+  };
+
+  const hardResetSystem = async () => {
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("otantikos_user");
+        localStorage.removeItem("otantikos_support_chats");
+        localStorage.clear();
+      }
+      await syncGlobal("hard-reset", {});
+      const adminProfile: UserProfile = {
+        id: "usr-admin-primary",
+        email: HARDCODED_ADMIN.email,
+        name: HARDCODED_ADMIN.name,
+        role: "admin",
+        createdAt: "2026-07-21T00:00:00.000Z",
+      };
+      setUser(adminProfile);
+      localStorage.setItem("otantikos_user", JSON.stringify(adminProfile));
+    } catch (e) {
+      console.error("Hard reset error:", e);
     }
   };
 
@@ -375,6 +398,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateUserRole,
         updateUserPassword,
         deleteUser,
+        hardResetSystem,
         logout,
         isAdmin,
         settings,

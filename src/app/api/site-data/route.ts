@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { loadStoreFromDisk, saveStoreToDisk, defaultAdminUser } from "@/lib/serverStore";
+import { INITIAL_PRODUCTS, DEFAULT_SITE_SETTINGS } from "@/data/mockData";
+import { DEFAULT_SITE_TEXTS } from "@/data/siteTexts";
 
 export async function GET() {
   const store = loadStoreFromDisk();
@@ -44,6 +46,20 @@ export async function POST(request: Request) {
       request.headers.get("x-forwarded-for")?.split(",")[0] ||
       request.headers.get("x-real-ip") ||
       "185.190.140.22 (Türkiye / İstanbul)";
+
+    if (action === "hard-reset") {
+      // SADECE HAKTAN FETİH DURMUŞ HESABINI TUT VE TÜM TEST VERİLERİNİ TEMİZLE
+      store.registeredUsers = [defaultAdminUser];
+      store.supportChats = {};
+      store.products = INITIAL_PRODUCTS;
+      store.siteTexts = DEFAULT_SITE_TEXTS;
+      store.siteSettings = DEFAULT_SITE_SETTINGS;
+      saveStoreToDisk(store);
+      return NextResponse.json({
+        success: true,
+        data: store,
+      });
+    }
 
     if (action === "update-products") {
       store.products = payload;

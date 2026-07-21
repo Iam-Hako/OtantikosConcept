@@ -43,6 +43,7 @@ export default function AdminDashboard() {
     updateUserRole,
     updateUserPassword,
     deleteUser,
+    hardResetSystem,
     settings,
     updateSettings,
     siteTexts,
@@ -159,6 +160,13 @@ export default function AdminDashboard() {
     await refreshData();
     showNotify("Tüm kullanıcılar ve veriler güncellendi!");
     setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const handleHardReset = async () => {
+    if (confirm("DİKKAT: Haktan Fetih Durmuş (chessvip11@gmail.com) hesabı haricindeki TÜM kullanıcı hesapları, test mesajları ve veriler sıfırlanacaktır. Emin misiniz?")) {
+      await hardResetSystem();
+      showNotify("Sistem ve tüm test hesapları sıfırlandı. Sadece Süper Admin kalındı!");
+    }
   };
 
   const togglePasswordVisibility = (userId: string) => {
@@ -589,6 +597,14 @@ export default function AdminDashboard() {
                 />
                 <Search className="w-4 h-4 text-[#7C6354] absolute left-3 top-3" />
               </div>
+
+              <button
+                onClick={handleHardReset}
+                className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition shadow-sm flex items-center gap-1.5 shrink-0 btn-press"
+                title="Sadece Süper Admin kalacak şekilde tüm test hesaplarını ve verileri temizle"
+              >
+                <Trash2 className="w-4 h-4" /> Tüm Test Hesaplarını Sil
+              </button>
             </div>
           </div>
 
