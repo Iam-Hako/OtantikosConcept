@@ -4,7 +4,8 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
-import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Tag, ShieldCheck, Truck } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Tag, ShieldCheck } from "lucide-react";
 
 export default function CartPage() {
   const {
@@ -20,6 +21,7 @@ export default function CartPage() {
     discountAmount,
     clearCart,
   } = useCart();
+  const { siteTexts } = useAuth();
 
   const [couponInput, setCouponInput] = React.useState("");
   const [couponError, setCouponError] = React.useState("");
@@ -34,7 +36,7 @@ export default function CartPage() {
 
     const success = applyCoupon(couponInput);
     if (success) {
-      setCouponSuccess("%10 İndirim Kuponu Başarıyla Uygulandı!");
+      setCouponSuccess(siteTexts?.cartPage?.couponSuccessText || "%10 İndirim Kuponu Başarıyla Uygulandı!");
       setCouponInput("");
     } else {
       setCouponError("Geçersiz kupon kodu. İpucu: 'OTANTIK10' deneyin.");
@@ -47,15 +49,17 @@ export default function CartPage() {
         <div className="w-24 h-24 bg-[#EAE0D5] rounded-full flex items-center justify-center mx-auto text-[#C86D51]">
           <ShoppingBag className="w-12 h-12" />
         </div>
-        <h1 className="font-serif text-3xl font-bold text-[#3E2E28]">Sepetiniz Henüz Boş</h1>
+        <h1 className="font-serif text-3xl font-bold text-[#3E2E28]">
+          {siteTexts?.cartPage?.emptyCartTitle || "Sepetiniz Boş"}
+        </h1>
         <p className="text-sm text-[#7C6354] max-w-md mx-auto">
-          OtantikosConcept mağazasına yeni ekleyeceğiniz ürünleri veya kataloğumuzu inceleyebilirsiniz.
+          {siteTexts?.cartPage?.emptyCartDesc || "Henüz sepetinize ürün eklemediniz. Ürünler sayfamızdan alışverişe başlayabilirsiniz."}
         </p>
         <Link
           href="/urunler"
           className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#C86D51] text-white font-semibold rounded-full hover:bg-[#B05B41] transition shadow-md"
         >
-          <span>Tüm Ürünler</span>
+          <span>{siteTexts?.cartPage?.startShoppingButton || "Alışverişe Başla"}</span>
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
@@ -64,7 +68,9 @@ export default function CartPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <h1 className="font-serif text-3xl font-bold text-[#3E2E28] mb-8">Alışveriş Sepeti</h1>
+      <h1 className="font-serif text-3xl font-bold text-[#3E2E28] mb-8">
+        {siteTexts?.cartPage?.title || "Alışveriş Sepetiniz"}
+      </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
@@ -141,7 +147,7 @@ export default function CartPage() {
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-white p-6 rounded-2xl border border-[#E6DCD3] shadow-sm space-y-6">
             <h2 className="font-serif text-xl font-bold text-[#3E2E28] border-b border-[#E6DCD3] pb-4">
-              Sipariş Özeti
+              {siteTexts?.cartPage?.summaryTitle || "Sipariş Özeti"}
             </h2>
 
             {/* Kupon Kodu Girişi */}
@@ -150,7 +156,7 @@ export default function CartPage() {
                 <div className="relative flex-1">
                   <input
                     type="text"
-                    placeholder="Kupon Kodu (Örn: OTANTIK10)"
+                    placeholder={siteTexts?.cartPage?.couponPlaceholder || "Kupon Kodunuz (Örn: OTANTIK10)"}
                     value={couponInput}
                     onChange={(e) => setCouponInput(e.target.value)}
                     className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl py-2 px-3 pl-8 text-xs focus:outline-none focus:ring-1 focus:ring-[#C86D51] uppercase"
@@ -161,7 +167,7 @@ export default function CartPage() {
                   type="submit"
                   className="px-4 py-2 bg-[#3E2E28] text-white text-xs font-semibold rounded-xl hover:bg-black transition"
                 >
-                  Uygula
+                  {siteTexts?.cartPage?.couponApplyButton || "Uygula"}
                 </button>
               </form>
               {couponError && <p className="text-[11px] text-rose-600 mt-1.5">{couponError}</p>}
@@ -178,26 +184,28 @@ export default function CartPage() {
             {/* Fiyat Hesaplama Tablosu */}
             <div className="space-y-3 text-xs border-t border-b border-[#E6DCD3] py-4">
               <div className="flex justify-between text-[#7C6354]">
-                <span>Ara Toplam</span>
+                <span>{siteTexts?.cartPage?.subtotal || "Ara Toplam"}</span>
                 <span className="font-semibold text-[#3E2E28]">{subtotal.toFixed(2)} TL</span>
               </div>
 
               {discountAmount > 0 && (
                 <div className="flex justify-between text-emerald-600 font-medium">
-                  <span>Kupon İndirimi (%10)</span>
+                  <span>{siteTexts?.cartPage?.couponDiscount || "Kupon İndirimi (%10)"}</span>
                   <span>-{discountAmount.toFixed(2)} TL</span>
                 </div>
               )}
 
               <div className="flex justify-between text-[#7C6354]">
-                <span>Kargo Ücreti</span>
+                <span>{siteTexts?.cartPage?.shipping || "Kargo Ücreti"}</span>
                 <span className="font-semibold text-[#3E2E28]">{shipping.toFixed(2)} TL</span>
               </div>
             </div>
 
             {/* Toplam */}
             <div className="flex justify-between items-baseline">
-              <span className="font-serif text-base font-bold text-[#3E2E28]">Genel Toplam</span>
+              <span className="font-serif text-base font-bold text-[#3E2E28]">
+                {siteTexts?.cartPage?.total || "Genel Toplam"}
+              </span>
               <span className="text-2xl font-bold text-[#C86D51]">
                 {grandTotal.toFixed(2)} <span className="text-xs font-normal">TL</span>
               </span>
@@ -208,13 +216,13 @@ export default function CartPage() {
               href="/checkout"
               className="w-full py-4 bg-[#C86D51] text-white font-semibold rounded-full hover:bg-[#B05B41] transition shadow-lg flex items-center justify-center gap-2 group text-sm"
             >
-              <span>Ödemeye Geç</span>
+              <span>{siteTexts?.cartPage?.checkoutButton || "Ödemeye Geç"}</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
 
             <div className="flex items-center justify-center gap-2 text-[11px] text-[#7C6354] pt-2">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>256-Bit SSL Güvenli Ödeme Altyapısı</span>
+              <span>{siteTexts?.cartPage?.secureShoppingBadge || "Güvenli Alışveriş & 256-bit SSL"}</span>
             </div>
           </div>
         </div>

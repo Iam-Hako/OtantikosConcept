@@ -4,11 +4,11 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth, HARDCODED_ADMIN } from "@/context/AuthContext";
-import { User, Lock, Mail, ShieldAlert, LogOut, Package, ArrowRight, KeyRound } from "lucide-react";
+import { User, Lock, Mail, ShieldAlert, LogOut, Package, ArrowRight } from "lucide-react";
 
 export default function AccountPage() {
   const router = useRouter();
-  const { user, login, register, logout, isAdmin } = useAuth();
+  const { user, login, register, logout, isAdmin, siteTexts } = useAuth();
 
   const [isLoginView, setIsLoginView] = useState(true);
   const [email, setEmail] = useState("");
@@ -67,11 +67,11 @@ export default function AccountPage() {
                 <h1 className="font-serif text-2xl font-bold text-[#3E2E28]">{user.name}</h1>
                 {isAdmin ? (
                   <span className="px-2.5 py-0.5 bg-rose-100 text-rose-800 text-[10px] font-bold rounded-full uppercase">
-                    Yönetici / Admin
+                    {siteTexts?.accountPage?.adminBadge || "Yönetici / Admin"}
                   </span>
                 ) : (
                   <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full uppercase">
-                    Müşteri
+                    {siteTexts?.accountPage?.customerBadge || "Müşteri"}
                   </span>
                 )}
               </div>
@@ -85,14 +85,14 @@ export default function AccountPage() {
                 href="/admin"
                 className="flex-1 sm:flex-none px-6 py-3 bg-[#C86D51] text-white text-xs font-semibold rounded-full hover:bg-[#B05B41] transition shadow-md flex items-center justify-center gap-2"
               >
-                <ShieldAlert className="w-4 h-4" /> Admin Paneline Git
+                <ShieldAlert className="w-4 h-4" /> {siteTexts?.accountPage?.goToAdminButton || "Admin Paneline Git"}
               </Link>
             )}
             <button
               onClick={() => logout()}
               className="flex-1 sm:flex-none px-5 py-3 bg-gray-100 text-[#3E2E28] text-xs font-semibold rounded-full hover:bg-gray-200 transition flex items-center justify-center gap-2"
             >
-              <LogOut className="w-4 h-4 text-rose-600" /> Çıkış Yap
+              <LogOut className="w-4 h-4 text-rose-600" /> {siteTexts?.accountPage?.logoutButton || "Çıkış Yap"}
             </button>
           </div>
         </div>
@@ -100,12 +100,14 @@ export default function AccountPage() {
         {/* Sipariş Geçmişi Alanı */}
         <div className="bg-white p-8 rounded-3xl border border-[#E6DCD3] shadow-sm space-y-4">
           <h2 className="font-serif text-xl font-bold text-[#3E2E28] flex items-center gap-2">
-            <Package className="w-5 h-5 text-[#C86D51]" /> Geçmiş Siparişleriniz
+            <Package className="w-5 h-5 text-[#C86D51]" /> {siteTexts?.accountPage?.orderHistoryTitle || "Geçmiş Siparişleriniz"}
           </h2>
           <div className="p-6 bg-[#F8F5F0] rounded-2xl text-center space-y-2 border border-[#E6DCD3]">
-            <p className="text-xs text-[#7C6354]">Henüz verilmiş bir siparişiniz bulunmamaktadır.</p>
+            <p className="text-xs text-[#7C6354]">
+              {siteTexts?.accountPage?.noOrdersMessage || "Henüz verilmiş bir siparişiniz bulunmamaktadır."}
+            </p>
             <Link href="/urunler" className="text-xs font-bold text-[#C86D51] hover:underline inline-block pt-1">
-              Alışverişe Başla &rarr;
+              {siteTexts?.accountPage?.startShoppingLink || "Alışverişe Başla &rarr;"}
             </Link>
           </div>
         </div>
@@ -125,12 +127,14 @@ export default function AccountPage() {
             <User className="w-6 h-6" />
           </div>
           <h1 className="font-serif text-2xl font-bold text-[#3E2E28]">
-            {isLoginView ? "OtantikosConcept'e Giriş" : "Yeni Hesap Oluştur"}
+            {isLoginView
+              ? (siteTexts?.accountPage?.loginTitle || "OtantikosConcept'e Giriş")
+              : (siteTexts?.accountPage?.registerTitle || "Yeni Hesap Oluştur")}
           </h1>
           <p className="text-xs text-[#7C6354]">
             {isLoginView
-              ? "Siparişlerinizi takip etmek veya Admin Paneline girmek için giriş yapın."
-              : "Trend oyuncak, squishy ve bijuteri fırsatlarından yararlanmak için kaydolun."}
+              ? (siteTexts?.accountPage?.loginSub || "Siparişlerinizi takip etmek veya Admin Paneline girmek için giriş yapın.")
+              : (siteTexts?.accountPage?.registerSub || "Trend oyuncak, squishy ve bijuteri fırsatlarından yararlanmak için kaydolun.")}
           </p>
         </div>
 
@@ -145,7 +149,7 @@ export default function AccountPage() {
               isLoginView ? "bg-white text-[#3E2E28] shadow-sm" : "text-[#7C6354]"
             }`}
           >
-            Giriş Yap
+            {siteTexts?.accountPage?.loginTab || "Giriş Yap"}
           </button>
           <button
             onClick={() => {
@@ -156,7 +160,7 @@ export default function AccountPage() {
               !isLoginView ? "bg-white text-[#3E2E28] shadow-sm" : "text-[#7C6354]"
             }`}
           >
-            Kayıt Ol
+            {siteTexts?.accountPage?.registerTab || "Kayıt Ol"}
           </button>
         </div>
 
@@ -176,11 +180,13 @@ export default function AccountPage() {
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {!isLoginView && (
             <div>
-              <label className="block font-semibold text-[#3E2E28] mb-1">Ad Soyad</label>
+              <label className="block font-semibold text-[#3E2E28] mb-1">
+                {siteTexts?.accountPage?.fullNameLabel || "Ad Soyad"}
+              </label>
               <input
                 type="text"
                 required
-                placeholder="Örn: Ayşe Yılmaz"
+                placeholder={siteTexts?.accountPage?.fullNamePlaceholder || "Örn: Ayşe Yılmaz"}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-[#C86D51]"
@@ -189,12 +195,14 @@ export default function AccountPage() {
           )}
 
           <div>
-            <label className="block font-semibold text-[#3E2E28] mb-1">E-Posta Adresi</label>
+            <label className="block font-semibold text-[#3E2E28] mb-1">
+              {siteTexts?.accountPage?.emailLabel || "E-Posta Adresi"}
+            </label>
             <div className="relative">
               <input
                 type="email"
                 required
-                placeholder="ornek@email.com"
+                placeholder={siteTexts?.accountPage?.emailPlaceholder || "ornek@email.com"}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3 pl-10 focus:outline-none focus:ring-1 focus:ring-[#C86D51]"
@@ -204,12 +212,14 @@ export default function AccountPage() {
           </div>
 
           <div>
-            <label className="block font-semibold text-[#3E2E28] mb-1">Şifre</label>
+            <label className="block font-semibold text-[#3E2E28] mb-1">
+              {siteTexts?.accountPage?.passwordLabel || "Şifre"}
+            </label>
             <div className="relative">
               <input
                 type="password"
                 required
-                placeholder="••••••••"
+                placeholder={siteTexts?.accountPage?.passwordPlaceholder || "••••••••"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-3 pl-10 focus:outline-none focus:ring-1 focus:ring-[#C86D51]"
@@ -222,7 +232,11 @@ export default function AccountPage() {
             type="submit"
             className="w-full py-3.5 bg-[#C86D51] text-white font-semibold rounded-full hover:bg-[#B05B41] transition shadow-md text-xs flex items-center justify-center gap-2"
           >
-            <span>{isLoginView ? "Giriş Yap" : "Kayıt Ol & Hesabı Oluştur"}</span>
+            <span>
+              {isLoginView
+                ? (siteTexts?.accountPage?.loginSubmitButton || "Giriş Yap")
+                : (siteTexts?.accountPage?.registerSubmitButton || "Kayıt Ol & Hesabı Oluştur")}
+            </span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

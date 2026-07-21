@@ -6,9 +6,11 @@ import Link from "next/link";
 import { Star, ShoppingBag, Heart, Check } from "lucide-react";
 import { Product } from "@/data/mockData";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
+  const { siteTexts } = useAuth();
   const [added, setAdded] = React.useState(false);
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -41,7 +43,7 @@ export default function ProductCard({ product }: { product: Product }) {
             )}
             {product.isBestSeller && (
               <span className="bg-[#3E2E28] text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm">
-                Çok Satan
+                {siteTexts?.productCard?.newBadge || "Çok Satan"}
               </span>
             )}
           </div>
@@ -65,7 +67,7 @@ export default function ProductCard({ product }: { product: Product }) {
             <span className="uppercase font-semibold tracking-wider text-[10px] text-[#C86D51]">{product.category}</span>
             <div className="flex items-center gap-1 font-medium">
               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span>{product.rating} ({product.reviewCount})</span>
+              <span>{product.rating} ({product.reviewCount} {siteTexts?.productCard?.reviewsCountSuffix || "Değerlendirme"})</span>
             </div>
           </div>
 
@@ -104,11 +106,11 @@ export default function ProductCard({ product }: { product: Product }) {
         >
           {added ? (
             <>
-              <Check className="w-4 h-4" /> Eklendi
+              <Check className="w-4 h-4" /> {siteTexts?.productCard?.inCart || "Eklendi"}
             </>
           ) : (
             <>
-              <ShoppingBag className="w-4 h-4" /> Sepete Ekle
+              <ShoppingBag className="w-4 h-4" /> {siteTexts?.productCard?.addToCart || "Sepete Ekle"}
             </>
           )}
         </button>

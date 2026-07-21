@@ -3,14 +3,14 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
-import { ShieldCheck, CreditCard, Lock, CheckCircle2, Truck, ArrowLeft } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { CreditCard, Lock, CheckCircle2, Truck, ArrowLeft } from "lucide-react";
 import confetti from "canvas-confetti";
 
 export default function CheckoutPage() {
-  const router = useRouter();
   const { cart, grandTotal, subtotal, shipping, discountAmount, clearCart } = useCart();
+  const { siteTexts } = useAuth();
 
   const [paymentMethod, setPaymentMethod] = useState<"card" | "transfer">("card");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -64,20 +64,19 @@ export default function CheckoutPage() {
         </div>
 
         <div className="space-y-2">
-          <span className="text-xs uppercase font-bold tracking-widest text-[#C86D51]">Siparişiniz Alındı!</span>
           <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#3E2E28]">
-            Teşekkür Ederiz, Ahmet Bey!
+            {siteTexts?.checkoutPage?.orderSuccessTitle || "Siparişiniz Başarıyla Alındı! 🎉"}
           </h1>
           <p className="text-sm text-[#7C6354]">
-            Sipariş Numaranız: <strong className="text-[#3E2E28] font-mono text-base">{orderId}</strong>
+            {siteTexts?.checkoutPage?.orderSuccessDesc || "Sipariş numaranız ile kargonuzu takip edebilirsiniz."} <br />
+            Sipariş Kodu: <strong className="text-[#3E2E28] font-mono text-base">{orderId}</strong>
           </p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-[#E6DCD3] text-left text-xs space-y-3 max-w-md mx-auto">
-          <h3 className="font-bold text-[#3E2E28] border-b border-[#E6DCD3] pb-2 text-sm">Sipariş Bilgileri</h3>
+          <h3 className="font-bold text-[#3E2E28] border-b border-[#E6DCD3] pb-2 text-sm">Sipariş Detayı</h3>
           <p><strong>Teslimat Adresi:</strong> {formData.address}, {formData.district} / {formData.city}</p>
-          <p><strong>Ödeme Tipi:</strong> Kredi Kartı (Iyzico Güvenli Ödeme)</p>
-          <p><strong>Tahmini Teslimat:</strong> 2-3 İş Günü İçi Yurtiçi Kargo</p>
+          <p><strong>Ödeme Tipi:</strong> {paymentMethod === "card" ? "Kredi Kartı (Iyzico)" : "EFT / Havale"}</p>
           <p className="text-emerald-700 font-medium">✉ Sipariş onay detayları {formData.email} adresinize gönderildi.</p>
         </div>
 
@@ -86,7 +85,7 @@ export default function CheckoutPage() {
             href="/"
             className="px-8 py-3.5 bg-[#C86D51] text-white font-semibold rounded-full hover:bg-[#B05B41] transition shadow-md inline-block text-sm"
           >
-            Ana Sayfaya Dön
+            {siteTexts?.checkoutPage?.backToHomeButton || "Ana Sayfaya Dön"}
           </Link>
         </div>
       </div>
@@ -113,7 +112,7 @@ export default function CheckoutPage() {
           <ArrowLeft className="w-4 h-4" /> Sepete Geri Dön
         </Link>
         <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
-          <Lock className="w-3.5 h-3.5" /> 256-Bit SSL Korumalı Checkout
+          <Lock className="w-3.5 h-3.5" /> {siteTexts?.cartPage?.secureShoppingBadge || "256-Bit SSL Korumalı Checkout"}
         </div>
       </div>
 
@@ -125,16 +124,17 @@ export default function CheckoutPage() {
           {/* 1. Teslimat Adresi */}
           <div className="bg-white p-6 rounded-2xl border border-[#E6DCD3] shadow-sm space-y-4">
             <h2 className="font-serif text-lg font-bold text-[#3E2E28] flex items-center gap-2">
-              <Truck className="w-5 h-5 text-[#C86D51]" /> Teslimat Adresi
+              <Truck className="w-5 h-5 text-[#C86D51]" /> {siteTexts?.checkoutPage?.step1Title || "1. Teslimat & Adres Bilgileri"}
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[#3E2E28] mb-1">Ad Soyad</label>
+                <label className="block text-xs font-semibold text-[#3E2E28] mb-1">{siteTexts?.checkoutPage?.fullNameLabel || "Ad Soyad"}</label>
                 <input
                   type="text"
                   name="fullName"
                   required
+                  placeholder={siteTexts?.checkoutPage?.fullNamePlaceholder}
                   value={formData.fullName}
                   onChange={handleChange}
                   className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5 text-xs focus:ring-1 focus:ring-[#C86D51] focus:outline-none"
@@ -142,11 +142,12 @@ export default function CheckoutPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#3E2E28] mb-1">E-Posta Adresi</label>
+                <label className="block text-xs font-semibold text-[#3E2E28] mb-1">{siteTexts?.checkoutPage?.emailLabel || "E-Posta Adresi"}</label>
                 <input
                   type="email"
                   name="email"
                   required
+                  placeholder={siteTexts?.checkoutPage?.emailPlaceholder}
                   value={formData.email}
                   onChange={handleChange}
                   className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5 text-xs focus:ring-1 focus:ring-[#C86D51] focus:outline-none"
@@ -154,11 +155,12 @@ export default function CheckoutPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#3E2E28] mb-1">Telefon Numarası</label>
+                <label className="block text-xs font-semibold text-[#3E2E28] mb-1">{siteTexts?.checkoutPage?.phoneLabel || "Telefon Numarası"}</label>
                 <input
                   type="tel"
                   name="phone"
                   required
+                  placeholder={siteTexts?.checkoutPage?.phonePlaceholder}
                   value={formData.phone}
                   onChange={handleChange}
                   className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5 text-xs focus:ring-1 focus:ring-[#C86D51] focus:outline-none"
@@ -166,11 +168,12 @@ export default function CheckoutPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#3E2E28] mb-1">Şehir</label>
+                <label className="block text-xs font-semibold text-[#3E2E28] mb-1">{siteTexts?.checkoutPage?.cityLabel || "Şehir / İlçe"}</label>
                 <input
                   type="text"
                   name="city"
                   required
+                  placeholder={siteTexts?.checkoutPage?.cityPlaceholder}
                   value={formData.city}
                   onChange={handleChange}
                   className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5 text-xs focus:ring-1 focus:ring-[#C86D51] focus:outline-none"
@@ -179,11 +182,12 @@ export default function CheckoutPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#3E2E28] mb-1">Açık Adres</label>
+              <label className="block text-xs font-semibold text-[#3E2E28] mb-1">{siteTexts?.checkoutPage?.addressLabel || "Açık Adres"}</label>
               <textarea
                 name="address"
                 rows={3}
                 required
+                placeholder={siteTexts?.checkoutPage?.addressPlaceholder}
                 value={formData.address}
                 onChange={handleChange}
                 className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5 text-xs focus:ring-1 focus:ring-[#C86D51] focus:outline-none"
@@ -194,7 +198,7 @@ export default function CheckoutPage() {
           {/* 2. Ödeme Yöntemi ve Kart Bilgileri */}
           <div className="bg-white p-6 rounded-2xl border border-[#E6DCD3] shadow-sm space-y-4">
             <h2 className="font-serif text-lg font-bold text-[#3E2E28] flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-[#C86D51]" /> Ödeme Yöntemi
+              <CreditCard className="w-5 h-5 text-[#C86D51]" /> {siteTexts?.checkoutPage?.step2Title || "2. Ödeme Yöntemi"}
             </h2>
 
             {/* Kart / Havale Tablar */}
@@ -208,7 +212,7 @@ export default function CheckoutPage() {
                     : "bg-[#F8F5F0] text-[#3E2E28] border-[#D8C7B5]"
                 }`}
               >
-                <CreditCard className="w-4 h-4" /> Kredi / Banka Kartı
+                <CreditCard className="w-4 h-4" /> {siteTexts?.checkoutPage?.cardOptionTitle || "Kredi / Banka Kartı"}
               </button>
               <button
                 type="button"
@@ -219,14 +223,14 @@ export default function CheckoutPage() {
                     : "bg-[#F8F5F0] text-[#3E2E28] border-[#D8C7B5]"
                 }`}
               >
-                EFT / Havale (%5 İndirimli)
+                {siteTexts?.checkoutPage?.codOptionTitle || "Kapıda Ödeme"}
               </button>
             </div>
 
             {paymentMethod === "card" ? (
               <div className="space-y-4 pt-2">
                 <div>
-                  <label className="block text-xs font-semibold text-[#3E2E28] mb-1">Kart Üzerindeki İsim</label>
+                  <label className="block text-xs font-semibold text-[#3E2E28] mb-1">{siteTexts?.checkoutPage?.cardHolderLabel || "Kart Üzerindeki İsim"}</label>
                   <input
                     type="text"
                     name="cardHolder"
@@ -238,7 +242,7 @@ export default function CheckoutPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#3E2E28] mb-1">Kart Numarası</label>
+                  <label className="block text-xs font-semibold text-[#3E2E28] mb-1">{siteTexts?.checkoutPage?.cardNumberLabel || "Kart Numarası"}</label>
                   <input
                     type="text"
                     name="cardNumber"
@@ -252,7 +256,7 @@ export default function CheckoutPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-[#3E2E28] mb-1">Son Kullanma (AA/YY)</label>
+                    <label className="block text-xs font-semibold text-[#3E2E28] mb-1">{siteTexts?.checkoutPage?.expireDateLabel || "Son Kullanma (AA/YY)"}</label>
                     <input
                       type="text"
                       name="expiry"
@@ -264,7 +268,7 @@ export default function CheckoutPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#3E2E28] mb-1">CVV Güvenlik Kodu</label>
+                    <label className="block text-xs font-semibold text-[#3E2E28] mb-1">{siteTexts?.checkoutPage?.cvcLabel || "CVC / Güvenlik Kodu"}</label>
                     <input
                       type="password"
                       name="cvv"
@@ -279,13 +283,8 @@ export default function CheckoutPage() {
               </div>
             ) : (
               <div className="p-4 bg-[#F8F5F0] rounded-xl text-xs text-[#7C6354] space-y-2 border border-[#D8C7B5]">
-                <p className="font-bold text-[#3E2E28]">Banka Havalesi Bilgileri:</p>
-                <p>Banka: Ziraat Bankası</p>
-                <p>Alıcı: OtantikosConcept Tic. Ltd. Şti.</p>
-                <p className="font-mono text-xs text-[#3E2E28] bg-white p-2 rounded border border-[#E6DCD3]">
-                  IBAN: TR92 0001 0009 0123 4567 8900 01
-                </p>
-                <p className="text-[11px]">Sipariş numaranızı açıklama kısmına yazmayı unutmayınız.</p>
+                <p className="font-bold text-[#3E2E28]">Kapıda Ödeme Bilgileri:</p>
+                <p>Siparişiniz teslim edilirken kapıda kuryeye nakit veya Kredi Kartı (POS) ile ödeme yapabilirsiniz.</p>
               </div>
             )}
           </div>
@@ -320,24 +319,24 @@ export default function CheckoutPage() {
             {/* Fiyat Listesi */}
             <div className="space-y-2 text-xs border-t border-b border-[#E6DCD3] py-4">
               <div className="flex justify-between text-[#7C6354]">
-                <span>Ara Toplam</span>
+                <span>{siteTexts?.cartPage?.subtotal || "Ara Toplam"}</span>
                 <span>{subtotal.toFixed(2)} TL</span>
               </div>
 
               {discountAmount > 0 && (
                 <div className="flex justify-between text-emerald-600">
-                  <span>İndirim</span>
+                  <span>{siteTexts?.cartPage?.couponDiscount || "İndirim"}</span>
                   <span>-{discountAmount.toFixed(2)} TL</span>
                 </div>
               )}
 
               <div className="flex justify-between text-[#7C6354]">
-                <span>Kargo</span>
-                <span>{shipping === 0 ? "Ücretsiz" : `${shipping.toFixed(2)} TL`}</span>
+                <span>{siteTexts?.cartPage?.shipping || "Kargo"}</span>
+                <span>{shipping.toFixed(2)} TL</span>
               </div>
 
               <div className="flex justify-between items-baseline pt-2 border-t border-[#E6DCD3] text-sm">
-                <span className="font-bold text-[#3E2E28]">Ödenecek Tutar</span>
+                <span className="font-bold text-[#3E2E28]">{siteTexts?.cartPage?.total || "Ödenecek Tutar"}</span>
                 <span className="text-xl font-bold text-[#C86D51]">{grandTotal.toFixed(2)} TL</span>
               </div>
             </div>
@@ -352,14 +351,10 @@ export default function CheckoutPage() {
                 <span>Ödeme İşleniyor...</span>
               ) : (
                 <>
-                  <Lock className="w-4 h-4" /> Siparişi Tamamla & Öde ({grandTotal.toFixed(2)} TL)
+                  <Lock className="w-4 h-4" /> {siteTexts?.checkoutPage?.completeOrderButton || "Siparişi Tamamla & Öde"} ({grandTotal.toFixed(2)} TL)
                 </>
               )}
             </button>
-
-            <p className="text-[10px] text-center text-[#7C6354]">
-              "Siparişi Tamamla" butonuna basarak Mesafeli Satış Sözleşmesi'ni kabul etmiş olursunuz.
-            </p>
           </div>
         </div>
 

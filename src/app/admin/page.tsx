@@ -32,7 +32,7 @@ export default function AdminDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notification, setNotification] = useState("");
 
-  // Site Ayarları Form State
+  // Form States
   const [siteForm, setSiteForm] = useState<SiteSettings>(settings);
   const [textsForm, setTextsForm] = useState<SiteTexts>(siteTexts);
 
@@ -299,14 +299,14 @@ export default function AdminDashboard() {
 
       {/* TAB 2: TÜM SİTE YAZILARINI DÜZENLEME */}
       {activeTab === "gui-texts" && (
-        <form onSubmit={handleSaveSettings} className="bg-white p-8 rounded-2xl border border-[#E6DCD3] shadow-sm space-y-8">
+        <form onSubmit={handleSaveSettings} className="bg-white p-8 rounded-2xl border border-[#E6DCD3] shadow-sm space-y-10">
           <div className="flex items-center justify-between border-b border-[#E6DCD3] pb-4">
             <div>
               <h3 className="font-serif text-xl font-bold text-[#3E2E28] flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[#C86D51]" /> Tüm Site GUI Metinleri Editörü
+                <FileText className="w-5 h-5 text-[#C86D51]" /> Tüm Ekranlardaki Tüm Metinler Editörü
               </h3>
               <p className="text-xs text-[#7C6354] mt-0.5">
-                Sitenizin tüm sayfalarındaki metinleri tek ekrandan değiştirip anında güncelleyebilirsiniz.
+                Sitenin her bir ekranındaki (Header, Hero, Katalog, Ürün Kartı, Ürün Detayı, Sepet, Checkout, Hesabım, Footer) tüm metinleri buradan değiştirebilirsiniz.
               </p>
             </div>
 
@@ -318,10 +318,10 @@ export default function AdminDashboard() {
             </button>
           </div>
 
-          {/* 1. HEADER YAZILARI */}
+          {/* 1. HEADER & MENÜ YAZILARI */}
           <div className="space-y-4">
-            <h4 className="font-serif text-base font-bold text-[#3E2E28] border-b border-[#E6DCD3] pb-2 text-[#C86D51]">
-              1. Üst Menü & Header Yazıları
+            <h4 className="font-serif text-base font-bold border-b border-[#E6DCD3] pb-2 text-[#C86D51]">
+              1. Header & Üst Menü Yazıları
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div className="sm:col-span-2">
@@ -378,17 +378,26 @@ export default function AdminDashboard() {
                   className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
                 />
               </div>
+              <div>
+                <label className="block font-semibold mb-1">Hesabım Buton İsmi</label>
+                <input
+                  type="text"
+                  value={textsForm.header.accountLabel}
+                  onChange={(e) => setTextsForm({ ...textsForm, header: { ...textsForm.header, accountLabel: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
             </div>
           </div>
 
-          {/* 2. HERO SLOGAN YAZILARI */}
+          {/* 2. HERO / MANŞET YAZILARI */}
           <div className="space-y-4">
-            <h4 className="font-serif text-base font-bold text-[#3E2E28] border-b border-[#E6DCD3] pb-2 text-[#C86D51]">
-              2. Ana Sayfa Manşet / Hero Bölümü
+            <h4 className="font-serif text-base font-bold border-b border-[#E6DCD3] pb-2 text-[#C86D51]">
+              2. Ana Sayfa Hero Manşet Yazıları
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
-                <label className="block font-semibold mb-1">Üst Rozet Metni (Badge)</label>
+                <label className="block font-semibold mb-1">Üst Rozet Metni</label>
                 <input
                   type="text"
                   value={textsForm.hero.badge}
@@ -397,7 +406,7 @@ export default function AdminDashboard() {
                 />
               </div>
               <div>
-                <label className="block font-semibold mb-1">Ana Başlık (Metin 1)</label>
+                <label className="block font-semibold mb-1">Ana Manşet Başlığı</label>
                 <input
                   type="text"
                   value={textsForm.hero.title}
@@ -406,7 +415,7 @@ export default function AdminDashboard() {
                 />
               </div>
               <div>
-                <label className="block font-semibold mb-1">Renkli Vurgu Başlığı (Metin 2)</label>
+                <label className="block font-semibold mb-1">Renkli Vurgu Başlığı</label>
                 <input
                   type="text"
                   value={textsForm.hero.highlightTitle}
@@ -415,7 +424,7 @@ export default function AdminDashboard() {
                 />
               </div>
               <div>
-                <label className="block font-semibold mb-1">Birincil Buton Yazısı</label>
+                <label className="block font-semibold mb-1">Buton Yazısı</label>
                 <input
                   type="text"
                   value={textsForm.hero.buttonText}
@@ -424,7 +433,7 @@ export default function AdminDashboard() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="block font-semibold mb-1">Açıklama Paragrafı</label>
+                <label className="block font-semibold mb-1">Manşet Açıklama Metni</label>
                 <textarea
                   rows={2}
                   value={textsForm.hero.description}
@@ -435,27 +444,153 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* 3. MARKA HİKAYESİ */}
+          {/* 3. ÜRÜN KARTLARI YAZILARI */}
           <div className="space-y-4">
-            <h4 className="font-serif text-base font-bold text-[#3E2E28] border-b border-[#E6DCD3] pb-2 text-[#C86D51]">
-              3. Marka Hikayesi ve Hakkımızda
+            <h4 className="font-serif text-base font-bold border-b border-[#E6DCD3] pb-2 text-[#C86D51]">
+              3. Ürün Kartları Üzerindeki Yazılar
             </h4>
-            <div className="space-y-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
               <div>
-                <label className="block font-semibold mb-1">Hikaye Başlığı</label>
+                <label className="block font-semibold mb-1">Yeni Rozeti</label>
                 <input
                   type="text"
-                  value={textsForm.brandStory.title}
-                  onChange={(e) => setTextsForm({ ...textsForm, brandStory: { ...textsForm.brandStory, title: e.target.value } })}
+                  value={textsForm.productCard.newBadge}
+                  onChange={(e) => setTextsForm({ ...textsForm, productCard: { ...textsForm.productCard, newBadge: e.target.value } })}
                   className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
                 />
               </div>
               <div>
-                <label className="block font-semibold mb-1">Hikaye Metni</label>
-                <textarea
-                  rows={3}
-                  value={textsForm.brandStory.content}
-                  onChange={(e) => setTextsForm({ ...textsForm, brandStory: { ...textsForm.brandStory, content: e.target.value } })}
+                <label className="block font-semibold mb-1">Sepete Ekle Buton Yazısı</label>
+                <input
+                  type="text"
+                  value={textsForm.productCard.addToCart}
+                  onChange={(e) => setTextsForm({ ...textsForm, productCard: { ...textsForm.productCard, addToCart: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Sepette Var Yazısı</label>
+                <input
+                  type="text"
+                  value={textsForm.productCard.inCart}
+                  onChange={(e) => setTextsForm({ ...textsForm, productCard: { ...textsForm.productCard, inCart: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 4. SEPET SAYFASI YAZILARI */}
+          <div className="space-y-4">
+            <h4 className="font-serif text-base font-bold border-b border-[#E6DCD3] pb-2 text-[#C86D51]">
+              4. Sepet Sayfası Metinleri
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="block font-semibold mb-1">Sepet Sayfa Başlığı</label>
+                <input
+                  type="text"
+                  value={textsForm.cartPage.title}
+                  onChange={(e) => setTextsForm({ ...textsForm, cartPage: { ...textsForm.cartPage, title: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Boş Sepet Başlığı</label>
+                <input
+                  type="text"
+                  value={textsForm.cartPage.emptyCartTitle}
+                  onChange={(e) => setTextsForm({ ...textsForm, cartPage: { ...textsForm.cartPage, emptyCartTitle: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Ödemeye Geç Buton Yazısı</label>
+                <input
+                  type="text"
+                  value={textsForm.cartPage.checkoutButton}
+                  onChange={(e) => setTextsForm({ ...textsForm, cartPage: { ...textsForm.cartPage, checkoutButton: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Kupon İpucu (Placeholder)</label>
+                <input
+                  type="text"
+                  value={textsForm.cartPage.couponPlaceholder}
+                  onChange={(e) => setTextsForm({ ...textsForm, cartPage: { ...textsForm.cartPage, couponPlaceholder: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 5. CHECKOUT VE ÖDEME EKRANI */}
+          <div className="space-y-4">
+            <h4 className="font-serif text-base font-bold border-b border-[#E6DCD3] pb-2 text-[#C86D51]">
+              5. Ödeme & Teslimat Ekranı (Checkout)
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="block font-semibold mb-1">Ödeme Başlığı</label>
+                <input
+                  type="text"
+                  value={textsForm.checkoutPage.title}
+                  onChange={(e) => setTextsForm({ ...textsForm, checkoutPage: { ...textsForm.checkoutPage, title: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Siparişi Tamamla Buton Metni</label>
+                <input
+                  type="text"
+                  value={textsForm.checkoutPage.completeOrderButton}
+                  onChange={(e) => setTextsForm({ ...textsForm, checkoutPage: { ...textsForm.checkoutPage, completeOrderButton: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block font-semibold mb-1">Sipariş Onay Başlığı</label>
+                <input
+                  type="text"
+                  value={textsForm.checkoutPage.orderSuccessTitle}
+                  onChange={(e) => setTextsForm({ ...textsForm, checkoutPage: { ...textsForm.checkoutPage, orderSuccessTitle: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 6. FOOTER VE ALT BİLGİLER */}
+          <div className="space-y-4">
+            <h4 className="font-serif text-base font-bold border-b border-[#E6DCD3] pb-2 text-[#C86D51]">
+              6. Footer & Alt Bilgiler
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="sm:col-span-2">
+                <label className="block font-semibold mb-1">Marka Açıklaması</label>
+                <input
+                  type="text"
+                  value={textsForm.footer.brandDescription}
+                  onChange={(e) => setTextsForm({ ...textsForm, footer: { ...textsForm.footer, brandDescription: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Telif Hakkı (Copyright)</label>
+                <input
+                  type="text"
+                  value={textsForm.footer.copyrightText}
+                  onChange={(e) => setTextsForm({ ...textsForm, footer: { ...textsForm.footer, copyrightText: e.target.value } })}
+                  className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Ödeme Yöntemleri Rozeti</label>
+                <input
+                  type="text"
+                  value={textsForm.footer.paymentMethodsBadge}
+                  onChange={(e) => setTextsForm({ ...textsForm, footer: { ...textsForm.footer, paymentMethodsBadge: e.target.value } })}
                   className="w-full bg-[#F8F5F0] border border-[#D8C7B5] rounded-xl p-2.5"
                 />
               </div>
@@ -467,7 +602,7 @@ export default function AdminDashboard() {
               type="submit"
               className="w-full py-4 bg-[#C86D51] text-white text-xs font-semibold rounded-full hover:bg-[#B05B41] transition shadow-lg flex items-center justify-center gap-2"
             >
-              <Save className="w-4 h-4" /> Değişiklikleri Kaydet & Sitede Yayınla
+              <Save className="w-4 h-4" /> Tüm Değişiklikleri Kaydet & Canlı Sitede Yayınla
             </button>
           </div>
         </form>

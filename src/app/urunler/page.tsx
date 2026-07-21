@@ -2,14 +2,13 @@
 
 import React, { useState } from "react";
 import ProductCard from "@/components/ProductCard";
-import { Filter, SlidersHorizontal, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
 export default function ProductsPage() {
-  const { products, isAdmin } = useAuth();
+  const { products, isAdmin, siteTexts } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<string>("recommended");
 
   const filteredProducts = products.filter((p) => {
     if (selectedCategory !== "all" && p.categorySlug !== selectedCategory) return false;
@@ -23,10 +22,10 @@ export default function ProductsPage() {
       <div className="mb-8 text-center md:text-left flex flex-col sm:flex-row justify-between items-center gap-4">
         <div>
           <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#3E2E28]">
-            Trend Oyuncak & Bijuteri Kataloğu
+            {siteTexts?.catalogPage?.title || "Tüm Ürünlerimiz"}
           </h1>
           <p className="text-xs sm:text-sm text-[#7C6354] mt-1">
-            NeeDoh Squishy, stres oyuncakları ve şık bijuteri takılarımız ({filteredProducts.length} Ürün).
+            {siteTexts?.catalogPage?.subtitle || "Trend oyuncak, NeeDoh Squishy ve bijuteri tasarımlarımızı keşfedin."} ({filteredProducts.length} {siteTexts?.catalogPage?.foundCountSuffix || "ürün listelendi"}).
           </p>
         </div>
 
@@ -35,7 +34,7 @@ export default function ProductsPage() {
             href="/admin"
             className="px-6 py-3 bg-[#C86D51] text-white text-xs font-semibold rounded-full hover:bg-[#B05B41] transition flex items-center gap-2"
           >
-            <Plus className="w-4 h-4" /> Yeni Ürün Ekle
+            <Plus className="w-4 h-4" /> {siteTexts?.productsSection?.emptyCatalogAdminAction || "+ Ürün Ekle"}
           </Link>
         )}
       </div>
@@ -51,23 +50,25 @@ export default function ProductsPage() {
           <div className="w-16 h-16 bg-[#F8F5F0] text-[#C86D51] rounded-full flex items-center justify-center mx-auto">
             <Plus className="w-8 h-8" />
           </div>
-          <h3 className="text-xl font-serif font-bold text-[#3E2E28]">Henüz Ürün Eklenmedi</h3>
+          <h3 className="text-xl font-serif font-bold text-[#3E2E28]">
+            {siteTexts?.productsSection?.emptyCatalogTitle || "Henüz Ürün Eklenmedi"}
+          </h3>
           <p className="text-xs text-[#7C6354]">
-            Mağazanıza NeeDoh Squishy Çin Mantısı, oyuncak veya bijuteri eklemek için Admin Paneli'ni (`/admin`) kullanabilirsiniz.
+            {siteTexts?.productsSection?.emptyCatalogDesc || "Mağazanıza ürün eklemek için Admin Paneli'ni kullanabilirsiniz."}
           </p>
           {isAdmin ? (
             <Link
               href="/admin"
               className="px-6 py-3 bg-[#C86D51] text-white text-xs font-semibold rounded-full hover:bg-[#B05B41] transition inline-block"
             >
-              Yönetici Paneline Git ve Ürün Ekle
+              {siteTexts?.productsSection?.emptyCatalogAdminAction || "Yönetici Paneline Git ve Ürün Ekle"}
             </Link>
           ) : (
             <Link
               href="/hesabim"
               className="px-6 py-3 bg-[#C86D51] text-white text-xs font-semibold rounded-full hover:bg-[#B05B41] transition inline-block"
             >
-              Admin Hesabı İle Giriş Yap
+              {siteTexts?.accountPage?.goToAdminButton || "Admin Hesabı İle Giriş Yap"}
             </Link>
           )}
         </div>

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams, notFound } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   Star,
   ShoppingBag,
@@ -11,33 +11,44 @@ import {
   ShieldCheck,
   RefreshCw,
   Check,
-  Heart,
-  Share2,
   ChevronRight,
   Minus,
   Plus
 } from "lucide-react";
-import { INITIAL_PRODUCTS } from "@/data/mockData";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import ProductCard from "@/components/ProductCard";
 
 export default function ProductDetailPage() {
   const params = useParams();
   const slug = params?.slug as string;
 
-  const product = INITIAL_PRODUCTS.find((p) => p.slug === slug) || INITIAL_PRODUCTS[0];
-
+  const { products, siteTexts } = useAuth();
   const { addToCart } = useCart();
+
+  const product = products.find((p) => p.slug === slug) || products[0];
+
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
-    product.variants?.forEach((v) => {
+    product?.variants?.forEach((v) => {
       if (v.options.length > 0) initial[v.name] = v.options[0];
     });
     return initial;
   });
   const [added, setAdded] = useState(false);
+
+  if (!product) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
+        <p className="text-sm text-[#7C6354]">Ürün bulunamadı.</p>
+        <Link href="/urunler" className="px-6 py-2.5 bg-[#C86D51] text-white text-xs font-semibold rounded-full inline-block">
+          Ürünlere Dön
+        </Link>
+      </div>
+    );
+  }
 
   const handleAddToCart = (buyNow = false) => {
     const variantStr = Object.entries(selectedVariants)
@@ -53,7 +64,7 @@ export default function ProductDetailPage() {
     }
   };
 
-  const relatedProducts = INITIAL_PRODUCTS.filter(
+  const relatedProducts = products.filter(
     (p) => p.categorySlug === product.categorySlug && p.id !== product.id
   ).slice(0, 3);
 
@@ -61,9 +72,9 @@ export default function ProductDetailPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-16">
       {/* Ekmek Kırıntısı (Breadcrumb) */}
       <nav className="flex items-center gap-2 text-xs text-[#7C6354]">
-        <Link href="/" className="hover:text-[#C86D51]">Ana Sayfa</Link>
+        <Link href="/" className="hover:text-[#C86D51]">{siteTexts?.header?.navHome || "Ana Sayfa"}</Link>
         <ChevronRight className="w-3 h-3" />
-        <Link href="/urunler" className="hover:text-[#C86D51]">Ürünler</Link>
+        <Link href="/urunler" className="hover:text-[#C86D51]">{siteTexts?.header?.navAllProducts || "Ürünler"}</Link>
         <ChevronRight className="w-3 h-3" />
         <Link href={`/kategori/${product.categorySlug}`} className="hover:text-[#C86D51]">
           {product.category}
@@ -79,7 +90,7 @@ export default function ProductDetailPage() {
         <div className="lg:col-span-6 space-y-4">
           <div className="relative aspect-square rounded-3xl overflow-hidden bg-white border border-[#E6DCD3] shadow-md">
             <Image
-              src={product.images[selectedImage] || product.images[0]}
+              src={product.images[selectedImage] || product.images[0] || "/otantikos-logo.png"}
               alt={product.title}
               fill
               className="object-cover transition-all duration-300"
@@ -92,7 +103,7 @@ export default function ProductDetailPage() {
             )}
           </div>
 
-          {/* Küçük Resimler (Thumbnails) */}
+          {/* Küçük Resimler */}
           {product.images.length > 1 && (
             <div className="flex gap-3 overflow-x-auto pb-2">
               {product.images.map((img, idx) => (
@@ -127,8 +138,8 @@ export default function ProductDetailPage() {
                   <Star key={i} className="w-4 h-4 fill-amber-400" />
                 ))}
               </div>
-              <span className="text-xs font-bold text-[#3E2E28]">{product.rating}</span>
-              <span className="text-xs text-[#7C6354]">({product.reviewCount} Müşteri Değerlendirmesi)</span>
+              <span className="text-xs font-bold text-[#3E2E28]">{product.rating || 5.0}</span>
+              <span className="text-xs text-[#7C6354]">({product.reviewCount || 1} {siteTexts?.productCard?.reviewsCountSuffix || "Değerlendirme"})</span>
             </div>
           </div>
 
@@ -150,7 +161,7 @@ export default function ProductDetailPage() {
             
             <div className="text-right">
               <span className="inline-block px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200">
-                ✓ Stokta Var ({product.stock} Adet)
+                ✓ {siteTexts?.productDetailPage?.stockStatusInStock || "Stokta Var"} ({product.stock} Adet)
               </span>
             </div>
           </div>
@@ -212,11 +223,11 @@ export default function ProductDetailPage() {
               >
                 {added ? (
                   <>
-                    <Check className="w-5 h-5" /> Sepete Eklendi
+                    <Check className="w-5 h-5" /> {siteTexts?.productCard?.inCart || "Sepete Eklendi"}
                   </>
                 ) : (
                   <>
-                    <ShoppingBag className="w-5 h-5" /> Sepete Ekle
+                    <ShoppingBag className="w-5 h-5" /> {siteTexts?.productDetailPage?.addToCartButton || "Sepete Ekle"}
                   </>
                 )}
               </button>
@@ -226,7 +237,7 @@ export default function ProductDetailPage() {
               onClick={() => handleAddToCart(true)}
               className="w-full py-4 bg-[#3E2E28] text-white font-semibold text-sm rounded-full hover:bg-black transition shadow-md"
             >
-              Hemen Satın Al (Hızlı Ödeme)
+              {siteTexts?.productDetailPage?.buyNowButton || "Hemen Satın Al"}
             </button>
           </div>
 
@@ -234,29 +245,17 @@ export default function ProductDetailPage() {
           <div className="grid grid-cols-3 gap-3 pt-6 border-t border-[#E6DCD3] text-center text-xs text-[#7C6354]">
             <div className="flex flex-col items-center p-3 bg-white rounded-xl border border-[#E6DCD3]">
               <Truck className="w-5 h-5 text-[#C86D51] mb-1" />
-              <span>Hızlı Kargo</span>
+              <span>{siteTexts?.productDetailPage?.badgeFastShipping || "Hızlı Kargo"}</span>
             </div>
             <div className="flex flex-col items-center p-3 bg-white rounded-xl border border-[#E6DCD3]">
               <ShieldCheck className="w-5 h-5 text-[#C86D51] mb-1" />
-              <span>Zanaat Garantisi</span>
+              <span>{siteTexts?.productDetailPage?.badgeOriginal || "Orijinal Garantisi"}</span>
             </div>
             <div className="flex flex-col items-center p-3 bg-white rounded-xl border border-[#E6DCD3]">
               <RefreshCw className="w-5 h-5 text-[#C86D51] mb-1" />
-              <span>14 Gün İade</span>
+              <span>{siteTexts?.productDetailPage?.badgeEasyReturn || "14 Gün İade"}</span>
             </div>
           </div>
-
-          {/* Ürün Detay Maddeleri */}
-          {product.details && (
-            <div className="bg-white p-5 rounded-2xl border border-[#E6DCD3] space-y-2">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#3E2E28]">Ürün Özellikleri</h4>
-              <ul className="list-disc list-inside text-xs text-[#7C6354] space-y-1">
-                {product.details.map((d, i) => (
-                  <li key={i}>{d}</li>
-                ))}
-              </ul>
-            </div>
-          )}
 
         </div>
 
@@ -265,7 +264,9 @@ export default function ProductDetailPage() {
       {/* BENZER ÜRÜNLER SECTION */}
       {relatedProducts.length > 0 && (
         <section className="pt-12 border-t border-[#E6DCD3]">
-          <h3 className="font-serif text-2xl font-bold text-[#3E2E28] mb-8">Bunları Da Sevebilirsiniz</h3>
+          <h3 className="font-serif text-2xl font-bold text-[#3E2E28] mb-8">
+            {siteTexts?.productDetailPage?.relatedProductsTitle || "İlginizi Çekebilecek Diğer Ürünler"}
+          </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {relatedProducts.map((p) => (
               <ProductCard key={p.id} product={p} />
