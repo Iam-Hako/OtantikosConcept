@@ -84,10 +84,12 @@ const ALLOWED_VIDEO_HOSTS = new Set([
   'youtu.be',
   'player.vimeo.com',
   'vimeo.com',
+  'tuphsfeowfcyzzciyvav.supabase.co',
 ]);
 
 /**
- * Converts Google Drive, YouTube, and Vimeo video links to embedded responsive preview URL
+ * Converts Google Drive, YouTube, and Vimeo video links to embedded responsive preview URL,
+ * or returns valid direct video URLs (e.g. Supabase Storage mp4/webm/mov).
  */
 export function convertGoogleDriveVideoUrl(url: string): string {
   if (!url || typeof url !== 'string') return '';
@@ -121,15 +123,28 @@ export function convertGoogleDriveVideoUrl(url: string): string {
     }
   }
 
-  // 4. Fallback: only permit HTTPS on allowed hosts
+  // 4. Direct Video Files & Supabase Storage
+  const cleanPath = trimmed.split('?')[0].toLowerCase();
+  if (
+    cleanPath.endsWith('.mp4') ||
+    cleanPath.endsWith('.webm') ||
+    cleanPath.endsWith('.mov') ||
+    cleanPath.endsWith('.ogg') ||
+    trimmed.includes('/storage/v1/object/public/') ||
+    trimmed.includes('supabase.co/storage')
+  ) {
+    return trimmed;
+  }
+
+  // 5. Fallback: only permit HTTPS on valid hostnames
   try {
     const parsed = new URL(trimmed);
-    if (parsed.protocol === 'https:' && ALLOWED_VIDEO_HOSTS.has(parsed.hostname)) {
+    if (parsed.protocol === 'https:' && (ALLOWED_VIDEO_HOSTS.has(parsed.hostname) || parsed.hostname.endsWith('.supabase.co'))) {
       return trimmed;
     }
   } catch {
     return '';
   }
 
-  return '';
+  return trimmed;
 }

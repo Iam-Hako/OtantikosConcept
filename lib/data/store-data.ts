@@ -308,45 +308,51 @@ export const DataService = {
         savedProduct.id = prodDbId;
         
 
-        // Sync Images
-        if (savedProduct.images && savedProduct.images.length > 0) {
+        // Sync Images (Always delete first to remove deleted photos/cover)
+        if (savedProduct.images !== undefined) {
           await supabase.from('product_images').delete().eq('product_id', prodDbId);
-          await supabase.from('product_images').insert(
-            savedProduct.images.map((img, i) => ({
-              product_id: prodDbId,
-              image_url: img.image_url,
-              is_cover: img.is_cover || i === 0,
-              display_order: img.display_order || i + 1,
-            }))
-          );
+          if (savedProduct.images.length > 0) {
+            await supabase.from('product_images').insert(
+              savedProduct.images.map((img, i) => ({
+                product_id: prodDbId,
+                image_url: img.image_url,
+                is_cover: img.is_cover || i === 0,
+                display_order: img.display_order || i + 1,
+              }))
+            );
+          }
         }
 
-        // Sync Variants
-        if (savedProduct.variants && savedProduct.variants.length > 0) {
+        // Sync Variants (Always delete first to remove deleted variants)
+        if (savedProduct.variants !== undefined) {
           await supabase.from('product_variants').delete().eq('product_id', prodDbId);
-          await supabase.from('product_variants').insert(
-            savedProduct.variants.map((v) => ({
-              product_id: prodDbId,
-              name: v.name,
-              value: v.value,
-              stock: v.stock,
-              price_override: v.price_override || null,
-              is_active: v.is_active ?? true,
-            }))
-          );
+          if (savedProduct.variants.length > 0) {
+            await supabase.from('product_variants').insert(
+              savedProduct.variants.map((v) => ({
+                product_id: prodDbId,
+                name: v.name,
+                value: v.value,
+                stock: v.stock,
+                price_override: v.price_override || null,
+                is_active: v.is_active ?? true,
+              }))
+            );
+          }
         }
 
-        // Sync Specifications
-        if (savedProduct.specifications && savedProduct.specifications.length > 0) {
+        // Sync Specifications (Always delete first to remove deleted specs)
+        if (savedProduct.specifications !== undefined) {
           await supabase.from('product_specifications').delete().eq('product_id', prodDbId);
-          await supabase.from('product_specifications').insert(
-            savedProduct.specifications.map((s, i) => ({
-              product_id: prodDbId,
-              spec_key: s.spec_key,
-              spec_value: s.spec_value,
-              display_order: s.display_order || i + 1,
-            }))
-          );
+          if (savedProduct.specifications.length > 0) {
+            await supabase.from('product_specifications').insert(
+              savedProduct.specifications.map((s, i) => ({
+                product_id: prodDbId,
+                spec_key: s.spec_key,
+                spec_value: s.spec_value,
+                display_order: s.display_order || i + 1,
+              }))
+            );
+          }
         }
       }
     } catch {

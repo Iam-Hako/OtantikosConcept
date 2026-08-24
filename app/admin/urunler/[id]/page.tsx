@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Category, ProductSpecification, ProductVariant, ProductImage, Product } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
+import { actionSaveProduct } from '@/app/actions/ecommerce-actions';
 import { slugify, convertGoogleDriveUrl, convertGoogleDriveVideoUrl } from '@/lib/utils/format';
 import { uploadMediaFile } from '@/lib/utils/upload';
 import { toast } from 'sonner';
@@ -52,6 +53,7 @@ export default function EditProductPage() {
   // Upload States & Refs
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
@@ -212,7 +214,10 @@ export default function EditProductPage() {
     e.preventDefault();
     if (!name.trim()) return;
 
-    await DataService.saveProduct({
+    setIsSaving(true);
+    const cleanVideo = videoUrl.trim() ? (convertGoogleDriveVideoUrl(videoUrl.trim()) || videoUrl.trim()) : null;
+
+    const res = await actionSaveProduct({
       id: productId,
       name,
       slug: slug || slugify(name),
@@ -222,18 +227,23 @@ export default function EditProductPage() {
       sku,
       short_description: shortDescription,
       description,
-      video_url: convertGoogleDriveVideoUrl(videoUrl) || null,
+      video_url: cleanVideo,
       is_featured: isFeatured,
       is_new: isNew,
       specifications: specs.filter((s) => s.spec_key.trim() && s.spec_value.trim()),
       variants: variants.filter((v) => v.value.trim()),
-      images: images.length > 0 ? images : [],
+      images: images,
     });
+    setIsSaving(false);
 
-    toast.success(`"${name}" güncellendi!`, {
-      description: 'Değişiklikler derleme gerektirmeden anında canlı sitede güncellendi.',
-    });
-    router.push('/admin/urunler');
+    if (res.success) {
+      toast.success(`"${name}" güncellendi!`, {
+        description: 'Değişiklikler anında canlı sitede güncellendi.',
+      });
+      router.push('/admin/urunler');
+    } else {
+      toast.error(res.error || 'Ürün kaydedilemedi.');
+    }
   };
 
   if (!product) {

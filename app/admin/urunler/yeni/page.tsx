@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Category, ProductSpecification, ProductVariant, ProductImage } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
+import { actionSaveProduct } from '@/app/actions/ecommerce-actions';
 import { slugify, convertGoogleDriveUrl, convertGoogleDriveVideoUrl } from '@/lib/utils/format';
 import { uploadMediaFile } from '@/lib/utils/upload';
 import { toast } from 'sonner';
@@ -199,7 +200,9 @@ export default function NewProductPage() {
       return;
     }
 
-    const newProd = await DataService.saveProduct({
+    const cleanVideo = videoUrl.trim() ? (convertGoogleDriveVideoUrl(videoUrl.trim()) || videoUrl.trim()) : null;
+
+    const res = await actionSaveProduct({
       name,
       slug: slug || slugify(name),
       category_id: categoryId,
@@ -208,18 +211,22 @@ export default function NewProductPage() {
       sku,
       short_description: shortDescription,
       description,
-      video_url: convertGoogleDriveVideoUrl(videoUrl) || null,
+      video_url: cleanVideo,
       is_featured: isFeatured,
       is_new: isNew,
       specifications: specs.filter((s) => s.spec_key.trim() && s.spec_value.trim()),
       variants: variants.filter((v) => v.value.trim()),
-      images: images.length > 0 ? images : [],
+      images: images,
     });
 
-    toast.success(`"${newProd.name}" başarıyla oluşturuldu!`, {
-      description: 'Ürün Vercel derlemesine ihtiyaç duymadan anında canlı sitede yayında.',
-    });
-    router.push('/admin/urunler');
+    if (res.success && res.product) {
+      toast.success(`"${res.product.name}" başarıyla oluşturuldu!`, {
+        description: 'Ürün anında canlı sitede yayında.',
+      });
+      router.push('/admin/urunler');
+    } else {
+      toast.error(res.error || 'Ürün oluşturulamadı.');
+    }
   };
 
   return (
