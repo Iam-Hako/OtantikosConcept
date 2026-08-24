@@ -29,6 +29,30 @@ import { formatDate } from '@/lib/utils/format';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
+function deduplicateMessages(messages: LiveChatMessage[]): LiveChatMessage[] {
+  if (!Array.isArray(messages)) return [];
+  const seenIds = new Set<string>();
+  const result: LiveChatMessage[] = [];
+
+  for (const m of messages) {
+    if (!m) continue;
+    if (m.id && seenIds.has(m.id)) continue;
+
+    const isDuplicate = result.some(
+      (existing) =>
+        existing.sender_type === m.sender_type &&
+        existing.message_text.trim() === m.message_text.trim() &&
+        Math.abs(new Date(existing.created_at).getTime() - new Date(m.created_at).getTime()) < 3000
+    );
+
+    if (!isDuplicate) {
+      if (m.id) seenIds.add(m.id);
+      result.push(m);
+    }
+  }
+  return result;
+}
+
 export default function AdminLiveChatPage() {
   const [sessions, setSessions] = useState<LiveChatSession[]>([]);
   const [activeSession, setActiveSession] = useState<LiveChatSession | null>(null);
@@ -47,7 +71,11 @@ export default function AdminLiveChatPage() {
 
   const loadSessions = useCallback(async (isBackground = false) => {
     try {
-      const list = await DataService.getChatSessions();
+      const rawList = await DataService.getChatSessions();
+      const list = rawList.map((s) => ({
+        ...s,
+        messages: s.messages ? deduplicateMessages(s.messages) : [],
+      }));
       setSessions(list);
 
       const currentActive = activeSessionRef.current;

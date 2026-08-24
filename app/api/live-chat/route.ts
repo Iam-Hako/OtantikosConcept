@@ -46,6 +46,30 @@ function saveStoredSessions(sessions: LiveChatSession[]) {
   }
 }
 
+function deduplicateMessages(messages: LiveChatMessage[]): LiveChatMessage[] {
+  if (!Array.isArray(messages)) return [];
+  const seenIds = new Set<string>();
+  const result: LiveChatMessage[] = [];
+
+  for (const m of messages) {
+    if (!m) continue;
+    if (m.id && seenIds.has(m.id)) continue;
+
+    const isDuplicate = result.some(
+      (existing) =>
+        existing.sender_type === m.sender_type &&
+        existing.message_text.trim() === m.message_text.trim() &&
+        Math.abs(new Date(existing.created_at).getTime() - new Date(m.created_at).getTime()) < 3000
+    );
+
+    if (!isDuplicate) {
+      if (m.id) seenIds.add(m.id);
+      result.push(m);
+    }
+  }
+  return result;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get('session_id');
@@ -64,6 +88,7 @@ export async function GET(request: Request) {
       if (!error && data) {
         if (data.messages && Array.isArray(data.messages)) {
           data.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          data.messages = deduplicateMessages(data.messages);
           data.last_message = data.messages[data.messages.length - 1] || null;
         }
         return NextResponse.json(data);
@@ -80,6 +105,7 @@ export async function GET(request: Request) {
       if (!error && data) {
         if (data.messages && Array.isArray(data.messages)) {
           data.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          data.messages = deduplicateMessages(data.messages);
           data.last_message = data.messages[data.messages.length - 1] || null;
         }
         return NextResponse.json(data);
@@ -94,6 +120,7 @@ export async function GET(request: Request) {
         data.forEach((s: any) => {
           if (s.messages && Array.isArray(s.messages)) {
             s.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            s.messages = deduplicateMessages(s.messages);
             s.last_message = s.messages[s.messages.length - 1] || null;
           }
         });
@@ -108,13 +135,22 @@ export async function GET(request: Request) {
   const sessions = getStoredSessions();
   if (sessionId) {
     const session = sessions.find((s) => s.session_id === sessionId) || null;
+    if (session && session.messages) {
+      session.messages = deduplicateMessages(session.messages);
+    }
     return NextResponse.json(session);
   }
   if (customerEmail) {
     const session = sessions.find((s) => s.customer_email === customerEmail) || null;
+    if (session && session.messages) {
+      session.messages = deduplicateMessages(session.messages);
+    }
     return NextResponse.json(session);
   }
 
+  sessions.forEach(s => {
+    if (s.messages) s.messages = deduplicateMessages(s.messages);
+  });
   return NextResponse.json(sessions);
 }
 

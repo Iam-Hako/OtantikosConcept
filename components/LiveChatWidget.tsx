@@ -28,6 +28,30 @@ function removeChatCookie() {
   document.cookie = `${CHAT_COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
 }
 
+export function deduplicateMessages(messages: LiveChatMessage[]): LiveChatMessage[] {
+  if (!Array.isArray(messages)) return [];
+  const seenIds = new Set<string>();
+  const result: LiveChatMessage[] = [];
+
+  for (const m of messages) {
+    if (!m) continue;
+    if (m.id && seenIds.has(m.id)) continue;
+
+    const isDuplicate = result.some(
+      (existing) =>
+        existing.sender_type === m.sender_type &&
+        existing.message_text.trim() === m.message_text.trim() &&
+        Math.abs(new Date(existing.created_at).getTime() - new Date(m.created_at).getTime()) < 3000
+    );
+
+    if (!isDuplicate) {
+      if (m.id) seenIds.add(m.id);
+      result.push(m);
+    }
+  }
+  return result;
+}
+
 export default function LiveChatWidget() {
   const pathname = usePathname();
   const { user } = useAuth();
@@ -76,7 +100,7 @@ export default function LiveChatWidget() {
           setCustomerName(existingSession.customer_name || user?.full_name || '');
           setCustomerEmail(existingSession.customer_email || user?.email || '');
           if (existingSession.messages && existingSession.messages.length > 0) {
-            setMessages(existingSession.messages);
+            setMessages(deduplicateMessages(existingSession.messages));
             setHasStarted(true);
           }
           setChatCookie(existingSession.session_id);
@@ -88,6 +112,8 @@ export default function LiveChatWidget() {
             if (user.email) setCustomerEmail(user.email);
           }
         }
+      } catch {
+        // Fallback
       } finally {
         if (isMounted) setIsRestoring(false);
       }
@@ -115,7 +141,7 @@ export default function LiveChatWidget() {
     if (hasStarted) {
       DataService.getChatSession(sessionId).then((session) => {
         if (session?.messages && session.messages.length > 0) {
-          setMessages(session.messages);
+          setMessages(deduplicateMessages(session.messages));
         }
       });
     }
@@ -129,12 +155,12 @@ export default function LiveChatWidget() {
           if (event.data?.sessionId === sessionId && event.data?.message) {
             const newM = event.data.message as LiveChatMessage;
             setMessages((prev) => {
-              if (prev.some((m) => m.id === newM.id)) return prev;
+              const updated = deduplicateMessages([...prev, newM]);
               if (newM.sender_type === 'admin') {
                 if (soundEnabledRef.current) sounds.playChatNotification();
                 if (!isOpenRef.current) setUnreadCount((c) => c + 1);
               }
-              return [...prev, newM];
+              return updated;
             });
           }
         };
@@ -160,17 +186,12 @@ export default function LiveChatWidget() {
           (payload) => {
             const newM = payload.new as LiveChatMessage;
             setMessages((prev) => {
-              const exists = prev.some(
-                (m) =>
-                  m.id === newM.id ||
-                  (m.message_text === newM.message_text && m.sender_type === newM.sender_type)
-              );
-              if (exists) return prev;
+              const updated = deduplicateMessages([...prev, newM]);
               if (newM.sender_type === 'admin') {
                 if (soundEnabledRef.current) sounds.playChatNotification();
                 if (!isOpenRef.current) setUnreadCount((c) => c + 1);
               }
-              return [...prev, newM];
+              return updated;
             });
           }
         )
@@ -184,7 +205,7 @@ export default function LiveChatWidget() {
       if (!hasStarted) return;
       const sess = await DataService.getChatSession(sessionId);
       if (sess && sess.messages) {
-        const fetchedMessages = sess.messages;
+        const fetchedMessages = deduplicateMessages(sess.messages);
         setMessages((prev) => {
           if (fetchedMessages.length > prev.length) {
             const lastMsg = fetchedMessages[fetchedMessages.length - 1];

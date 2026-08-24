@@ -1244,10 +1244,10 @@ export const DataService = {
       }
     }
 
-    // 3. Post to Server API (Shared across all devices & browsers)
+    // 3. Post to Server API (Unified single source of truth)
     if (typeof window !== 'undefined') {
       try {
-        await fetch('/api/live-chat', {
+        const res = await fetch('/api/live-chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1258,33 +1258,37 @@ export const DataService = {
             customer_email: session.customer_email,
           }),
         });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.message) {
+            return data.message;
+          }
+        }
       } catch {
-        // API fallback
+        // API fallback to direct Supabase client if offline
+        try {
+          const supabase = createClient();
+          await supabase
+            .from('live_chat_sessions')
+            .upsert({
+              session_id: sessionId,
+              customer_name: session.customer_name,
+              customer_email: session.customer_email,
+              status: 'active',
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'session_id' });
+
+          await supabase
+            .from('live_chat_messages')
+            .insert({
+              session_id: sessionId,
+              sender_type: senderType,
+              message_text: messageText,
+            });
+        } catch {
+          // Graceful fallback
+        }
       }
-    }
-
-    // 4. Also persist to Supabase if database tables are present
-    try {
-      const supabase = createClient();
-      await supabase
-        .from('live_chat_sessions')
-        .upsert({
-          session_id: sessionId,
-          customer_name: session.customer_name,
-          customer_email: session.customer_email,
-          status: 'active',
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'session_id' });
-
-      await supabase
-        .from('live_chat_messages')
-        .insert({
-          session_id: sessionId,
-          sender_type: senderType,
-          message_text: messageText,
-        });
-    } catch {
-      // Graceful fallback
     }
 
     return newMsg;
