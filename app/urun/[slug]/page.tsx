@@ -87,17 +87,6 @@ export default function ProductDetailPage() {
           ]);
           setQuestions(qList);
           setReviews(rList);
-
-          // Save to Recently Viewed in LocalStorage
-          try {
-            const recentKey = 'otantikos_recent_views_v1';
-            const recent = JSON.parse(localStorage.getItem(recentKey) || '[]');
-            const filtered = recent.filter((p: any) => p.id !== prod.id);
-            filtered.unshift(prod);
-            localStorage.setItem(recentKey, JSON.stringify(filtered.slice(0, 5)));
-          } catch {
-            // Ignore
-          }
         }
       } finally {
         setIsLoading(false);

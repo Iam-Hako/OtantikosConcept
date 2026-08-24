@@ -34,7 +34,30 @@ export function normalizeTurkish(text: string): string {
     .trim();
 }
 
-// In-Memory Runtime Store (Empty until user or Supabase adds real items)
+// Clear any legacy mock/cache data from localStorage on client load
+if (typeof window !== 'undefined') {
+  try {
+    const keysToRemove = [
+      'otantikos_products',
+      'otantikos_categories',
+      'otantikos_orders',
+      'otantikos_returns',
+      'otantikos_questions',
+      'otantikos_reviews',
+      'otantikos_all_chat_sessions',
+      'otantikos_wholesale',
+      'otantikos_recent_views_v1',
+      'otantikos_chat_session_id',
+      'otantikos_chat_name',
+      'otantikos_chat_email'
+    ];
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // Ignore
+  }
+}
+
+// In-Memory Runtime Store (Ephemeral memory only - 0 localStorage usage)
 let runtimeProducts: Product[] = [];
 let runtimeCategories: Category[] = [];
 let runtimeOrders: Order[] = [];
@@ -43,26 +66,6 @@ let runtimeQuestions: Question[] = [];
 let runtimeReviews: Review[] = [];
 let runtimeChatSessions: LiveChatSession[] = [];
 let runtimeWholesale: WholesaleRequest[] = [];
-
-// LocalStorage Synchronization Helpers
-function getLocal<T>(key: string, fallback: T): T {
-  if (typeof window === 'undefined') return fallback;
-  try {
-    const val = localStorage.getItem(`otantikos_${key}`);
-    return val ? JSON.parse(val) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function setLocal<T>(key: string, data: T): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(`otantikos_${key}`, JSON.stringify(data));
-  } catch {
-    // Ignore
-  }
-}
 
 export const DataService = {
   // ==========================================
@@ -85,14 +88,14 @@ export const DataService = {
 
       if (!error && data) {
         runtimeProducts = data as Product[];
-        setLocal('products', runtimeProducts);
+        
         return runtimeProducts;
       }
     } catch {
       // Fallback
     }
 
-    const localProds = getLocal<Product[]>('products', runtimeProducts);
+    const localProds = runtimeProducts;
     return localProds.filter(p => p.is_active);
   },
 
@@ -112,14 +115,14 @@ export const DataService = {
 
       if (!error && data) {
         runtimeProducts = data as Product[];
-        setLocal('products', runtimeProducts);
+        
         return runtimeProducts;
       }
     } catch {
       // Fallback
     }
 
-    return getLocal<Product[]>('products', runtimeProducts);
+    return runtimeProducts;
   },
 
   async getProductBySlug(slug: string): Promise<Product | null> {
@@ -187,7 +190,7 @@ export const DataService = {
   },
 
   async saveProduct(productData: Partial<Product>): Promise<Product> {
-    const localList = getLocal<Product[]>('products', runtimeProducts);
+    const localList = runtimeProducts;
     const existingIdx = localList.findIndex(p => p.id === productData.id || p.slug === productData.slug);
 
     let savedProduct: Product;
@@ -235,7 +238,7 @@ export const DataService = {
     }
 
     runtimeProducts = localList;
-    setLocal('products', localList);
+    
 
     // Persist parent product and sub-tables to Supabase
     try {
@@ -265,7 +268,7 @@ export const DataService = {
       if (!prodErr && upsertedProduct) {
         const prodDbId = upsertedProduct.id;
         savedProduct.id = prodDbId;
-        setLocal('products', localList);
+        
 
         // Sync Images
         if (savedProduct.images && savedProduct.images.length > 0) {
@@ -316,14 +319,14 @@ export const DataService = {
   },
 
   async updateQuickStockAndPrice(productId: string, newStock: number, newPrice: number): Promise<boolean> {
-    const localList = getLocal<Product[]>('products', runtimeProducts);
+    const localList = runtimeProducts;
     const idx = localList.findIndex(p => p.id === productId);
     if (idx > -1) {
       localList[idx].stock = newStock;
       localList[idx].price = newPrice;
       localList[idx].updated_at = new Date().toISOString();
       runtimeProducts = localList;
-      setLocal('products', localList);
+      
     }
 
     try {
@@ -338,10 +341,10 @@ export const DataService = {
   },
 
   async deleteProduct(productId: string): Promise<boolean> {
-    let localList = getLocal<Product[]>('products', runtimeProducts);
+    let localList = runtimeProducts;
     localList = localList.filter(p => p.id !== productId);
     runtimeProducts = localList;
-    setLocal('products', localList);
+    
 
     try {
       const supabase = createClient();
@@ -367,18 +370,18 @@ export const DataService = {
 
       if (!error && data) {
         runtimeCategories = data as Category[];
-        setLocal('categories', runtimeCategories);
+        
         return runtimeCategories;
       }
     } catch {
       // Fallback
     }
 
-    return getLocal<Category[]>('categories', runtimeCategories);
+    return runtimeCategories;
   },
 
   async saveCategory(cat: Partial<Category>): Promise<Category> {
-    const list = getLocal<Category[]>('categories', runtimeCategories);
+    const list = runtimeCategories;
     const idx = list.findIndex(c => c.id === cat.id || c.slug === cat.slug);
 
     let savedCat: Category;
@@ -400,7 +403,7 @@ export const DataService = {
     }
 
     runtimeCategories = list;
-    setLocal('categories', list);
+    
 
     try {
       const supabase = createClient();
@@ -421,7 +424,7 @@ export const DataService = {
 
       if (!error && data) {
         savedCat.id = data.id;
-        setLocal('categories', list);
+        
       }
     } catch {
       // Local fallback
@@ -431,10 +434,10 @@ export const DataService = {
   },
 
   async deleteCategory(categoryId: string): Promise<boolean> {
-    let list = getLocal<Category[]>('categories', runtimeCategories);
+    let list = runtimeCategories;
     list = list.filter(c => c.id !== categoryId);
     runtimeCategories = list;
-    setLocal('categories', list);
+    
 
     try {
       const supabase = createClient();
@@ -464,7 +467,7 @@ export const DataService = {
       if (!error && data) {
         if (!userId) {
           runtimeOrders = data as Order[];
-          setLocal('orders', runtimeOrders);
+          
         }
         return data as Order[];
       }
@@ -472,7 +475,7 @@ export const DataService = {
       // Fallback
     }
 
-    const localOrders = getLocal<Order[]>('orders', runtimeOrders);
+    const localOrders = runtimeOrders;
     if (userId) return localOrders.filter(o => o.user_id === userId);
     return localOrders;
   },
@@ -540,13 +543,13 @@ export const DataService = {
       items: orderData.items || [],
     };
 
-    const orders = getLocal<Order[]>('orders', runtimeOrders);
+    const orders = runtimeOrders;
     orders.unshift(newOrder);
     runtimeOrders = orders;
-    setLocal('orders', orders);
+    
 
     // Deduct stock locally
-    const prods = getLocal<Product[]>('products', runtimeProducts);
+    const prods = runtimeProducts;
     newOrder.items?.forEach((item) => {
       const p = prods.find(pr => pr.id === item.product_id || pr.name === item.product_name);
       if (p) {
@@ -557,7 +560,7 @@ export const DataService = {
         }
       }
     });
-    setLocal('products', prods);
+    
 
     // Persist Order and Order Items in Supabase
     try {
@@ -613,7 +616,7 @@ export const DataService = {
     trackingCarrier?: string,
     adminNotes?: string
   ): Promise<boolean> {
-    const orders = getLocal<Order[]>('orders', runtimeOrders);
+    const orders = runtimeOrders;
     const order = orders.find(o => o.id === orderId || o.order_number === orderId);
     if (order) {
       order.status = status;
@@ -621,7 +624,7 @@ export const DataService = {
       if (trackingCarrier !== undefined) order.tracking_carrier = trackingCarrier;
       if (adminNotes !== undefined) order.admin_notes = adminNotes;
       order.updated_at = new Date().toISOString();
-      setLocal('orders', orders);
+      
     }
 
     try {
@@ -653,14 +656,14 @@ export const DataService = {
       const { data, error } = await query;
       if (!error && data) {
         runtimeReturns = data as ReturnRequest[];
-        setLocal('returns', runtimeReturns);
+        
         return runtimeReturns;
       }
     } catch {
       // Fallback
     }
 
-    const returns = getLocal<ReturnRequest[]>('returns', runtimeReturns);
+    const returns = runtimeReturns;
     if (userId) return returns.filter(r => r.user_id === userId);
     return returns;
   },
@@ -678,10 +681,10 @@ export const DataService = {
       order: orders.find(o => o.id === req.order_id || o.order_number === req.order_id),
     };
 
-    const returns = getLocal<ReturnRequest[]>('returns', runtimeReturns);
+    const returns = runtimeReturns;
     returns.unshift(newReturn);
     runtimeReturns = returns;
-    setLocal('returns', returns);
+    
 
     try {
       const supabase = createClient();
@@ -695,7 +698,7 @@ export const DataService = {
 
       if (data) {
         newReturn.id = data.id;
-        setLocal('returns', returns);
+        
       }
     } catch {
       // Fallback
@@ -705,13 +708,13 @@ export const DataService = {
   },
 
   async updateReturnStatus(returnId: string, status: ReturnRequest['status'], adminResponse?: string): Promise<boolean> {
-    const returns = getLocal<ReturnRequest[]>('returns', runtimeReturns);
+    const returns = runtimeReturns;
     const ret = returns.find(r => r.id === returnId);
     if (ret) {
       ret.status = status;
       if (adminResponse !== undefined) ret.admin_response = adminResponse;
       ret.updated_at = new Date().toISOString();
-      setLocal('returns', returns);
+      
     }
 
     try {
@@ -742,14 +745,14 @@ export const DataService = {
       const { data, error } = await query;
       if (!error && data) {
         runtimeQuestions = data as Question[];
-        setLocal('questions', runtimeQuestions);
+        
         return runtimeQuestions;
       }
     } catch {
       // Fallback
     }
 
-    const questions = getLocal<Question[]>('questions', runtimeQuestions);
+    const questions = runtimeQuestions;
     if (productId) return questions.filter(q => q.product_id === productId && q.is_approved);
     return questions;
   },
@@ -765,10 +768,10 @@ export const DataService = {
       created_at: new Date().toISOString(),
     };
 
-    const questions = getLocal<Question[]>('questions', runtimeQuestions);
+    const questions = runtimeQuestions;
     questions.unshift(newQ);
     runtimeQuestions = questions;
-    setLocal('questions', questions);
+    
 
     try {
       const supabase = createClient();
@@ -782,7 +785,7 @@ export const DataService = {
 
       if (data) {
         newQ.id = data.id;
-        setLocal('questions', questions);
+        
       }
     } catch {
       // Fallback
@@ -792,13 +795,13 @@ export const DataService = {
   },
 
   async answerAndApproveQuestion(questionId: string, answerText: string, isApproved = true): Promise<boolean> {
-    const questions = getLocal<Question[]>('questions', runtimeQuestions);
+    const questions = runtimeQuestions;
     const q = questions.find(item => item.id === questionId);
     if (q) {
       q.answer_text = answerText;
       q.is_approved = isApproved;
       q.answered_at = new Date().toISOString();
-      setLocal('questions', questions);
+      
     }
 
     try {
@@ -830,14 +833,14 @@ export const DataService = {
       const { data, error } = await query;
       if (!error && data) {
         runtimeReviews = data as Review[];
-        setLocal('reviews', runtimeReviews);
+        
         return runtimeReviews;
       }
     } catch {
       // Fallback
     }
 
-    const reviews = getLocal<Review[]>('reviews', runtimeReviews);
+    const reviews = runtimeReviews;
     if (productId) return reviews.filter(r => r.product_id === productId && r.is_approved);
     return reviews;
   },
@@ -853,10 +856,10 @@ export const DataService = {
       created_at: new Date().toISOString(),
     };
 
-    const reviews = getLocal<Review[]>('reviews', runtimeReviews);
+    const reviews = runtimeReviews;
     reviews.unshift(newRev);
     runtimeReviews = reviews;
-    setLocal('reviews', reviews);
+    
 
     try {
       const supabase = createClient();
@@ -870,7 +873,7 @@ export const DataService = {
 
       if (data) {
         newRev.id = data.id;
-        setLocal('reviews', reviews);
+        
       }
     } catch {
       // Fallback
@@ -880,11 +883,11 @@ export const DataService = {
   },
 
   async moderateReview(reviewId: string, isApproved: boolean): Promise<boolean> {
-    const reviews = getLocal<Review[]>('reviews', runtimeReviews);
+    const reviews = runtimeReviews;
     const r = reviews.find(item => item.id === reviewId);
     if (r) {
       r.is_approved = isApproved;
-      setLocal('reviews', reviews);
+      
     }
 
     try {
@@ -912,7 +915,7 @@ export const DataService = {
           const data = await res.json();
           if (Array.isArray(data)) {
             runtimeChatSessions = data;
-            setLocal('all_chat_sessions', data);
+            
             return data;
           }
         }
@@ -939,13 +942,13 @@ export const DataService = {
           }
         });
         runtimeChatSessions = data as LiveChatSession[];
-        setLocal('all_chat_sessions', runtimeChatSessions);
+        
         return runtimeChatSessions;
       }
     } catch {
       // Fallback to local
     }
-    return getLocal<LiveChatSession[]>('all_chat_sessions', runtimeChatSessions);
+    return runtimeChatSessions;
   },
 
   async getChatSession(sessionId: string): Promise<LiveChatSession | null> {
@@ -985,7 +988,7 @@ export const DataService = {
       // Fallback
     }
 
-    const sessions = getLocal<LiveChatSession[]>('all_chat_sessions', runtimeChatSessions);
+    const sessions = runtimeChatSessions;
     return sessions.find(s => s.session_id === sessionId) || null;
   },
 
@@ -1005,7 +1008,7 @@ export const DataService = {
     };
 
     // 1. Update local state immediately for instant feedback
-    const sessions = getLocal<LiveChatSession[]>('all_chat_sessions', runtimeChatSessions);
+    const sessions = runtimeChatSessions;
     let session = sessions.find(s => s.session_id === sessionId);
     if (!session) {
       session = {
@@ -1034,7 +1037,7 @@ export const DataService = {
     }
 
     runtimeChatSessions = sessions;
-    setLocal('all_chat_sessions', sessions);
+    
 
     // 2. BroadcastChannel for 0ms cross-tab sync
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -1112,14 +1115,14 @@ export const DataService = {
 
       if (!error && data) {
         runtimeWholesale = data as WholesaleRequest[];
-        setLocal('wholesale', runtimeWholesale);
+        
         return runtimeWholesale;
       }
     } catch {
       // Fallback
     }
 
-    return getLocal<WholesaleRequest[]>('wholesale', runtimeWholesale);
+    return runtimeWholesale;
   },
 
   async addWholesaleRequest(req: Omit<WholesaleRequest, 'id' | 'status' | 'created_at'>): Promise<WholesaleRequest> {
@@ -1130,10 +1133,10 @@ export const DataService = {
       created_at: new Date().toISOString(),
     };
 
-    const list = getLocal<WholesaleRequest[]>('wholesale', runtimeWholesale);
+    const list = runtimeWholesale;
     list.unshift(newReq);
     runtimeWholesale = list;
-    setLocal('wholesale', list);
+    
 
     try {
       const supabase = createClient();
@@ -1150,7 +1153,7 @@ export const DataService = {
 
       if (data) {
         newReq.id = data.id;
-        setLocal('wholesale', list);
+        
       }
     } catch {
       // Fallback

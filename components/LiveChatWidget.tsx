@@ -28,30 +28,17 @@ export default function LiveChatWidget() {
   // Do not render live chat widget on admin screens
   const isAdminRoute = pathname ? pathname.startsWith('/admin') : false;
 
-  // Initialize session from localStorage
+  // Initialize session in component memory
   useEffect(() => {
-    try {
-      const savedSession = localStorage.getItem('otantikos_chat_session_id');
-      const savedName = localStorage.getItem('otantikos_chat_name');
-      const savedEmail = localStorage.getItem('otantikos_chat_email');
-
-      if (savedSession) {
-        setSessionId(savedSession);
-        if (savedName) setCustomerName(savedName);
-        if (savedEmail) setCustomerEmail(savedEmail);
-        setHasStarted(true);
-      } else {
-        const newId = `sess-${Date.now()}`;
-        setSessionId(newId);
-        if (user) {
-          setCustomerName(user.full_name || '');
-          setCustomerEmail(user.email || '');
-        }
-      }
-    } catch {
-      // Ignore localStorage exceptions
+    if (!sessionId) {
+      const newId = `sess-${Date.now()}`;
+      setSessionId(newId);
     }
-  }, [user]);
+    if (user) {
+      if (user.full_name) setCustomerName(user.full_name);
+      if (user.email) setCustomerEmail(user.email);
+    }
+  }, [user, sessionId]);
 
   // Realtime Supabase Subscription + Polling Fallback
   useEffect(() => {
@@ -173,14 +160,6 @@ export default function LiveChatWidget() {
   const handleStartChat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName.trim()) return;
-
-    try {
-      localStorage.setItem('otantikos_chat_session_id', sessionId);
-      localStorage.setItem('otantikos_chat_name', customerName);
-      if (customerEmail) localStorage.setItem('otantikos_chat_email', customerEmail);
-    } catch {
-      // Storage safe
-    }
 
     setHasStarted(true);
 
