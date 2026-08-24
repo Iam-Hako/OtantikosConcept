@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, X, Send, Volume2, VolumeX, ShieldCheck, Sparkles, User, Minimize2 } from 'lucide-react';
+import { MessageCircle, X, Send, Volume2, VolumeX, Sparkles, User, Minimize2 } from 'lucide-react';
 import { LiveChatMessage } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
 import { sounds } from '@/lib/utils/sound';
@@ -18,9 +18,9 @@ export default function LiveChatWidget() {
   const [inputMessage, setInputMessage] = useState<string>('');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [isTyping, setIsTyping] = useState<boolean>(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  // Initialize session from localStorage or create new
+  // Initialize session from localStorage
   useEffect(() => {
     try {
       const savedSession = localStorage.getItem('otantikos_chat_session_id');
@@ -32,13 +32,6 @@ export default function LiveChatWidget() {
         if (savedName) setCustomerName(savedName);
         if (savedEmail) setCustomerEmail(savedEmail);
         setHasStarted(true);
-
-        // Fetch existing messages
-        DataService.getChatSession(savedSession).then((session) => {
-          if (session?.messages) {
-            setMessages(session.messages);
-          }
-        });
       } else {
         const newId = `sess-${Date.now()}`;
         setSessionId(newId);
@@ -52,10 +45,17 @@ export default function LiveChatWidget() {
     }
   }, [user]);
 
-  // Realtime Polling for incoming admin messages
+  // Load messages ONLY when user actually opens the chat modal
   useEffect(() => {
-    if (!sessionId || !hasStarted) return;
-    
+    if (!isOpen || !sessionId || !hasStarted) return;
+
+    DataService.getChatSession(sessionId).then((session) => {
+      if (session?.messages) {
+        setMessages(session.messages);
+      }
+    });
+
+    // Gentle polling ONLY when chat window is visibly open
     const interval = setInterval(async () => {
       const sess = await DataService.getChatSession(sessionId);
       if (sess?.messages && sess.messages.length > messages.length) {
@@ -64,15 +64,17 @@ export default function LiveChatWidget() {
           sounds.playChatNotification();
         }
       }
-    }, 2500);
+    }, 4000);
 
     return () => clearInterval(interval);
-  }, [sessionId, hasStarted, messages.length, soundEnabled]);
+  }, [isOpen, sessionId, hasStarted, messages.length, soundEnabled]);
 
-  // Auto-scroll to bottom of messages
+  // Safe inner-container scroll (NEVER scrolls window/page)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
+    if (isOpen && messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  }, [messages, isTyping, isOpen]);
 
   const handleStartChat = (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +86,6 @@ export default function LiveChatWidget() {
 
     setHasStarted(true);
 
-    // Initial greeting
     const greeting: LiveChatMessage = {
       id: `msg-bot-1`,
       session_id: sessionId,
@@ -103,7 +104,6 @@ export default function LiveChatWidget() {
     const userMsg = inputMessage.trim();
     setInputMessage('');
 
-    // Add customer message
     const msg = await DataService.sendMessage(
       sessionId,
       'customer',
@@ -113,7 +113,6 @@ export default function LiveChatWidget() {
     );
     setMessages((prev) => [...prev, msg]);
 
-    // Simulate smart auto-responder after brief delay if admin is away
     setIsTyping(true);
     setTimeout(async () => {
       setIsTyping(false);
@@ -121,11 +120,11 @@ export default function LiveChatWidget() {
       
       const lower = userMsg.toLowerCase();
       if (lower.includes('kargo') || lower.includes('teslimat')) {
-        replyText = "Siparişleriniz aynı gün Eminönü depomuzdan anlaşmalı kargo ile sevk edilir. Dilerseniz Tahtakale mağazamızdan ücretsiz elden teslim alabilirsiniz!";
+        replyText = "Siparişleriniz aynı gün Eminönü depomuzdan anlaşmalı kargo ile sevk edilir. Dilerseniz Tahtakale mağazamızdan elden teslim alabilirsiniz.";
       } else if (lower.includes('kararma') || lower.includes('çelik') || lower.includes('taki')) {
-        replyText = "Tüm çelik takı koleksiyonumuz 316L medikal paslanmaz çeliktir. Suya, parfüme ve tere dayanıklıdır; kararmazlık garantilidir.";
+        replyText = "Tüm çelik takı koleksiyonumuz 316L medikal paslanmaz çeliktir. Suya ve parfüme dayanıklıdır; kararmazlık garantilidir.";
       } else if (lower.includes('toptan') || lower.includes('b2b')) {
-        replyText = "Toptan alımlarınız için sitemizdeki 'Toptan & B2B' formunu doldurabilir ya da doğrudan Tahtakale toptan satış birimimizle iletişime geçebilirsiniz.";
+        replyText = "Toptan alımlarınız için sitemizdeki 'Toptan & B2B' formunu doldurabilir ya da Tahtakale toptan birimimizle iletişime geçebilirsiniz.";
       }
 
       const adminReply = await DataService.sendMessage(
@@ -144,23 +143,23 @@ export default function LiveChatWidget() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-20 lg:bottom-6 right-5 z-40 bg-gradient-to-tr from-amber-700 to-amber-500 hover:from-amber-800 hover:to-amber-600 text-white p-3.5 rounded-full shadow-2xl flex items-center justify-center gap-2 group transition-all duration-300 transform hover:scale-105"
+          className="fixed bottom-20 lg:bottom-6 right-5 z-40 bg-gradient-to-tr from-amber-700 to-amber-500 hover:from-amber-800 hover:to-amber-600 text-white p-3.5 rounded-full shadow-2xl flex items-center justify-center gap-2 group transition-transform duration-200 transform hover:scale-105"
           aria-label="Canlı Destek Başlat"
         >
           <div className="relative">
             <MessageCircle className="w-6 h-6" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full animate-pulse" />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full" />
           </div>
           <span className="hidden sm:inline font-bold text-xs pr-1">Canlı Destek</span>
         </button>
       )}
 
-      {/* Live Chat Window (Popup / Mobile Fullscreen Drawer) */}
+      {/* Live Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-0 sm:bottom-6 right-0 sm:right-6 z-50 w-full sm:w-96 sm:max-w-md h-full sm:h-[520px] bg-white sm:rounded-2xl shadow-2xl border border-stone-200 flex flex-col overflow-hidden animate-slide-up">
+        <div className="fixed bottom-0 sm:bottom-6 right-0 sm:right-6 z-50 w-full sm:w-96 sm:max-w-md h-full sm:h-[520px] bg-white sm:rounded-2xl shadow-2xl border border-stone-200 flex flex-col overflow-hidden">
           
           {/* Header */}
-          <div className="bg-gradient-to-r from-amber-900 via-stone-900 to-amber-950 text-white p-4 flex items-center justify-between shadow-xs">
+          <div className="bg-gradient-to-r from-amber-900 via-stone-900 to-amber-950 text-white p-4 flex items-center justify-between shadow-xs shrink-0">
             <div className="flex items-center gap-3">
               <div className="relative w-9 h-9 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300">
                 <Sparkles className="w-5 h-5" />
@@ -243,8 +242,11 @@ export default function LiveChatWidget() {
             </div>
           ) : (
             /* Active Messages Stream */
-            <div className="flex-1 flex flex-col h-full bg-stone-50/50">
-              <div className="flex-1 p-4 overflow-y-auto space-y-3 text-xs">
+            <div className="flex-1 flex flex-col h-full bg-stone-50/50 overflow-hidden">
+              <div 
+                ref={messagesContainerRef}
+                className="flex-1 p-4 overflow-y-auto space-y-3 text-xs"
+              >
                 {messages.map((m) => {
                   const isUser = m.sender_type === 'customer';
                   return (
@@ -276,11 +278,10 @@ export default function LiveChatWidget() {
                     <span className="w-1.5 h-1.5 bg-stone-400 rounded-full animate-bounce [animation-delay:0.4s]" />
                   </div>
                 )}
-                <div ref={messagesEndRef} />
               </div>
 
               {/* Message Input Form */}
-              <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-stone-200 flex gap-2">
+              <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-stone-200 flex gap-2 shrink-0">
                 <input
                   type="text"
                   value={inputMessage}

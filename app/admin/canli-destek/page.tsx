@@ -13,11 +13,11 @@ export default function AdminLiveChatPage() {
   const [activeSession, setActiveSession] = useState<LiveChatSession | null>(null);
   const [adminReplyText, setAdminReplyText] = useState('');
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const feedRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadSessions();
-    const interval = setInterval(loadSessions, 2000);
+    const interval = setInterval(loadSessions, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -41,7 +41,9 @@ export default function AdminLiveChatPage() {
   };
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (feedRef.current) {
+      feedRef.current.scrollTop = feedRef.current.scrollHeight;
+    }
   }, [activeSession?.messages]);
 
   const handleSendReply = async (e: React.FormEvent) => {
@@ -147,7 +149,7 @@ export default function AdminLiveChatPage() {
               </div>
 
               {/* Messages Feed */}
-              <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-stone-50/30 text-xs">
+              <div ref={feedRef} className="flex-1 p-4 overflow-y-auto space-y-3 bg-stone-50/30 text-xs">
                 {activeSession.messages?.map((m) => {
                   const isAdmin = m.sender_type === 'admin';
                   return (
@@ -168,7 +170,6 @@ export default function AdminLiveChatPage() {
                     </div>
                   );
                 })}
-                <div ref={messagesEndRef} />
               </div>
 
               {/* Reply Input Form */}
