@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageCircle, Send, User, Sparkles, Volume2, VolumeX, Check } from 'lucide-react';
 import { LiveChatSession, LiveChatMessage } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
 import { sounds } from '@/lib/utils/sound';
 import { formatDate } from '@/lib/utils/format';
+import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
 export default function AdminLiveChatPage() {
@@ -14,31 +15,91 @@ export default function AdminLiveChatPage() {
   const [adminReplyText, setAdminReplyText] = useState('');
   const [soundEnabled, setSoundEnabled] = useState(true);
   const feedRef = useRef<HTMLDivElement>(null);
+  
+  const activeSessionRef = useRef<LiveChatSession | null>(null);
+  activeSessionRef.current = activeSession;
 
-  useEffect(() => {
-    loadSessions();
-    const interval = setInterval(loadSessions, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  const soundEnabledRef = useRef<boolean>(soundEnabled);
+  soundEnabledRef.current = soundEnabled;
 
-  const loadSessions = async () => {
-    const list = await DataService.getChatSessions();
-    setSessions(list);
-    if (list.length > 0 && !activeSession) {
-      setActiveSession(list[0]);
-    } else if (activeSession) {
-      const updated = list.find((s) => s.session_id === activeSession.session_id);
-      if (updated) {
-        if (updated.messages && activeSession.messages && updated.messages.length > activeSession.messages.length) {
-          const lastM = updated.messages[updated.messages.length - 1];
-          if (lastM.sender_type === 'customer' && soundEnabled) {
-            sounds.playChatNotification();
+  const loadSessions = useCallback(async (isBackground = false) => {
+    try {
+      const list = await DataService.getChatSessions();
+      setSessions(list);
+
+      const currentActive = activeSessionRef.current;
+      if (list.length > 0) {
+        if (!currentActive) {
+          setActiveSession(list[0]);
+        } else {
+          const updated = list.find((s) => s.session_id === currentActive.session_id);
+          if (updated) {
+            if (
+              isBackground &&
+              updated.messages &&
+              currentActive.messages &&
+              updated.messages.length > currentActive.messages.length
+            ) {
+              const lastM = updated.messages[updated.messages.length - 1];
+              if (lastM.sender_type === 'customer' && soundEnabledRef.current) {
+                sounds.playChatNotification();
+              }
+            }
+            setActiveSession(updated);
           }
         }
-        setActiveSession(updated);
       }
+    } catch {
+      // Fallback
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadSessions(false);
+
+    // 1. Supabase Realtime Channel for zero-latency incoming messages
+    let channel: any = null;
+    try {
+      const supabase = createClient();
+      channel = supabase
+        .channel('admin-live-chat')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'live_chat_messages',
+          },
+          (payload) => {
+            const newM = payload.new as LiveChatMessage;
+            if (newM.sender_type === 'customer' && soundEnabledRef.current) {
+              sounds.playChatNotification();
+            }
+            loadSessions(true);
+          }
+        )
+        .subscribe();
+    } catch {
+      // Fallback
+    }
+
+    // 2. Background Polling Fallback (Every 4 seconds)
+    const interval = setInterval(() => {
+      loadSessions(true);
+    }, 4000);
+
+    return () => {
+      clearInterval(interval);
+      if (channel) {
+        try {
+          const supabase = createClient();
+          supabase.removeChannel(channel);
+        } catch {
+          // Ignore
+        }
+      }
+    };
+  }, [loadSessions]);
 
   useEffect(() => {
     if (feedRef.current) {
@@ -59,8 +120,7 @@ export default function AdminLiveChatPage() {
       reply
     );
 
-    if (soundEnabled) sounds.playChatNotification();
-    loadSessions();
+    await loadSessions(false);
   };
 
   return (

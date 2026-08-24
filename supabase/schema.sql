@@ -541,6 +541,7 @@ WITH CHECK (bucket_id = 'product-images' AND (auth.role() = 'authenticated' OR p
 DO $$ BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.live_chat_sessions;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.live_chat_messages;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.questions;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.reviews;

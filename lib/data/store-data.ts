@@ -576,30 +576,60 @@ export const DataService = {
   },
 
   // ==========================================
-  // 7. LIVE CHAT (REALTIME SESSIONS)
+  // 7. LIVE CHAT (REALTIME SESSIONS & MESSAGES)
   // ==========================================
   async getChatSessions(): Promise<LiveChatSession[]> {
-    const local = getLocal<LiveChatSession[]>('all_chat_sessions', runtimeChatSessions);
     try {
       const supabase = createClient();
       const { data, error } = await supabase
         .from('live_chat_sessions')
-        .select('*, messages:live_chat_messages(*)')
+        .select(`
+          *,
+          messages:live_chat_messages(*)
+        `)
         .order('updated_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
+        data.forEach((s: any) => {
+          if (s.messages && Array.isArray(s.messages)) {
+            s.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            s.last_message = s.messages[s.messages.length - 1] || null;
+          }
+        });
         runtimeChatSessions = data as LiveChatSession[];
         setLocal('all_chat_sessions', runtimeChatSessions);
         return runtimeChatSessions;
       }
     } catch {
-      // Fallback
+      // Fallback to local
     }
-    return local;
+    return getLocal<LiveChatSession[]>('all_chat_sessions', runtimeChatSessions);
   },
 
   async getChatSession(sessionId: string): Promise<LiveChatSession | null> {
-    const sessions = await this.getChatSessions();
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('live_chat_sessions')
+        .select(`
+          *,
+          messages:live_chat_messages(*)
+        `)
+        .eq('session_id', sessionId)
+        .maybeSingle();
+
+      if (!error && data) {
+        if (data.messages && Array.isArray(data.messages)) {
+          data.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          data.last_message = data.messages[data.messages.length - 1] || null;
+        }
+        return data as LiveChatSession;
+      }
+    } catch {
+      // Fallback
+    }
+
+    const sessions = getLocal<LiveChatSession[]>('all_chat_sessions', runtimeChatSessions);
     return sessions.find(s => s.session_id === sessionId) || null;
   },
 
@@ -618,6 +648,7 @@ export const DataService = {
       created_at: new Date().toISOString(),
     };
 
+    // 1. Update local state immediately for instant feedback
     const sessions = getLocal<LiveChatSession[]>('all_chat_sessions', runtimeChatSessions);
     let session = sessions.find(s => s.session_id === sessionId);
     if (!session) {
@@ -638,21 +669,42 @@ export const DataService = {
       session.messages.push(newMsg);
       session.last_message = newMsg;
       session.updated_at = new Date().toISOString();
+      if (customerName && session.customer_name === 'Ziyaretçi') {
+        session.customer_name = customerName;
+      }
+      if (customerEmail && !session.customer_email) {
+        session.customer_email = customerEmail;
+      }
     }
 
     runtimeChatSessions = sessions;
     setLocal('all_chat_sessions', sessions);
 
-    // Background push to Supabase
+    // 2. Persist to Supabase: ALWAYS upsert parent session first, then insert message
     try {
       const supabase = createClient();
-      await supabase.from('live_chat_messages').insert({
-        session_id: sessionId,
-        sender_type: senderType,
-        message_text: messageText,
-      });
+      
+      // Upsert parent session first (prevents Foreign Key violation)
+      await supabase
+        .from('live_chat_sessions')
+        .upsert({
+          session_id: sessionId,
+          customer_name: session.customer_name,
+          customer_email: session.customer_email,
+          status: 'active',
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'session_id' });
+
+      // Insert message
+      await supabase
+        .from('live_chat_messages')
+        .insert({
+          session_id: sessionId,
+          sender_type: senderType,
+          message_text: messageText,
+        });
     } catch {
-      // Ignore
+      // Graceful fallback
     }
 
     return newMsg;

@@ -1,13 +1,16 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { MessageCircle, X, Send, Volume2, VolumeX, Sparkles, User, Minimize2 } from 'lucide-react';
 import { LiveChatMessage } from '@/lib/types/ecommerce';
 import { DataService, normalizeTurkish } from '@/lib/data/store-data';
 import { sounds } from '@/lib/utils/sound';
 import { useAuth } from '@/lib/store/auth-context';
+import { createClient } from '@/lib/supabase/client';
 
 export default function LiveChatWidget() {
+  const pathname = usePathname();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [sessionId, setSessionId] = useState<string>('');
@@ -19,6 +22,11 @@ export default function LiveChatWidget() {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const soundEnabledRef = useRef(soundEnabled);
+  soundEnabledRef.current = soundEnabled;
+
+  // Do not render live chat widget on admin screens
+  const isAdminRoute = pathname ? pathname.startsWith('/admin') : false;
 
   // Initialize session from localStorage
   useEffect(() => {
@@ -41,59 +49,124 @@ export default function LiveChatWidget() {
         }
       }
     } catch {
-      // Ignore
+      // Ignore localStorage exceptions
     }
   }, [user]);
 
-  // Load messages ONLY when user actually opens the chat modal
+  // Realtime Supabase Subscription + Polling Fallback
   useEffect(() => {
-    if (!isOpen || !sessionId || !hasStarted) return;
+    if (!isOpen || !sessionId || !hasStarted || isAdminRoute) return;
 
+    // 1. Initial Load
     DataService.getChatSession(sessionId).then((session) => {
-      if (session?.messages) {
+      if (session?.messages && session.messages.length > 0) {
         setMessages(session.messages);
       }
     });
 
-    // Gentle polling ONLY when chat window is visibly open
+    // 2. Supabase Realtime Channel
+    let channel: any = null;
+    try {
+      const supabase = createClient();
+      channel = supabase
+        .channel(`chat-${sessionId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'live_chat_messages',
+            filter: `session_id=eq.${sessionId}`,
+          },
+          (payload) => {
+            const newM = payload.new as LiveChatMessage;
+            setMessages((prev) => {
+              const exists = prev.some(
+                (m) =>
+                  m.id === newM.id ||
+                  (m.message_text === newM.message_text && m.sender_type === newM.sender_type)
+              );
+              if (exists) return prev;
+              if (newM.sender_type === 'admin' && soundEnabledRef.current) {
+                sounds.playChatNotification();
+              }
+              return [...prev, newM];
+            });
+          }
+        )
+        .subscribe();
+    } catch {
+      // Fallback
+    }
+
+    // 3. Fallback Polling (Every 4 seconds)
     const interval = setInterval(async () => {
       const sess = await DataService.getChatSession(sessionId);
-      if (sess?.messages && sess.messages.length > messages.length) {
-        setMessages(sess.messages);
-        if (soundEnabled && sess.messages[sess.messages.length - 1].sender_type === 'admin') {
-          sounds.playChatNotification();
-        }
+      if (sess && sess.messages) {
+        const fetchedMessages = sess.messages;
+        setMessages((prev) => {
+          if (fetchedMessages.length > prev.length) {
+            const lastMsg = fetchedMessages[fetchedMessages.length - 1];
+            if (lastMsg.sender_type === 'admin' && soundEnabledRef.current) {
+              sounds.playChatNotification();
+            }
+            return fetchedMessages;
+          }
+          return prev;
+        });
       }
     }, 4000);
 
-    return () => clearInterval(interval);
-  }, [isOpen, sessionId, hasStarted, messages.length, soundEnabled]);
+    return () => {
+      clearInterval(interval);
+      if (channel) {
+        try {
+          const supabase = createClient();
+          supabase.removeChannel(channel);
+        } catch {
+          // Ignore
+        }
+      }
+    };
+  }, [isOpen, sessionId, hasStarted, isAdminRoute]);
 
-  // Safe inner-container scroll (NEVER scrolls window/page)
+  // Safe inner-container scroll
   useEffect(() => {
     if (isOpen && messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   }, [messages, isTyping, isOpen]);
 
-  const handleStartChat = (e: React.FormEvent) => {
+  if (isAdminRoute) {
+    return null;
+  }
+
+  const handleStartChat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName.trim()) return;
 
-    localStorage.setItem('otantikos_chat_session_id', sessionId);
-    localStorage.setItem('otantikos_chat_name', customerName);
-    if (customerEmail) localStorage.setItem('otantikos_chat_email', customerEmail);
+    try {
+      localStorage.setItem('otantikos_chat_session_id', sessionId);
+      localStorage.setItem('otantikos_chat_name', customerName);
+      if (customerEmail) localStorage.setItem('otantikos_chat_email', customerEmail);
+    } catch {
+      // Storage safe
+    }
 
     setHasStarted(true);
 
-    const greeting: LiveChatMessage = {
-      id: `msg-bot-1`,
-      session_id: sessionId,
-      sender_type: 'admin',
-      message_text: `Merhaba ${customerName}! Otantikos Concept canlı destek hattına hoş geldiniz. Eminönü Tahtakale merkezimizden size nasıl yardımcı olabiliriz?`,
-      created_at: new Date().toISOString(),
-    };
-    setMessages([greeting]);
+    const greetingText = `Merhaba ${customerName}! Otantikos Concept canlı destek hattına hoş geldiniz. Eminönü Tahtakale merkezimizden size nasıl yardımcı olabiliriz?`;
+    
+    // Persist greeting so Admin can also see the session created
+    const greetingMsg = await DataService.sendMessage(
+      sessionId,
+      'admin',
+      greetingText,
+      customerName,
+      customerEmail
+    );
+
+    setMessages([greetingMsg]);
     if (soundEnabled) sounds.playChatNotification();
   };
 
@@ -111,30 +184,11 @@ export default function LiveChatWidget() {
       customerName,
       customerEmail
     );
-    setMessages((prev) => [...prev, msg]);
 
-    setIsTyping(true);
-    setTimeout(async () => {
-      setIsTyping(false);
-      let replyText = "Mesajınız Eminönü Tahtakale müşteri temsilcimize iletildi. En kısa sürede yanıtlayacağız.";
-      
-      const lower = normalizeTurkish(userMsg);
-      if (lower.includes('kargo') || lower.includes('teslimat') || lower.includes('gonderim')) {
-        replyText = "Siparişleriniz aynı gün Eminönü depomuzdan anlaşmalı kargo ile sevk edilir. Dilerseniz Tahtakale mağazamızdan elden teslim alabilirsiniz.";
-      } else if (lower.includes('kararma') || lower.includes('celik') || lower.includes('taki')) {
-        replyText = "Tüm çelik takı koleksiyonumuz 316L medikal paslanmaz çeliktir. Suya ve parfüme dayanıklıdır; kararmazlık garantilidir.";
-      } else if (lower.includes('toptan') || lower.includes('b2b') || lower.includes('bayi')) {
-        replyText = "Toptan alımlarınız için sitemizdeki 'Toptan & B2B' formunu doldurabilir ya da Tahtakale toptan birimimizle iletişime geçebilirsiniz.";
-      }
-
-      const adminReply = await DataService.sendMessage(
-        sessionId,
-        'admin',
-        replyText
-      );
-      setMessages((prev) => [...prev, adminReply]);
-      if (soundEnabled) sounds.playChatNotification();
-    }, 1200);
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === msg.id)) return prev;
+      return [...prev, msg];
+    });
   };
 
   return (
