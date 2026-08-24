@@ -226,13 +226,15 @@ CREATE TABLE IF NOT EXISTS public.wholesale_requests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_name TEXT NOT NULL,
     contact_name TEXT NOT NULL,
-    email TEXT NOT NULL,
+    email TEXT,
     phone TEXT NOT NULL,
     city TEXT NOT NULL,
     estimated_volume TEXT,
     notes TEXT NOT NULL,
+    admin_notes TEXT,
     status TEXT DEFAULT 'beklemede' NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
 -- 17. FAVORITES & CART PERSISTENCE
@@ -533,22 +535,34 @@ WITH CHECK (TRUE);
 
 -- 22. STORAGE POLICIES
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('product-images', 'product-images', true)
+VALUES 
+  ('product-images', 'product-images', true),
+  ('chat-attachments', 'chat-attachments', true)
 ON CONFLICT (id) DO NOTHING;
 
 CREATE POLICY "Public Access to product-images"
 ON storage.objects FOR SELECT
-USING (bucket_id = 'product-images');
+USING (bucket_id IN ('product-images', 'chat-attachments'));
 
 CREATE POLICY "Only Admins upload to product-images"
 ON storage.objects FOR INSERT
-WITH CHECK (bucket_id = 'product-images' AND public.is_admin());
+WITH CHECK (bucket_id IN ('product-images', 'chat-attachments') AND public.is_admin());
 
--- 23. SUPABASE REALTIME REPLICATION (Exclude sensitive orders table from public replication)
+CREATE POLICY "Only Admins manage storage objects"
+ON storage.objects FOR UPDATE
+USING (bucket_id IN ('product-images', 'chat-attachments') AND public.is_admin());
+
+CREATE POLICY "Only Admins delete storage objects"
+ON storage.objects FOR DELETE
+USING (bucket_id IN ('product-images', 'chat-attachments') AND public.is_admin());
+
+-- 23. SUPABASE REALTIME REPLICATION
 DO $$ BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.questions;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.reviews;
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.live_chat_sessions;
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.live_chat_messages;
 EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;

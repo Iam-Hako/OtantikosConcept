@@ -98,10 +98,12 @@ export async function POST(request: Request) {
     const cleanQuestionText = String(question_text).trim().slice(0, 1000);
     const cleanEmail = user_email ? String(user_email).trim().slice(0, 100) : null;
 
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
     const newQ: Question = {
       id: `q-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       product_id,
-      user_id: user_id || null,
+      user_id: user_id && UUID_REGEX.test(user_id) ? user_id : null,
       user_name: cleanUserName,
       user_email: cleanEmail,
       question_text: cleanQuestionText,
@@ -117,14 +119,27 @@ export async function POST(request: Request) {
 
     try {
       const supabase = createAdminClient();
-      await supabase.from('questions').insert({
-        product_id,
-        user_id: newQ.user_id,
-        user_name: cleanUserName,
-        user_email: cleanEmail,
-        question_text: cleanQuestionText,
-        is_approved: false,
-      });
+      let prodDbId = product_id;
+      if (!UUID_REGEX.test(product_id)) {
+        const { data: pFound } = await supabase.from('products').select('id').eq('slug', product_id).maybeSingle();
+        if (pFound?.id) prodDbId = pFound.id;
+      }
+
+      if (UUID_REGEX.test(prodDbId)) {
+        const { data: insData } = await supabase.from('questions').insert({
+          product_id: prodDbId,
+          user_id: newQ.user_id,
+          user_name: cleanUserName,
+          user_email: cleanEmail,
+          question_text: cleanQuestionText,
+          is_approved: false,
+        }).select('id').maybeSingle();
+
+        if (insData?.id) {
+          newQ.id = insData.id;
+          saveStoredQuestions(list);
+        }
+      }
     } catch {
       // Fallback
     }
@@ -165,15 +180,18 @@ export async function PATCH(request: Request) {
 
     try {
       const supabase = createAdminClient();
-      const updates: any = {};
-      if (answer_text !== undefined) {
-        updates.answer_text = String(answer_text).trim().slice(0, 2000);
-        updates.answered_at = new Date().toISOString();
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (UUID_REGEX.test(id)) {
+        const updates: any = {};
+        if (answer_text !== undefined) {
+          updates.answer_text = String(answer_text).trim().slice(0, 2000);
+          updates.answered_at = new Date().toISOString();
+        }
+        if (is_approved !== undefined) {
+          updates.is_approved = Boolean(is_approved);
+        }
+        await supabase.from('questions').update(updates).eq('id', id);
       }
-      if (is_approved !== undefined) {
-        updates.is_approved = Boolean(is_approved);
-      }
-      await supabase.from('questions').update(updates).eq('id', id);
     } catch {
       // Fallback
     }
@@ -205,7 +223,10 @@ export async function DELETE(request: Request) {
 
     try {
       const supabase = createAdminClient();
-      await supabase.from('questions').delete().eq('id', id);
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (UUID_REGEX.test(id)) {
+        await supabase.from('questions').delete().eq('id', id);
+      }
     } catch {
       // Fallback
     }

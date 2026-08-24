@@ -43,6 +43,11 @@ function CategoryContent() {
   const [maxPrice, setMaxPrice] = useState<number>(50000);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
+  const maxAvailablePrice = useMemo(() => {
+    if (allProducts.length === 0) return 5000;
+    return Math.max(...allProducts.map((p) => Number(p.price) || 0), 1000);
+  }, [allProducts]);
+
   useEffect(() => {
     if (urlSearch) {
       setSearchQuery(urlSearch);
@@ -249,16 +254,16 @@ function CategoryContent() {
             </div>
             <input
               type="range"
-              min="100"
-              max="1500"
-              step="50"
+              min="0"
+              max={maxAvailablePrice}
+              step="10"
               value={maxPrice}
               onChange={(e) => setMaxPrice(Number(e.target.value))}
               className="w-full accent-amber-600 cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-stone-400 mt-1">
-              <span>₺100</span>
-              <span>₺1.500+</span>
+              <span>₺0</span>
+              <span>{formatPrice(maxAvailablePrice)}</span>
             </div>
           </div>
 

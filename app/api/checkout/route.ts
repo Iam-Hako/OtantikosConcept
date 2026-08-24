@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     }
 
     // 3. Calculate verified shipping and gift wrap fees
-    const isPickup = delivery_type === 'magazadan_teslim';
+    const isPickup = delivery_type === 'magaza_teslim' || delivery_type === 'magazadan_teslim' || delivery_type === 'pickup';
     const verifiedShippingFee = isPickup ? 0 : 200;
     const verifiedGiftWrapFee = has_gift_wrap ? 50 : 0;
     const verifiedTotalAmount = calculatedSubtotal + verifiedShippingFee + verifiedGiftWrapFee;
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
       gift_wrap_fee: verifiedGiftWrapFee,
       has_gift_wrap: Boolean(has_gift_wrap),
       gift_note: gift_note ? String(gift_note).slice(0, 500) : '',
-      delivery_type: delivery_type || 'adrese_teslim',
+      delivery_type: isPickup ? 'magaza_teslim' : 'kargo',
       shipping_address,
       billing_address: billing_address || shipping_address,
       items: verifiedItems,

@@ -114,12 +114,13 @@ export async function POST(request: Request) {
     // 2. Attempt Supabase sync with admin client
     try {
       const supabase = createAdminClient();
+      const fallbackEmail = cleanEmail || `${cleanPhone.replace(/\D/g, '') || 'talep'}@otantikosconcept.com`;
       const { data, error } = await supabase
         .from('wholesale_requests')
         .insert({
           company_name: cleanContact,
           contact_name: cleanContact,
-          email: cleanEmail || null,
+          email: fallbackEmail,
           phone: cleanPhone,
           city: cleanAddress,
           notes: cleanNotes ? `[Adres: ${cleanAddress}] ${cleanNotes}` : `Adres: ${cleanAddress}`,
@@ -168,12 +169,15 @@ export async function PATCH(request: Request) {
 
     try {
       const supabase = createAdminClient();
-      const updateData: any = {};
-      if (status) updateData.status = status;
-      await supabase
-        .from('wholesale_requests')
-        .update(updateData)
-        .eq('id', id);
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      if (isUuid) {
+        const updateData: any = {};
+        if (status) updateData.status = status;
+        await supabase
+          .from('wholesale_requests')
+          .update(updateData)
+          .eq('id', id);
+      }
     } catch {
       // Fallback
     }
@@ -205,10 +209,13 @@ export async function DELETE(request: Request) {
 
     try {
       const supabase = createAdminClient();
-      await supabase
-        .from('wholesale_requests')
-        .delete()
-        .eq('id', id);
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      if (isUuid) {
+        await supabase
+          .from('wholesale_requests')
+          .delete()
+          .eq('id', id);
+      }
     } catch {
       // Fallback
     }

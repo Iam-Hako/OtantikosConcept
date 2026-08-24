@@ -74,29 +74,27 @@ export function deduplicateLiveChatMessages(messages: LiveChatMessage[]): LiveCh
   for (const m of messages) {
     if (!m || !m.message_text) continue;
 
-    const existingIndex = result.findIndex((existing) => {
-      if (existing.id && m.id && existing.id === m.id) return true;
+    // Exact ID match
+    const exactIndex = result.findIndex((existing) => existing.id && m.id && existing.id === m.id);
+    if (exactIndex >= 0) {
+      result[exactIndex] = m;
+      continue;
+    }
 
-      if (existing.sender_type === m.sender_type && existing.message_text.trim() === m.message_text.trim()) {
+    // Temporary optimistic ID replacing with real Supabase UUID
+    const tempIndex = result.findIndex((existing) => {
+      const isExistingTemp = !existing.id || existing.id.startsWith('msg-') || existing.id.startsWith('temp-');
+      const isIncomingReal = m.id && !m.id.startsWith('msg-') && !m.id.startsWith('temp-');
+      if (isExistingTemp && isIncomingReal && existing.sender_type === m.sender_type && existing.message_text.trim() === m.message_text.trim()) {
         const time1 = new Date(existing.created_at).getTime();
         const time2 = new Date(m.created_at).getTime();
-        const timeDiff = Math.abs(time1 - time2);
-
-        if (isNaN(timeDiff) || timeDiff < 60000) {
-          return true;
-        }
+        return Math.abs(time1 - time2) < 20000;
       }
       return false;
     });
 
-    if (existingIndex >= 0) {
-      const existing = result[existingIndex];
-      const isExistingTemp = !existing.id || existing.id.startsWith('msg-') || existing.id.startsWith('temp-');
-      const isIncomingReal = m.id && !m.id.startsWith('msg-') && !m.id.startsWith('temp-');
-
-      if (isExistingTemp && isIncomingReal) {
-        result[existingIndex] = m;
-      }
+    if (tempIndex >= 0) {
+      result[tempIndex] = m;
     } else {
       result.push(m);
     }
@@ -562,7 +560,22 @@ export const DataService = {
     return found;
   },
 
+  syncRuntimeProductId(oldId: string, newUuid: string) {
+    const p = runtimeProducts.find(prod => prod.id === oldId || prod.id === newUuid);
+    if (p) p.id = newUuid;
+  },
+
+  syncRuntimeCategoryId(oldId: string, newUuid: string) {
+    const c = runtimeCategories.find(cat => cat.id === oldId || cat.id === newUuid);
+    if (c) c.id = newUuid;
+  },
+
   async createOrder(orderData: Partial<Order>): Promise<Order> {
+    const validDelivery: 'kargo' | 'magaza_teslim' = 
+      orderData.delivery_type === 'magaza_teslim' || orderData.delivery_type === 'pickup' || (orderData.delivery_type as any) === 'magazadan_teslim' 
+        ? 'magaza_teslim' 
+        : 'kargo';
+
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
       order_number: orderData.order_number || `OTN-2026-${Math.floor(10000 + Math.random() * 90000)}`,
@@ -576,7 +589,7 @@ export const DataService = {
       gift_wrap_fee: orderData.gift_wrap_fee || 0,
       has_gift_wrap: orderData.has_gift_wrap || false,
       gift_note: orderData.gift_note || null,
-      delivery_type: orderData.delivery_type || 'kargo',
+      delivery_type: validDelivery,
       shipping_address: orderData.shipping_address!,
       billing_address: orderData.billing_address!,
       tracking_number: null,
@@ -591,7 +604,6 @@ export const DataService = {
     const orders = runtimeOrders;
     orders.unshift(newOrder);
     runtimeOrders = orders;
-    
 
     // Deduct stock locally
     const prods = runtimeProducts;
@@ -605,16 +617,18 @@ export const DataService = {
         }
       }
     });
-    
 
-    // Persist Order and Order Items in Supabase
+    // Persist Order, Order Items and Deduct Stock in Supabase using Admin client
     try {
-      const supabase = createClient();
-      const { data: orderRow, error: orderErr } = await supabase
+      const { createAdminClient } = await import('@/lib/supabase/admin');
+      const supabaseAdmin = createAdminClient();
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+      const { data: orderRow, error: orderErr } = await supabaseAdmin
         .from('orders')
         .insert({
           order_number: newOrder.order_number,
-          user_id: newOrder.user_id,
+          user_id: newOrder.user_id && UUID_REGEX.test(newOrder.user_id) ? newOrder.user_id : null,
           guest_email: newOrder.guest_email,
           guest_name: newOrder.guest_name,
           guest_phone: newOrder.guest_phone,
@@ -635,57 +649,47 @@ export const DataService = {
 
       if (!orderErr && orderRow && newOrder.items && newOrder.items.length > 0) {
         newOrder.id = orderRow.id;
-        await supabase.from('order_items').insert(
-          newOrder.items.map((item) => ({
+
+        const orderItemsPayload = [];
+        for (const item of newOrder.items) {
+          let resolvedProdId: string | null = item.product_id && UUID_REGEX.test(item.product_id) ? item.product_id : null;
+          let resolvedVarId: string | null = item.variant_id && UUID_REGEX.test(item.variant_id) ? item.variant_id : null;
+
+          if (!resolvedProdId) {
+            const { data: pFound } = await supabaseAdmin.from('products').select('id, stock').eq('name', item.product_name).maybeSingle();
+            if (pFound?.id) resolvedProdId = pFound.id;
+          }
+
+          orderItemsPayload.push({
             order_id: orderRow.id,
-            product_id: item.product_id && !item.product_id.startsWith('prod-') ? item.product_id : null,
+            product_id: resolvedProdId,
+            variant_id: resolvedVarId,
             product_name: item.product_name,
             variant_name: item.variant_name || null,
             price: item.price,
             quantity: item.quantity,
             total: item.total,
-          }))
-        );
+          });
 
-        // Deduct stock in Supabase database for both products and variants
-        for (const item of newOrder.items) {
-          if (item.product_id && !item.product_id.startsWith('prod-')) {
-            // 1. Deduct main product stock
-            const { data: pData } = await supabase
-              .from('products')
-              .select('stock')
-              .eq('id', item.product_id)
-              .single();
-
+          // Deduct stock in PostgreSQL
+          if (resolvedProdId) {
+            const { data: pData } = await supabaseAdmin.from('products').select('stock').eq('id', resolvedProdId).maybeSingle();
             if (pData && typeof pData.stock === 'number') {
-              const newStock = Math.max(0, pData.stock - item.quantity);
-              await supabase
-                .from('products')
-                .update({ stock: newStock, updated_at: new Date().toISOString() })
-                .eq('id', item.product_id);
+              await supabaseAdmin.from('products').update({ stock: Math.max(0, pData.stock - item.quantity), updated_at: new Date().toISOString() }).eq('id', resolvedProdId);
             }
-
-            // 2. Deduct variant stock if applicable
-            if (item.variant_id && !item.variant_id.startsWith('var-')) {
-              const { data: vData } = await supabase
-                .from('product_variants')
-                .select('stock')
-                .eq('id', item.variant_id)
-                .single();
-
-              if (vData && typeof vData.stock === 'number') {
-                const newVarStock = Math.max(0, vData.stock - item.quantity);
-                await supabase
-                  .from('product_variants')
-                  .update({ stock: newVarStock })
-                  .eq('id', item.variant_id);
-              }
+          }
+          if (resolvedVarId) {
+            const { data: vData } = await supabaseAdmin.from('product_variants').select('stock').eq('id', resolvedVarId).maybeSingle();
+            if (vData && typeof vData.stock === 'number') {
+              await supabaseAdmin.from('product_variants').update({ stock: Math.max(0, vData.stock - item.quantity) }).eq('id', resolvedVarId);
             }
           }
         }
+
+        await supabaseAdmin.from('order_items').insert(orderItemsPayload);
       }
-    } catch {
-      // Local fallback
+    } catch (err) {
+      console.error('DataService createOrder Supabase error:', err);
     }
 
     return newOrder;

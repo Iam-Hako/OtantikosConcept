@@ -37,6 +37,15 @@ function OrderTrackingContent() {
     setIsLoading(true);
     setHasSearched(true);
     try {
+      const res = await fetch(`/api/orders/track?order_number=${encodeURIComponent(orderNumber.trim())}&email=${encodeURIComponent(email.trim())}`);
+      const json = await res.json();
+      if (res.ok && json.success && json.order) {
+        setOrder(json.order);
+      } else {
+        const found = await DataService.getOrderByNumber(orderNumber, email);
+        setOrder(found);
+      }
+    } catch {
       const found = await DataService.getOrderByNumber(orderNumber, email);
       setOrder(found);
     } finally {
@@ -190,7 +199,7 @@ function OrderTrackingContent() {
                     {currentStep > 2 ? '✓' : '3'}
                   </div>
                   <div className="font-bold text-stone-900 text-xs">
-                    {order.delivery_type === 'pickup' ? 'Mağazada Hazır' : 'Kargoya Verildi'}
+                    {order.delivery_type === 'magaza_teslim' || order.delivery_type === 'pickup' ? 'Mağazada Hazır' : 'Kargoya Verildi'}
                   </div>
                   <div className="text-[10px] text-stone-400 truncate">
                     {order.tracking_number || 'Takip No Bekleniyor'}

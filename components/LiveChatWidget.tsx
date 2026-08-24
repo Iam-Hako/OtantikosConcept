@@ -238,14 +238,13 @@ export default function LiveChatWidget() {
 
     const greetingText = `Merhaba ${customerName}! Otantikos Concept canlı destek hattına hoş geldiniz. Eminönü Tahtakale merkezimizden size nasıl yardımcı olabiliriz?`;
     
-    // Persist greeting so Admin can also see the session created
-    const greetingMsg = await DataService.sendMessage(
-      sessionId,
-      'admin',
-      greetingText,
-      customerName,
-      customerEmail
-    );
+    const greetingMsg: LiveChatMessage = {
+      id: `msg-${Date.now()}`,
+      session_id: sessionId,
+      sender_type: 'admin',
+      message_text: greetingText,
+      created_at: new Date().toISOString(),
+    };
 
     setMessages([greetingMsg]);
     if (soundEnabled) sounds.playChatNotification();

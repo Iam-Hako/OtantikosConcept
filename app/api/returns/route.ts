@@ -92,12 +92,13 @@ export async function POST(request: Request) {
 
     const cleanReason = String(reason).trim().slice(0, 100);
     const cleanDetails = details ? String(details).trim().slice(0, 1000) : '';
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     const newRet: ReturnRequest = {
       id: `ret-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       order_id,
       order_item_id: order_item_id || null,
-      user_id: user_id || null,
+      user_id: user_id && UUID_REGEX.test(user_id) ? user_id : null,
       reason: cleanReason,
       details: cleanDetails,
       status: 'talep_alindi',
@@ -112,14 +113,27 @@ export async function POST(request: Request) {
 
     try {
       const supabase = createAdminClient();
-      await supabase.from('returns').insert({
-        order_id,
-        order_item_id: newRet.order_item_id,
-        user_id: newRet.user_id,
-        reason: cleanReason,
-        details: cleanDetails,
-        status: 'talep_alindi',
-      });
+      let orderDbId = order_id;
+      if (!UUID_REGEX.test(order_id)) {
+        const { data: ordFound } = await supabase.from('orders').select('id').eq('order_number', order_id).maybeSingle();
+        if (ordFound?.id) orderDbId = ordFound.id;
+      }
+
+      if (UUID_REGEX.test(orderDbId)) {
+        const { data: insData } = await supabase.from('returns').insert({
+          order_id: orderDbId,
+          order_item_id: newRet.order_item_id && UUID_REGEX.test(newRet.order_item_id) ? newRet.order_item_id : null,
+          user_id: newRet.user_id,
+          reason: cleanReason,
+          details: cleanDetails,
+          status: 'talep_alindi',
+        }).select('id').maybeSingle();
+
+        if (insData?.id) {
+          newRet.id = insData.id;
+          saveStoredReturns(list);
+        }
+      }
     } catch {
       // Fallback
     }
@@ -145,11 +159,6 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Eksik id veya status' }, { status: 400 });
     }
 
-    const validStatuses = new Set(['talep_alindi', 'onaylandi', 'kargo_bekleniyor', 'inceleniyor', 'tamamlandi', 'reddedildi']);
-    if (!validStatuses.has(status)) {
-      return NextResponse.json({ error: 'Geçersiz iade durumu' }, { status: 400 });
-    }
-
     const list = getStoredReturns();
     const item = list.find((r) => r.id === id);
     if (item) {
@@ -161,11 +170,17 @@ export async function PATCH(request: Request) {
 
     try {
       const supabase = createAdminClient();
-      await supabase.from('returns').update({
-        status,
-        admin_response: admin_response !== undefined ? String(admin_response).trim().slice(0, 1000) : undefined,
-        updated_at: new Date().toISOString(),
-      }).eq('id', id);
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      let validDbStatus = status;
+      if (status === 'kargo_bekleniyor' || status === 'inceleniyor') validDbStatus = 'talep_alindi';
+
+      if (UUID_REGEX.test(id)) {
+        await supabase.from('returns').update({
+          status: validDbStatus,
+          admin_response: admin_response !== undefined ? String(admin_response).trim().slice(0, 1000) : undefined,
+          updated_at: new Date().toISOString(),
+        }).eq('id', id);
+      }
     } catch {
       // Fallback
     }

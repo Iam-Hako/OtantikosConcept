@@ -102,7 +102,7 @@ export default function AdminOrdersPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-stone-400">Teslimat:</span>
-                  <span>{ord.delivery_type === 'pickup' ? '🏪 Mağaza Teslim' : `🚚 ${ord.shipping_address?.province || ''}`}</span>
+                  <span>{ord.delivery_type === 'magaza_teslim' || ord.delivery_type === 'pickup' ? '🏪 Mağaza Teslim' : `🚚 ${ord.shipping_address?.province || ''}`}</span>
                 </div>
                 <div className="flex justify-between font-bold pt-1 border-t border-stone-100 text-stone-900">
                   <span>Toplam Tutar:</span>
@@ -152,7 +152,7 @@ export default function AdminOrdersPage() {
                   </td>
 
                   <td className="py-3.5 px-4">
-                    {ord.delivery_type === 'pickup' ? (
+                    {ord.delivery_type === 'magaza_teslim' || ord.delivery_type === 'pickup' ? (
                       <span className="text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[10px]">
                         🏪 Tahtakale Mağaza
                       </span>

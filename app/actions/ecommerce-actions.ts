@@ -6,27 +6,23 @@ import { Product, Category, Order, ReturnRequest } from '@/lib/types/ecommerce';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function verifyAdmin() {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      // 1. Check JWT app_metadata
       if (user.app_metadata?.role === 'admin') return true;
-
-      // 2. Check Database profile
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
       if (profile?.role === 'admin') return true;
-
-      // 3. Fallback to confirmed owner account
-      const isOwnerEmail =
-        (user.email === 'chessvip11@gmail.com' || user.email === 'admin@otantikosconcept.com');
+      const isOwnerEmail = (user.email === 'chessvip11@gmail.com' || user.email === 'admin@otantikosconcept.com');
       if (isOwnerEmail) return true;
     }
   } catch {
-    // Non-blocking fallback for admin actions
+    // Fallback
   }
-  return true;
+  return false;
 }
 
 export async function actionSaveProduct(productData: Partial<Product>) {
@@ -37,49 +33,83 @@ export async function actionSaveProduct(productData: Partial<Product>) {
 
   const saved = await DataService.saveProduct(productData);
 
-  // Directly ensure Supabase sync with Admin Client
   try {
     const supabaseAdmin = createAdminClient();
-    const isCustomId = saved.id.startsWith('prod-');
+    const isUuid = saved.id && UUID_REGEX.test(saved.id);
 
-    const { data: upsertedProduct, error: prodErr } = await supabaseAdmin
-      .from('products')
-      .upsert({
-        id: isCustomId ? undefined : saved.id,
-        name: saved.name,
-        slug: saved.slug,
-        description: saved.description,
-        short_description: saved.short_description,
-        price: saved.price,
-        stock: saved.stock,
-        sku: saved.sku,
-        category_id: saved.category_id && !saved.category_id.startsWith('cat-') ? saved.category_id : null,
-        is_featured: saved.is_featured,
-        is_new: saved.is_new,
-        is_active: saved.is_active,
-        video_url: saved.video_url,
-      }, { onConflict: 'slug' })
-      .select()
-      .single();
+    // Resolve category UUID if needed
+    let categoryDbId = saved.category_id && UUID_REGEX.test(saved.category_id) ? saved.category_id : null;
+    if (!categoryDbId && saved.category?.slug) {
+      const { data: catRow } = await supabaseAdmin
+        .from('categories')
+        .select('id')
+        .eq('slug', saved.category.slug)
+        .maybeSingle();
+      if (catRow?.id) categoryDbId = catRow.id;
+    }
 
-    if (!prodErr && upsertedProduct) {
+    const payload: any = {
+      name: saved.name,
+      slug: saved.slug,
+      description: saved.description,
+      short_description: saved.short_description || '',
+      price: Number(saved.price) || 0,
+      stock: Math.max(0, Number(saved.stock) || 0),
+      sku: saved.sku,
+      category_id: categoryDbId,
+      is_featured: Boolean(saved.is_featured),
+      is_new: saved.is_new ?? true,
+      is_active: saved.is_active ?? true,
+      video_url: saved.video_url || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    let upsertedProduct: any = null;
+
+    if (isUuid) {
+      // Existing product with verified UUID: update or upsert by ID to allow slug renaming!
+      payload.id = saved.id;
+      const { data, error } = await supabaseAdmin
+        .from('products')
+        .upsert(payload, { onConflict: 'id' })
+        .select()
+        .single();
+      if (!error && data) upsertedProduct = data;
+    } else {
+      // New product: upsert by slug
+      const { data, error } = await supabaseAdmin
+        .from('products')
+        .upsert(payload, { onConflict: 'slug' })
+        .select()
+        .single();
+      if (!error && data) upsertedProduct = data;
+    }
+
+    if (upsertedProduct) {
       const prodDbId = upsertedProduct.id;
       saved.id = prodDbId;
 
+      // Update runtime in-memory representation
+      DataService.syncRuntimeProductId(productData.id || '', prodDbId);
+
+      // 1. Sync Product Images
       if (saved.images !== undefined) {
         await supabaseAdmin.from('product_images').delete().eq('product_id', prodDbId);
         if (saved.images.length > 0) {
+          const hasExplicitCover = saved.images.some(img => img.is_cover);
           await supabaseAdmin.from('product_images').insert(
             saved.images.map((img, i) => ({
               product_id: prodDbId,
               image_url: img.image_url,
-              is_cover: img.is_cover || i === 0,
+              is_cover: img.is_cover === true || (!hasExplicitCover && i === 0),
               display_order: img.display_order || i + 1,
+              alt_text: img.alt_text || saved.name,
             }))
           );
         }
       }
 
+      // 2. Sync Product Variants
       if (saved.variants !== undefined) {
         await supabaseAdmin.from('product_variants').delete().eq('product_id', prodDbId);
         if (saved.variants.length > 0) {
@@ -88,14 +118,17 @@ export async function actionSaveProduct(productData: Partial<Product>) {
               product_id: prodDbId,
               name: v.name,
               value: v.value,
-              stock: v.stock,
-              price_override: v.price_override || null,
+              stock: Math.max(0, Number(v.stock) || 0),
+              price_override: v.price_override ? Number(v.price_override) : null,
+              sku: v.sku || null,
+              image_url: v.image_url || null,
               is_active: v.is_active ?? true,
             }))
           );
         }
       }
 
+      // 3. Sync Product Specifications
       if (saved.specifications !== undefined) {
         await supabaseAdmin.from('product_specifications').delete().eq('product_id', prodDbId);
         if (saved.specifications.length > 0) {
@@ -128,13 +161,10 @@ export async function actionDeleteProduct(productId: string) {
     return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
   }
 
-  // 1. Direct Supabase Admin Cascade Delete
   try {
     const supabaseAdmin = createAdminClient();
-
-    // Find the product by id or slug to ensure we have the UUID
     let dbId = productId;
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId);
+    const isUuid = UUID_REGEX.test(productId);
 
     if (!isUuid) {
       const { data: prod } = await supabaseAdmin
@@ -142,40 +172,32 @@ export async function actionDeleteProduct(productId: string) {
         .select('id')
         .eq('slug', productId)
         .maybeSingle();
-
-      if (prod?.id) {
-        dbId = prod.id;
-      }
+      if (prod?.id) dbId = prod.id;
     }
 
-    // Cascade delete related records
-    await supabaseAdmin.from('product_images').delete().eq('product_id', dbId);
-    await supabaseAdmin.from('product_variants').delete().eq('product_id', dbId);
-    await supabaseAdmin.from('product_specifications').delete().eq('product_id', dbId);
-    await supabaseAdmin.from('reviews').delete().eq('product_id', dbId);
-    await supabaseAdmin.from('questions').delete().eq('product_id', dbId);
-    await supabaseAdmin.from('in_stock_alerts').delete().eq('product_id', dbId);
-    await supabaseAdmin.from('favorites').delete().eq('product_id', dbId);
-    await supabaseAdmin.from('cart_items').delete().eq('product_id', dbId);
-
-    // Delete product from products table
-    await supabaseAdmin.from('products').delete().eq('id', dbId);
-    if (!isUuid) {
+    if (UUID_REGEX.test(dbId)) {
+      await supabaseAdmin.from('product_images').delete().eq('product_id', dbId);
+      await supabaseAdmin.from('product_variants').delete().eq('product_id', dbId);
+      await supabaseAdmin.from('product_specifications').delete().eq('product_id', dbId);
+      await supabaseAdmin.from('reviews').delete().eq('product_id', dbId);
+      await supabaseAdmin.from('questions').delete().eq('product_id', dbId);
+      await supabaseAdmin.from('in_stock_alerts').delete().eq('product_id', dbId);
+      await supabaseAdmin.from('favorites').delete().eq('product_id', dbId);
+      await supabaseAdmin.from('cart_items').delete().eq('product_id', dbId);
+      await supabaseAdmin.from('products').delete().eq('id', dbId);
+    } else {
       await supabaseAdmin.from('products').delete().eq('slug', productId);
     }
   } catch (err) {
-    console.error('Supabase admin delete error:', err);
+    console.error('Supabase admin delete product error:', err);
   }
 
-  // 2. Remove from in-memory store
-  await DataService.deleteProduct(productId);
-
-  // 3. Revalidate paths
+  const ok = await DataService.deleteProduct(productId);
   revalidatePath('/');
   revalidatePath('/kategori/[slug]', 'page');
   revalidatePath('/admin/urunler');
   revalidatePath('/admin/hizli-stok');
-  return { success: true };
+  return { success: ok };
 }
 
 export async function actionUpdateQuickStock(productId: string, stock: number, price: number) {
@@ -187,12 +209,17 @@ export async function actionUpdateQuickStock(productId: string, stock: number, p
   try {
     const supabaseAdmin = createAdminClient();
     let dbId = productId;
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId);
+    const isUuid = UUID_REGEX.test(productId);
     if (!isUuid) {
       const { data: prod } = await supabaseAdmin.from('products').select('id').eq('slug', productId).maybeSingle();
       if (prod?.id) dbId = prod.id;
     }
-    await supabaseAdmin.from('products').update({ stock, price, updated_at: new Date().toISOString() }).eq('id', dbId);
+
+    if (UUID_REGEX.test(dbId)) {
+      await supabaseAdmin.from('products').update({ stock, price, updated_at: new Date().toISOString() }).eq('id', dbId);
+    } else {
+      await supabaseAdmin.from('products').update({ stock, price, updated_at: new Date().toISOString() }).eq('slug', productId);
+    }
   } catch (err) {
     console.error('Supabase admin quick stock update error:', err);
   }
@@ -215,24 +242,35 @@ export async function actionSaveCategory(catData: Partial<Category>) {
 
   try {
     const supabaseAdmin = createAdminClient();
-    const isCustomId = saved.id.startsWith('cat-');
-    const { data, error } = await supabaseAdmin
-      .from('categories')
-      .upsert({
-        id: isCustomId ? undefined : saved.id,
-        name: saved.name,
-        slug: saved.slug,
-        description: saved.description || '',
-        image_url: saved.image_url || '',
-        display_order: saved.display_order,
-        is_active: saved.is_active,
-      }, { onConflict: 'slug' })
-      .select()
-      .single();
+    const isUuid = saved.id && UUID_REGEX.test(saved.id);
 
-    if (!error && data?.id) {
-      saved.id = data.id;
+    const payload: any = {
+      name: saved.name,
+      slug: saved.slug,
+      description: saved.description || '',
+      image_url: saved.image_url || '',
+      display_order: saved.display_order,
+      is_active: saved.is_active,
+    };
+
+    if (isUuid) {
+      payload.id = saved.id;
+      const { data, error } = await supabaseAdmin
+        .from('categories')
+        .upsert(payload, { onConflict: 'id' })
+        .select()
+        .single();
+      if (!error && data?.id) saved.id = data.id;
+    } else {
+      const { data, error } = await supabaseAdmin
+        .from('categories')
+        .upsert(payload, { onConflict: 'slug' })
+        .select()
+        .single();
+      if (!error && data?.id) saved.id = data.id;
     }
+
+    DataService.syncRuntimeCategoryId(catData.id || '', saved.id);
   } catch (err) {
     console.error('Supabase admin save category error:', err);
   }
@@ -253,18 +291,18 @@ export async function actionDeleteCategory(categoryId: string) {
   try {
     const supabaseAdmin = createAdminClient();
     let dbId = categoryId;
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(categoryId);
+    const isUuid = UUID_REGEX.test(categoryId);
     if (!isUuid) {
       const { data: cat } = await supabaseAdmin.from('categories').select('id').eq('slug', categoryId).maybeSingle();
       if (cat?.id) dbId = cat.id;
     }
 
-    // 1. Unlink products that were assigned to this category
-    await supabaseAdmin.from('products').update({ category_id: null }).eq('category_id', dbId);
-
-    // 2. Delete from categories
-    await supabaseAdmin.from('categories').delete().eq('id', dbId);
-    if (!isUuid) {
+    if (UUID_REGEX.test(dbId)) {
+      // 1. Unlink products referencing this category
+      await supabaseAdmin.from('products').update({ category_id: null }).eq('category_id', dbId);
+      // 2. Delete from categories table
+      await supabaseAdmin.from('categories').delete().eq('id', dbId);
+    } else {
       await supabaseAdmin.from('categories').delete().eq('slug', categoryId);
     }
   } catch (err) {
@@ -276,7 +314,7 @@ export async function actionDeleteCategory(categoryId: string) {
   revalidatePath('/kategori/[slug]', 'page');
   revalidatePath('/admin/kategoriler');
   revalidatePath('/admin/urunler');
-  return { success: true };
+  return { success: ok };
 }
 
 export async function actionUpdateOrderStatus(
@@ -298,7 +336,7 @@ export async function actionUpdateOrderStatus(
     if (trackingCarrier !== undefined) updateData.tracking_carrier = trackingCarrier;
     if (adminNotes !== undefined) updateData.admin_notes = adminNotes;
 
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
+    const isUuid = UUID_REGEX.test(orderId);
     if (isUuid) {
       await supabaseAdmin.from('orders').update(updateData).eq('id', orderId);
     } else {
@@ -322,12 +360,21 @@ export async function actionUpdateReturnStatus(returnId: string, status: ReturnR
     return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
   }
 
+  // Normalize status to valid PostgreSQL enum
+  let validStatus = status;
+  if (status === 'kargo_bekleniyor' as any || status === 'inceleniyor' as any) {
+    validStatus = 'talep_alindi';
+  }
+
   try {
     const supabaseAdmin = createAdminClient();
-    const updatePayload: any = { status, updated_at: new Date().toISOString() };
+    const updatePayload: any = { status: validStatus, updated_at: new Date().toISOString() };
     if (adminResponse !== undefined) updatePayload.admin_response = adminResponse;
 
-    await supabaseAdmin.from('returns').update(updatePayload).eq('id', returnId);
+    const isUuid = UUID_REGEX.test(returnId);
+    if (isUuid) {
+      await supabaseAdmin.from('returns').update(updatePayload).eq('id', returnId);
+    }
   } catch (err) {
     console.error('Supabase admin update return error:', err);
   }
@@ -347,15 +394,16 @@ export async function actionDeleteOrder(orderId: string) {
   try {
     const supabaseAdmin = createAdminClient();
     let dbId = orderId;
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
+    const isUuid = UUID_REGEX.test(orderId);
     if (!isUuid) {
       const { data: ord } = await supabaseAdmin.from('orders').select('id').eq('order_number', orderId).maybeSingle();
       if (ord?.id) dbId = ord.id;
     }
 
-    await supabaseAdmin.from('order_items').delete().eq('order_id', dbId);
-    await supabaseAdmin.from('orders').delete().eq('id', dbId);
-    if (!isUuid) {
+    if (UUID_REGEX.test(dbId)) {
+      await supabaseAdmin.from('order_items').delete().eq('order_id', dbId);
+      await supabaseAdmin.from('orders').delete().eq('id', dbId);
+    } else {
       await supabaseAdmin.from('orders').delete().eq('order_number', orderId);
     }
   } catch (err) {

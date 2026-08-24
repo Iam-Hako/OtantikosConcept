@@ -89,11 +89,12 @@ export async function POST(request: Request) {
     const cleanUserName = String(user_name).trim().slice(0, 80);
     const cleanComment = String(comment).trim().slice(0, 1000);
     const clampedRating = Math.min(5, Math.max(1, Math.round(Number(rating) || 5)));
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     const newRev: Review = {
       id: `rev-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       product_id,
-      user_id: user_id || null,
+      user_id: user_id && UUID_REGEX.test(user_id) ? user_id : null,
       user_name: cleanUserName,
       rating: clampedRating,
       comment: cleanComment,
@@ -107,14 +108,27 @@ export async function POST(request: Request) {
 
     try {
       const supabase = createAdminClient();
-      await supabase.from('reviews').insert({
-        product_id,
-        user_id: newRev.user_id,
-        user_name: cleanUserName,
-        rating: clampedRating,
-        comment: cleanComment,
-        is_approved: false,
-      });
+      let prodDbId = product_id;
+      if (!UUID_REGEX.test(product_id)) {
+        const { data: pFound } = await supabase.from('products').select('id').eq('slug', product_id).maybeSingle();
+        if (pFound?.id) prodDbId = pFound.id;
+      }
+
+      if (UUID_REGEX.test(prodDbId)) {
+        const { data: insData } = await supabase.from('reviews').insert({
+          product_id: prodDbId,
+          user_id: newRev.user_id,
+          user_name: cleanUserName,
+          rating: clampedRating,
+          comment: cleanComment,
+          is_approved: false,
+        }).select('id').maybeSingle();
+
+        if (insData?.id) {
+          newRev.id = insData.id;
+          saveStoredReviews(list);
+        }
+      }
     } catch {
       // Fallback
     }
@@ -149,7 +163,10 @@ export async function PATCH(request: Request) {
 
     try {
       const supabase = createAdminClient();
-      await supabase.from('reviews').update({ is_approved: Boolean(is_approved) }).eq('id', id);
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (UUID_REGEX.test(id)) {
+        await supabase.from('reviews').update({ is_approved: Boolean(is_approved) }).eq('id', id);
+      }
     } catch {
       // Fallback
     }
@@ -181,7 +198,10 @@ export async function DELETE(request: Request) {
 
     try {
       const supabase = createAdminClient();
-      await supabase.from('reviews').delete().eq('id', id);
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (UUID_REGEX.test(id)) {
+        await supabase.from('reviews').delete().eq('id', id);
+      }
     } catch {
       // Fallback
     }

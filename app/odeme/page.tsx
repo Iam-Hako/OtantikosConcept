@@ -132,7 +132,7 @@ export default function CheckoutPage() {
             variant_id: i.variant?.id || null,
             quantity: Math.floor(Math.max(1, i.quantity)),
           })),
-          delivery_type: deliveryType === 'magaza_teslim' ? 'magazadan_teslim' : 'adrese_teslim',
+          delivery_type: deliveryType,
           has_gift_wrap: hasGiftWrap,
           gift_note: giftNote ? giftNote.trim().slice(0, 500) : '',
           shipping_address: {
