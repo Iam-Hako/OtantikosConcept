@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Layers, Plus, Trash2, Edit3, Sparkles } from 'lucide-react';
 import { Category } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
+import { actionSaveCategory, actionDeleteCategory } from '@/app/actions/ecommerce-actions';
 import { slugify } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
@@ -49,7 +50,7 @@ export default function AdminCategoriesPage() {
     e.preventDefault();
     if (!name.trim()) return;
 
-    await DataService.saveCategory({
+    const res = await actionSaveCategory({
       id: editingId || undefined,
       name,
       slug: slug || slugify(name),
@@ -58,18 +59,26 @@ export default function AdminCategoriesPage() {
       is_active: true,
     });
 
-    toast.success(editingId ? 'Kategori güncellendi!' : 'Yeni kategori eklendi!', {
-      description: 'Menüde ve filtrelerde anında canlıya yansıdı.',
-    });
-    setIsModalOpen(false);
-    loadCategories();
+    if (res.success) {
+      toast.success(editingId ? 'Kategori güncellendi!' : 'Yeni kategori eklendi!', {
+        description: 'Menüde ve filtrelerde anında canlıya yansıdı.',
+      });
+      setIsModalOpen(false);
+      loadCategories();
+    } else {
+      toast.error(res.error || 'Kategori kaydedilemedi.');
+    }
   };
 
   const handleDelete = async (id: string, catName: string) => {
     if (confirm(`"${catName}" kategorisini silmek istediğinize emin misiniz?`)) {
-      await DataService.deleteCategory(id);
-      setCategories((prev) => prev.filter((c) => c.id !== id));
-      toast.success('Kategori silindi.');
+      const res = await actionDeleteCategory(id);
+      if (res.success) {
+        setCategories((prev) => prev.filter((c) => c.id !== id));
+        toast.success('Kategori silindi.');
+      } else {
+        toast.error(res.error || 'Kategori silinemedi.');
+      }
     }
   };
 

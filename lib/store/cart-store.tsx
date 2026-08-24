@@ -49,14 +49,31 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     try {
       const savedCart = localStorage.getItem(CART_STORAGE_KEY);
       if (savedCart) {
-        setItems(JSON.parse(savedCart));
+        const parsed = JSON.parse(savedCart);
+        if (Array.isArray(parsed)) {
+          const validItems: CartItem[] = parsed.filter(
+            (i: any) =>
+              i &&
+              typeof i === 'object' &&
+              i.product &&
+              typeof i.product === 'object' &&
+              typeof i.product.id === 'string' &&
+              typeof i.quantity === 'number' &&
+              i.quantity > 0
+          );
+          setItems(validItems);
+        }
       }
       const savedGift = localStorage.getItem(GIFT_OPTIONS_KEY);
       if (savedGift) {
         const parsed = JSON.parse(savedGift);
-        setHasGiftWrap(parsed.hasGiftWrap || false);
-        setGiftNote(parsed.giftNote || '');
-        setDeliveryType(parsed.deliveryType || 'kargo');
+        if (parsed && typeof parsed === 'object') {
+          setHasGiftWrap(Boolean(parsed.hasGiftWrap));
+          setGiftNote(typeof parsed.giftNote === 'string' ? parsed.giftNote.slice(0, 500) : '');
+          if (parsed.deliveryType === 'magaza_teslim' || parsed.deliveryType === 'kargo') {
+            setDeliveryType(parsed.deliveryType);
+          }
+        }
       }
     } catch {
       // LocalStorage access error ignored

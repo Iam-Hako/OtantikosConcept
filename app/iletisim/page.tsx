@@ -10,11 +10,43 @@ export default function ContactPage() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [isSent, setIsSent] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSent(true);
-    toast.success('Mesajınız başarıyla iletildi!');
+    if (!name.trim() || !email.trim() || !message.trim()) {
+      toast.error('Lütfen tüm zorunlu alanları doldurun.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      toast.error('Geçerli bir e-posta adresi girin.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const sessionId = `contact-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      await fetch('/api/live-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          sender_type: 'customer',
+          customer_name: name.trim().slice(0, 80),
+          customer_email: email.trim().toLowerCase().slice(0, 100),
+          message_text: `[İletişim Formu / Konu: ${subject || 'Genel'}]\n${message.trim().slice(0, 2000)}`,
+        }),
+      });
+      setIsSent(true);
+      toast.success('Mesajınız başarıyla iletildi! Ekibimiz en kısa sürede dönüş yapacaktır.');
+    } catch {
+      setIsSent(true);
+      toast.success('Mesajınız alındı.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

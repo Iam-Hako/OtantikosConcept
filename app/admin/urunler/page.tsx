@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Package, Plus, Search, Edit3, Trash2, ExternalLink, Sparkles } from 'lucide-react';
 import { Product } from '@/lib/types/ecommerce';
 import { DataService, normalizeTurkish } from '@/lib/data/store-data';
+import { actionDeleteProduct } from '@/app/actions/ecommerce-actions';
 import { formatPrice } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
@@ -28,9 +29,13 @@ export default function AdminProductsPage() {
 
   const handleDelete = async (id: string, name: string) => {
     if (confirm(`"${name}" ürününü silmek istediğinize emin misiniz?`)) {
-      await DataService.deleteProduct(id);
-      setProducts((prev) => prev.filter((p) => p.id !== id));
-      toast.success('Ürün başarıyla silindi.');
+      const res = await actionDeleteProduct(id);
+      if (res.success) {
+        setProducts((prev) => prev.filter((p) => p.id !== id));
+        toast.success('Ürün başarıyla silindi.');
+      } else {
+        toast.error(res.error || 'Ürün silinemedi.');
+      }
     }
   };
 

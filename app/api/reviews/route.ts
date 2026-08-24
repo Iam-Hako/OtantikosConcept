@@ -97,7 +97,7 @@ export async function POST(request: Request) {
       user_name: cleanUserName,
       rating: clampedRating,
       comment: cleanComment,
-      is_approved: true,
+      is_approved: false, // Requires admin moderation
       created_at: new Date().toISOString(),
     };
 
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
         user_name: cleanUserName,
         rating: clampedRating,
         comment: cleanComment,
-        is_approved: true,
+        is_approved: false,
       });
     } catch {
       // Fallback

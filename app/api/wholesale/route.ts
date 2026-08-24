@@ -78,10 +78,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Eksik zorunlu alanlar' }, { status: 400 });
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(String(email).trim())) {
+      return NextResponse.json({ error: 'Geçersiz e-posta formatı' }, { status: 400 });
+    }
+
+    const cleanPhone = String(phone).replace(/[^\d+]/g, '').slice(0, 20);
+    if (cleanPhone.length < 10) {
+      return NextResponse.json({ error: 'Geçersiz telefon numarası' }, { status: 400 });
+    }
+
     const cleanCompany = String(company_name).trim().slice(0, 100);
     const cleanContact = String(contact_name).trim().slice(0, 80);
-    const cleanEmail = String(email).trim().slice(0, 100);
-    const cleanPhone = String(phone).trim().slice(0, 30);
+    const cleanEmail = String(email).trim().toLowerCase().slice(0, 100);
     const cleanCity = String(city).trim().slice(0, 50);
     const cleanVolume = estimated_volume ? String(estimated_volume).trim().slice(0, 50) : '100 - 500 Adet';
     const cleanNotes = notes ? String(notes).trim().slice(0, 2000) : '';

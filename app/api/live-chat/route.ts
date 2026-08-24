@@ -53,11 +53,11 @@ export async function GET(request: Request) {
   const sessionId = searchParams.get('session_id');
   const customerEmail = searchParams.get('customer_email');
 
-  // If requesting all sessions (no filter), require admin authentication
-  if (!sessionId && !customerEmail) {
+  // If requesting without session_id (i.e. all sessions or querying by customer_email), require admin authentication
+  if (!sessionId) {
     const auth = await verifyAdminAuth();
     if (!auth.isAuthorized) {
-      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+      return NextResponse.json({ error: auth.error || 'Bu sorgu için yönetici yetkisi gereklidir.' }, { status: 401 });
     }
   }
 
@@ -149,6 +149,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Eksik parametre' }, { status: 400 });
     }
 
+    // Security Guard: Only authenticated Admins can send messages with sender_type: 'admin'
+    if (sender_type === 'admin') {
+      const auth = await verifyAdminAuth();
+      if (!auth.isAuthorized) {
+        return NextResponse.json({ error: 'Yönetici adına mesaj göndermek için yetki gereklidir.' }, { status: 403 });
+      }
+    }
+
     const cleanMessageText = String(message_text).trim().slice(0, 2000);
     const cleanCustomerName = customer_name ? String(customer_name).trim().slice(0, 80) : undefined;
     const cleanCustomerEmail = customer_email ? String(customer_email).trim().slice(0, 100) : undefined;
@@ -156,7 +164,7 @@ export async function POST(request: Request) {
     const newMsg: LiveChatMessage = {
       id: `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       session_id,
-      sender_type,
+      sender_type: sender_type === 'admin' ? 'admin' : 'customer',
       message_text: cleanMessageText,
       created_at: new Date().toISOString(),
     };

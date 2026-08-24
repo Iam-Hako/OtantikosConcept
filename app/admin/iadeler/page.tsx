@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { RotateCcw, Check, X, MessageSquare, AlertCircle } from 'lucide-react';
 import { ReturnRequest } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
+import { actionUpdateReturnStatus } from '@/app/actions/ecommerce-actions';
 import { formatDate } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
@@ -22,11 +23,15 @@ export default function AdminReturnsPage() {
   };
 
   const handleUpdateStatus = async (id: string, newStatus: ReturnRequest['status']) => {
-    await DataService.updateReturnStatus(id, newStatus, adminResponse);
-    toast.success(`İade talebi durumu "${newStatus.toUpperCase()}" olarak güncellendi.`);
-    setActiveReturn(null);
-    setAdminResponse('');
-    loadReturns();
+    const res = await actionUpdateReturnStatus(id, newStatus, adminResponse);
+    if (res.success) {
+      toast.success(`İade talebi durumu "${newStatus.toUpperCase()}" olarak güncellendi.`);
+      setActiveReturn(null);
+      setAdminResponse('');
+      loadReturns();
+    } else {
+      toast.error(res.error || 'İade talebi güncellenemedi.');
+    }
   };
 
   return (

@@ -12,10 +12,8 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawRedirect = searchParams?.get('redirect') || '/';
-  const safeRedirect =
-    rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') && !rawRedirect.startsWith('/\\')
-      ? rawRedirect
-      : '/';
+  const isSafe = /^\/(?!\/|\\)[a-zA-Z0-9_\-\/\?&=%#\.]*$/.test(rawRedirect);
+  const safeRedirect = isSafe ? rawRedirect : '/';
   const authError = searchParams?.get('error');
 
   const { loginWithEmail, loginWithGoogle } = useAuth();

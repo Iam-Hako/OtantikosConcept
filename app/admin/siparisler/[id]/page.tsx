@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Order } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
+import { actionUpdateOrderStatus } from '@/app/actions/ecommerce-actions';
 import { formatPrice, formatDate } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
@@ -54,7 +55,7 @@ export default function OrderDetailPage() {
     if (!order) return;
 
     setIsSaving(true);
-    await DataService.updateOrderStatus(
+    const res = await actionUpdateOrderStatus(
       order.id,
       status,
       trackingNumber,
@@ -63,9 +64,13 @@ export default function OrderDetailPage() {
     );
     setIsSaving(false);
 
-    toast.success('Sipariş ve kargo bilgileri güncellendi!', {
-      description: 'Müşteri canlı sipariş takip çizelgesinde anında görüntülenecektir.',
-    });
+    if (res.success) {
+      toast.success('Sipariş ve kargo bilgileri güncellendi!', {
+        description: 'Müşteri canlı sipariş takip çizelgesinde anında görüntülenecektir.',
+      });
+    } else {
+      toast.error(res.error || 'Sipariş güncellenemedi.');
+    }
   };
 
   const handlePrint = () => {

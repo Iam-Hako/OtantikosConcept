@@ -20,8 +20,9 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 6) {
-      toast.error('Şifre en az 6 karakter olmalıdır.');
+    const isStrongPassword = password.length >= 8 && /[a-zA-Z]/.test(password) && /\d/.test(password);
+    if (!isStrongPassword) {
+      toast.error('Şifreniz en az 8 karakter olmalı, harf ve rakam içermelidir.');
       return;
     }
 

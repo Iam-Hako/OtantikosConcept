@@ -48,12 +48,16 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('user_id');
 
-  // If requesting all returns without user_id, must be authenticated Admin
+  // Verify caller authorization
+  const auth = await verifyAdminAuth();
   if (!userId) {
-    const auth = await verifyAdminAuth();
+    // If requesting all returns without user_id, must be authenticated Admin
     if (!auth.isAuthorized) {
       return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
     }
+  } else if (!auth.isAuthorized && (!auth.user || auth.user.id !== userId)) {
+    // Non-admin can only query their own user_id
+    return NextResponse.json({ error: 'Yalnızca kendi iade taleplerinizi görüntüleyebilirsiniz.' }, { status: 403 });
   }
 
   try {
