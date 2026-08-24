@@ -2,12 +2,31 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
-import { MessageCircle, X, Send, Volume2, VolumeX, Sparkles, User, Minimize2 } from 'lucide-react';
-import { LiveChatMessage } from '@/lib/types/ecommerce';
-import { DataService, normalizeTurkish } from '@/lib/data/store-data';
+import { MessageCircle, X, Send, Volume2, VolumeX, Sparkles, User, Minimize2, RotateCcw } from 'lucide-react';
+import { LiveChatMessage, LiveChatSession } from '@/lib/types/ecommerce';
+import { DataService } from '@/lib/data/store-data';
 import { sounds } from '@/lib/utils/sound';
 import { useAuth } from '@/lib/store/auth-context';
 import { createClient } from '@/lib/supabase/client';
+
+const CHAT_COOKIE_NAME = 'otantikos_chat_sess';
+
+function getChatCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp('(^| )' + CHAT_COOKIE_NAME + '=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+function setChatCookie(sessionId: string) {
+  if (typeof document === 'undefined') return;
+  const expires = new Date(Date.now() + 30 * 864e5).toUTCString();
+  document.cookie = `${CHAT_COOKIE_NAME}=${encodeURIComponent(sessionId)}; expires=${expires}; path=/; SameSite=Lax`;
+}
+
+function removeChatCookie() {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${CHAT_COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
+}
 
 export default function LiveChatWidget() {
   const pathname = usePathname();
@@ -20,36 +39,86 @@ export default function LiveChatWidget() {
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState<string>('');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
-  const [isTyping, setIsTyping] = useState<boolean>(false);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [isRestoring, setIsRestoring] = useState<boolean>(true);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  
   const soundEnabledRef = useRef(soundEnabled);
   soundEnabledRef.current = soundEnabled;
+
+  const isOpenRef = useRef(isOpen);
+  isOpenRef.current = isOpen;
 
   // Do not render live chat widget on admin screens
   const isAdminRoute = pathname ? pathname.startsWith('/admin') : false;
 
-  // Initialize session in component memory
+  // 1. Restore previous session on initial mount
   useEffect(() => {
-    if (!sessionId) {
-      const newId = `sess-${Date.now()}`;
-      setSessionId(newId);
-    }
-    if (user) {
-      if (user.full_name) setCustomerName(user.full_name);
-      if (user.email) setCustomerEmail(user.email);
-    }
-  }, [user, sessionId]);
+    let isMounted = true;
 
-  // Realtime Supabase Subscription + Polling Fallback
-  useEffect(() => {
-    if (!isOpen || !sessionId || !hasStarted || isAdminRoute) return;
+    async function restoreSession() {
+      try {
+        let existingSession: LiveChatSession | null = null;
+        const cookieSessId = getChatCookie();
 
-    // 1. Initial Load
-    DataService.getChatSession(sessionId).then((session) => {
-      if (session?.messages && session.messages.length > 0) {
-        setMessages(session.messages);
+        if (cookieSessId) {
+          existingSession = await DataService.getChatSession(cookieSessId);
+        }
+
+        if (!existingSession && user?.email) {
+          existingSession = await DataService.getChatSessionByEmail(user.email);
+        }
+
+        if (!isMounted) return;
+
+        if (existingSession && existingSession.session_id) {
+          setSessionId(existingSession.session_id);
+          setCustomerName(existingSession.customer_name || user?.full_name || '');
+          setCustomerEmail(existingSession.customer_email || user?.email || '');
+          if (existingSession.messages && existingSession.messages.length > 0) {
+            setMessages(existingSession.messages);
+            setHasStarted(true);
+          }
+          setChatCookie(existingSession.session_id);
+        } else {
+          const newId = cookieSessId || `sess-${Date.now()}`;
+          setSessionId(newId);
+          if (user) {
+            if (user.full_name) setCustomerName(user.full_name);
+            if (user.email) setCustomerEmail(user.email);
+          }
+        }
+      } finally {
+        if (isMounted) setIsRestoring(false);
       }
-    });
+    }
+
+    restoreSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  // Reset unread count when opening
+  useEffect(() => {
+    if (isOpen) {
+      setUnreadCount(0);
+    }
+  }, [isOpen]);
+
+  // 2. Realtime Supabase Subscription + Polling Fallback
+  useEffect(() => {
+    if (!sessionId || isAdminRoute) return;
+
+    // 1. Initial Load if started
+    if (hasStarted) {
+      DataService.getChatSession(sessionId).then((session) => {
+        if (session?.messages && session.messages.length > 0) {
+          setMessages(session.messages);
+        }
+      });
+    }
 
     // 2. BroadcastChannel for instant local cross-tab sync
     let bc: BroadcastChannel | null = null;
@@ -61,8 +130,9 @@ export default function LiveChatWidget() {
             const newM = event.data.message as LiveChatMessage;
             setMessages((prev) => {
               if (prev.some((m) => m.id === newM.id)) return prev;
-              if (newM.sender_type === 'admin' && soundEnabledRef.current) {
-                sounds.playChatNotification();
+              if (newM.sender_type === 'admin') {
+                if (soundEnabledRef.current) sounds.playChatNotification();
+                if (!isOpenRef.current) setUnreadCount((c) => c + 1);
               }
               return [...prev, newM];
             });
@@ -96,8 +166,9 @@ export default function LiveChatWidget() {
                   (m.message_text === newM.message_text && m.sender_type === newM.sender_type)
               );
               if (exists) return prev;
-              if (newM.sender_type === 'admin' && soundEnabledRef.current) {
-                sounds.playChatNotification();
+              if (newM.sender_type === 'admin') {
+                if (soundEnabledRef.current) sounds.playChatNotification();
+                if (!isOpenRef.current) setUnreadCount((c) => c + 1);
               }
               return [...prev, newM];
             });
@@ -108,23 +179,25 @@ export default function LiveChatWidget() {
       // Fallback
     }
 
-    // 4. Background Sync Polling (Every 2.5 seconds)
+    // 4. Background Sync Polling (Every 3 seconds)
     const interval = setInterval(async () => {
+      if (!hasStarted) return;
       const sess = await DataService.getChatSession(sessionId);
       if (sess && sess.messages) {
         const fetchedMessages = sess.messages;
         setMessages((prev) => {
           if (fetchedMessages.length > prev.length) {
             const lastMsg = fetchedMessages[fetchedMessages.length - 1];
-            if (lastMsg.sender_type === 'admin' && soundEnabledRef.current) {
-              sounds.playChatNotification();
+            if (lastMsg.sender_type === 'admin') {
+              if (soundEnabledRef.current) sounds.playChatNotification();
+              if (!isOpenRef.current) setUnreadCount((c) => c + (fetchedMessages.length - prev.length));
             }
             return fetchedMessages;
           }
           return prev;
         });
       }
-    }, 2500);
+    }, 3000);
 
     return () => {
       clearInterval(interval);
@@ -144,14 +217,14 @@ export default function LiveChatWidget() {
         }
       }
     };
-  }, [isOpen, sessionId, hasStarted, isAdminRoute]);
+  }, [sessionId, hasStarted, isAdminRoute]);
 
   // Safe inner-container scroll
   useEffect(() => {
     if (isOpen && messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
-  }, [messages, isTyping, isOpen]);
+  }, [messages, isOpen]);
 
   if (isAdminRoute) {
     return null;
@@ -162,6 +235,7 @@ export default function LiveChatWidget() {
     if (!customerName.trim()) return;
 
     setHasStarted(true);
+    setChatCookie(sessionId);
 
     const greetingText = `Merhaba ${customerName}! Otantikos Concept canlı destek hattına hoş geldiniz. Eminönü Tahtakale merkezimizden size nasıl yardımcı olabiliriz?`;
     
@@ -184,6 +258,7 @@ export default function LiveChatWidget() {
 
     const userMsg = inputMessage.trim();
     setInputMessage('');
+    setChatCookie(sessionId);
 
     const msg = await DataService.sendMessage(
       sessionId,
@@ -199,29 +274,51 @@ export default function LiveChatWidget() {
     });
   };
 
+  const handleResetChat = () => {
+    if (confirm('Mevcut canlı destek sohbet geçmişinizi sıfırlayıp yeni bir görüşme başlatmak istiyor musunuz?')) {
+      removeChatCookie();
+      const newId = `sess-${Date.now()}`;
+      setSessionId(newId);
+      setMessages([]);
+      setHasStarted(false);
+      if (user) {
+        if (user.full_name) setCustomerName(user.full_name);
+        if (user.email) setCustomerEmail(user.email);
+      }
+    }
+  };
+
   return (
     <>
       {/* Floating Circular Launcher Button */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-20 lg:bottom-6 right-5 z-40 bg-gradient-to-tr from-amber-700 to-amber-500 hover:from-amber-800 hover:to-amber-600 text-white p-3.5 rounded-full shadow-2xl flex items-center justify-center gap-2 group transition-transform duration-200 transform hover:scale-105"
+          className="fixed bottom-20 lg:bottom-6 right-4 sm:right-6 z-40 bg-gradient-to-tr from-amber-700 to-amber-500 hover:from-amber-800 hover:to-amber-600 active:scale-95 text-white p-3.5 sm:p-4 rounded-full shadow-2xl flex items-center justify-center gap-2 group transition-transform duration-200"
           aria-label="Canlı Destek Başlat"
         >
           <div className="relative">
             <MessageCircle className="w-6 h-6" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full" />
+            {unreadCount > 0 ? (
+              <span className="absolute -top-2 -right-2 bg-rose-600 text-white font-black text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-white animate-bounce">
+                {unreadCount}
+              </span>
+            ) : (
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full" />
+            )}
           </div>
-          <span className="hidden sm:inline font-bold text-xs pr-1">Canlı Destek</span>
+          <span className="hidden sm:inline font-bold text-xs pr-1">
+            {unreadCount > 0 ? `${unreadCount} Yeni Mesaj` : 'Canlı Destek'}
+          </span>
         </button>
       )}
 
-      {/* Live Chat Window */}
+      {/* Live Chat Window Modal / Sheet */}
       {isOpen && (
-        <div className="fixed bottom-0 sm:bottom-6 right-0 sm:right-6 z-50 w-full sm:w-96 sm:max-w-md h-full sm:h-[520px] bg-white sm:rounded-2xl shadow-2xl border border-stone-200 flex flex-col overflow-hidden">
+        <div className="fixed inset-x-0 bottom-0 top-0 sm:top-auto sm:bottom-6 sm:right-6 sm:left-auto z-50 w-full sm:w-96 sm:max-w-md h-[100dvh] sm:h-[540px] bg-white sm:rounded-3xl shadow-2xl border border-stone-200 flex flex-col overflow-hidden animate-slide-up">
           
           {/* Header */}
-          <div className="bg-gradient-to-r from-amber-900 via-stone-900 to-amber-950 text-white p-4 flex items-center justify-between shadow-xs shrink-0">
+          <div className="bg-gradient-to-r from-amber-950 via-stone-900 to-amber-900 text-white p-4 flex items-center justify-between shadow-xs shrink-0">
             <div className="flex items-center gap-3">
               <div className="relative w-9 h-9 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300">
                 <Sparkles className="w-5 h-5" />
@@ -231,21 +328,30 @@ export default function LiveChatWidget() {
                 <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
                   Otantikos Canlı Destek
                 </h3>
-                <p className="text-[11px] text-amber-200/80">Tahtakale Eminönü Masası • Çevrimiçi</p>
+                <p className="text-[11px] text-amber-200/80">Tahtakale Masası • Çevrimiçi</p>
               </div>
             </div>
 
             <div className="flex items-center gap-1">
+              {hasStarted && (
+                <button
+                  onClick={handleResetChat}
+                  className="p-2 rounded-xl hover:bg-white/10 text-stone-300 transition"
+                  title="Yeni Sohbet Başlat"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              )}
               <button
                 onClick={() => setSoundEnabled(!soundEnabled)}
-                className="p-1.5 rounded-full hover:bg-white/10 text-stone-300 transition"
+                className="p-2 rounded-xl hover:bg-white/10 text-stone-300 transition"
                 title={soundEnabled ? 'Sesi Kapat' : 'Sesi Aç'}
               >
                 {soundEnabled ? <Volume2 className="w-4 h-4 text-amber-400" /> : <VolumeX className="w-4 h-4 text-stone-500" />}
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-full hover:bg-white/10 text-stone-300 transition"
+                className="p-2 rounded-xl hover:bg-white/10 text-stone-300 transition"
                 aria-label="Kapat"
               >
                 <Minimize2 className="w-4 h-4 hidden sm:block" />
@@ -255,22 +361,26 @@ export default function LiveChatWidget() {
           </div>
 
           {/* Body */}
-          {!hasStarted ? (
+          {isRestoring ? (
+            <div className="flex-1 p-8 flex items-center justify-center text-xs text-stone-400">
+              Canlı sohbet geçmişi yükleniyor...
+            </div>
+          ) : !hasStarted ? (
             /* Lead Capture Form */
-            <div className="flex-1 p-6 flex flex-col justify-center bg-stone-50/60">
+            <div className="flex-1 p-6 flex flex-col justify-center bg-stone-50/60 overflow-y-auto">
               <div className="text-center mb-6">
-                <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-800 mx-auto flex items-center justify-center mb-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 mx-auto flex items-center justify-center mb-3 shadow-2xs">
                   <User className="w-6 h-6" />
                 </div>
                 <h4 className="text-sm font-bold text-stone-900">Sohbete Başlayın</h4>
                 <p className="text-xs text-stone-500 mt-1">
-                  Uzman ekibimiz sorularınızı yanıtlamak için hazır.
+                  Tahtakale Eminönü ekibimiz canlı sorularınızı yanıtlamak için hazır.
                 </p>
               </div>
 
-              <form onSubmit={handleStartChat} className="space-y-3.5">
+              <form onSubmit={handleStartChat} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">
                     Adınız Soyadınız *
                   </label>
                   <input
@@ -279,11 +389,11 @@ export default function LiveChatWidget() {
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="Örn: Ahmet Yılmaz"
-                    className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-amber-500"
+                    className="w-full text-base sm:text-xs p-3 bg-white border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-stone-900 transition"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">
                     E-Posta Adresiniz (İsteğe bağlı)
                   </label>
                   <input
@@ -291,12 +401,12 @@ export default function LiveChatWidget() {
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
                     placeholder="ahmet@example.com"
-                    className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-amber-500"
+                    className="w-full text-base sm:text-xs p-3 bg-white border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-stone-900 transition"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
+                  className="w-full py-3.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition min-h-[44px]"
                 >
                   Canlı Görüşmeyi Başlat
                 </button>
@@ -319,42 +429,34 @@ export default function LiveChatWidget() {
                       <div
                         className={`max-w-[82%] px-3.5 py-2.5 rounded-2xl shadow-2xs leading-relaxed ${
                           isUser
-                            ? 'bg-amber-600 text-white rounded-br-xs'
+                            ? 'bg-amber-600 text-white rounded-br-xs font-medium'
                             : 'bg-white text-stone-800 border border-stone-200 rounded-bl-xs'
                         }`}
                       >
                         {m.message_text}
                       </div>
                       <span className="text-[9px] text-stone-400 mt-1 px-1">
+                        {isUser ? 'Siz • ' : 'Yetkili • '}
                         {new Date(m.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   );
                 })}
-
-                {isTyping && (
-                  <div className="flex items-center gap-1.5 text-stone-400 bg-white border border-stone-200 px-3 py-2 rounded-xl w-fit">
-                    <span className="text-[10px]">Temsilci yazıyor</span>
-                    <span className="w-1.5 h-1.5 bg-stone-400 rounded-full animate-bounce" />
-                    <span className="w-1.5 h-1.5 bg-stone-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                    <span className="w-1.5 h-1.5 bg-stone-400 rounded-full animate-bounce [animation-delay:0.4s]" />
-                  </div>
-                )}
               </div>
 
               {/* Message Input Form */}
-              <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-stone-200 flex gap-2 shrink-0">
+              <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-stone-200 flex gap-2 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
                 <input
                   type="text"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   placeholder="Mesajınızı yazın..."
-                  className="flex-1 text-xs px-3.5 py-2.5 bg-stone-100 border border-stone-200 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 transition"
+                  className="flex-1 text-base sm:text-xs px-3.5 py-2.5 bg-stone-100 border border-stone-200 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 text-stone-900 transition"
                 />
                 <button
                   type="submit"
                   disabled={!inputMessage.trim()}
-                  className="p-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white rounded-xl shadow-xs transition flex items-center justify-center"
+                  className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 disabled:opacity-40 text-white rounded-xl shadow-xs transition flex items-center justify-center min-h-[44px]"
                 >
                   <Send className="w-4 h-4" />
                 </button>

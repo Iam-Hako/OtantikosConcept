@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -49,6 +49,7 @@ function saveStoredSessions(sessions: LiveChatSession[]) {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get('session_id');
+  const customerEmail = searchParams.get('customer_email');
 
   // Try Supabase first if tables exist
   try {
@@ -58,6 +59,22 @@ export async function GET(request: Request) {
         .from('live_chat_sessions')
         .select(`*, messages:live_chat_messages(*)`)
         .eq('session_id', sessionId)
+        .maybeSingle();
+
+      if (!error && data) {
+        if (data.messages && Array.isArray(data.messages)) {
+          data.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          data.last_message = data.messages[data.messages.length - 1] || null;
+        }
+        return NextResponse.json(data);
+      }
+    } else if (customerEmail) {
+      const { data, error } = await supabase
+        .from('live_chat_sessions')
+        .select(`*, messages:live_chat_messages(*)`)
+        .eq('customer_email', customerEmail)
+        .order('updated_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (!error && data) {
@@ -91,6 +108,10 @@ export async function GET(request: Request) {
   const sessions = getStoredSessions();
   if (sessionId) {
     const session = sessions.find((s) => s.session_id === sessionId) || null;
+    return NextResponse.json(session);
+  }
+  if (customerEmail) {
+    const session = sessions.find((s) => s.customer_email === customerEmail) || null;
     return NextResponse.json(session);
   }
 

@@ -992,6 +992,50 @@ export const DataService = {
     return sessions.find(s => s.session_id === sessionId) || null;
   },
 
+  async getChatSessionByEmail(email: string): Promise<LiveChatSession | null> {
+    if (!email) return null;
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch(`/api/live-chat?customer_email=${encodeURIComponent(email)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.session_id) {
+            return data as LiveChatSession;
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('live_chat_sessions')
+        .select(`
+          *,
+          messages:live_chat_messages(*)
+        `)
+        .eq('customer_email', email)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) {
+        if (data.messages && Array.isArray(data.messages)) {
+          data.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          data.last_message = data.messages[data.messages.length - 1] || null;
+        }
+        return data as LiveChatSession;
+      }
+    } catch {
+      // Fallback
+    }
+
+    const sessions = runtimeChatSessions;
+    return sessions.find(s => s.customer_email === email) || null;
+  },
+
   async sendMessage(
     sessionId: string,
     senderType: 'customer' | 'admin',
