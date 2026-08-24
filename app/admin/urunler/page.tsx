@@ -81,8 +81,72 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Products Table */}
-      <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
+      {/* Mobile Card List (< md) */}
+      <div className="md:hidden space-y-3">
+        {filtered.length === 0 ? (
+          <div className="p-8 text-center text-xs text-stone-400 bg-white rounded-2xl border border-stone-200">
+            Kriterlere uygun ürün bulunamadı.
+          </div>
+        ) : (
+          filtered.map((product) => {
+            const cover = product.images?.[0]?.image_url || '/images/logo.webp';
+            return (
+              <div key={product.id} className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="relative w-16 h-16 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden shrink-0">
+                    <Image src={cover} alt={product.name} fill sizes="64px" className="object-cover" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] uppercase font-bold text-amber-700">{product.category?.name || 'Tahtakale'}</span>
+                      {product.is_featured && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold">Vitrin</span>}
+                    </div>
+                    <h3 className="font-bold text-xs text-stone-900 line-clamp-1">{product.name}</h3>
+                    <div className="text-[10px] font-mono text-stone-400">SKU: {product.sku}</div>
+                    <div className="text-xs font-black text-amber-700 pt-0.5">{formatPrice(product.price)}</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-stone-100 text-xs">
+                  <span className={`px-2.5 py-1 rounded-full font-bold text-[10px] ${
+                    product.stock <= 5 ? 'bg-rose-100 text-rose-800' : 'bg-stone-100 text-stone-800'
+                  }`}>
+                    Stok: {product.stock} Adet
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/urun/${product.slug}`}
+                      target="_blank"
+                      className="p-2 text-stone-500 hover:text-stone-800 rounded-lg border border-stone-200 active:scale-95"
+                      title="Mağazada Gör"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Link>
+                    <Link
+                      href={`/admin/urunler/${product.id}`}
+                      className="px-3 py-2 bg-stone-900 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs rounded-xl flex items-center gap-1 min-h-[36px]"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Düzenle</span>
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(product.id, product.name)}
+                      className="p-2 text-stone-400 hover:text-rose-600 rounded-lg border border-stone-200 active:scale-95"
+                      title="Sil"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop Products Table (md+) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>

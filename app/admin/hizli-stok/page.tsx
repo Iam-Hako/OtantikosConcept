@@ -130,8 +130,86 @@ export default function QuickStockPage() {
         </div>
       </div>
 
-      {/* Editable Grid Table */}
-      <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
+      {/* Mobile Card View (< md) */}
+      <div className="md:hidden space-y-3">
+        {filtered.map((product) => {
+          const cover = product.images?.[0]?.image_url || '/images/logo.webp';
+          const current = editedValues[product.id] || { stock: product.stock, price: product.price };
+          const isChanged = current.stock !== product.stock || current.price !== product.price;
+
+          return (
+            <div
+              key={product.id}
+              className={`p-4 bg-white rounded-2xl border shadow-2xs space-y-3 transition ${
+                isChanged ? 'border-amber-400 bg-amber-50/30' : 'border-stone-200'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="relative w-14 h-14 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden shrink-0">
+                  <Image src={cover} alt={product.name} fill sizes="56px" className="object-cover" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-[10px] uppercase font-bold text-amber-700">{product.category?.name || 'Tahtakale'}</span>
+                  <h3 className="font-bold text-xs text-stone-900 truncate">{product.name}</h3>
+                  <div className="text-[10px] font-mono text-stone-400">SKU: {product.sku}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
+                <div>
+                  <label className="block text-[10px] font-bold text-stone-600 mb-1">Stok (Adet)</label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    value={current.stock}
+                    onChange={(e) => handleStockChange(product.id, Number(e.target.value))}
+                    className={`w-full text-base sm:text-xs font-bold p-2.5 border rounded-xl focus:outline-none focus:border-amber-600 text-center ${
+                      current.stock <= 5 ? 'bg-rose-50 border-rose-300 text-rose-700' : 'bg-stone-50 border-stone-300 text-stone-900'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-stone-600 mb-1">Fiyat (₺)</label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    step="1"
+                    min="0"
+                    value={current.price}
+                    onChange={(e) => handlePriceChange(product.id, Number(e.target.value))}
+                    className="w-full text-base sm:text-xs font-bold p-2.5 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-center text-stone-900"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleSaveRow(product)}
+                disabled={isSaving[product.id]}
+                className={`w-full py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 min-h-[40px] shadow-2xs ${
+                  isChanged
+                    ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                    : 'bg-stone-800 hover:bg-stone-700 text-stone-200'
+                }`}
+              >
+                {isSaving[product.id] ? (
+                  <span>Kaydediliyor...</span>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{isChanged ? 'Kaydet (Değişiklik Var)' : 'Güncel'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Editable Grid Table (Desktop md+) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>

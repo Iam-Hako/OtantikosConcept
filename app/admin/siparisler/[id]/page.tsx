@@ -80,14 +80,14 @@ export default function OrderDetailPage() {
     <div className="max-w-5xl mx-auto space-y-8 pb-16">
       
       {/* Top Action Bar (hidden on print) */}
-      <div className="flex items-center justify-between border-b border-stone-200 pb-4 no-print">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200 pb-4 no-print">
         <div className="flex items-center gap-3">
-          <Link href="/admin/siparisler" className="p-2 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-100">
+          <Link href="/admin/siparisler" className="p-2.5 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-100 min-h-[40px] flex items-center justify-center">
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-serif font-black text-stone-900">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-xl font-serif font-black text-stone-900">
                 Sipariş #{order.order_number}
               </h1>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 capitalize">
@@ -100,26 +100,26 @@ export default function OrderDetailPage() {
 
         <button
           onClick={handlePrint}
-          className="px-5 py-2.5 bg-stone-900 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2"
+          className="px-5 py-2.5 bg-stone-900 hover:bg-amber-600 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 min-h-[40px]"
         >
           <Printer className="w-4 h-4" />
-          <span>Tek Tıkla Koli Fişi Yazdır</span>
+          <span>Koli Fişi Yazdır</span>
         </button>
       </div>
 
       {/* Admin Order Control Form (hidden on print) */}
-      <form onSubmit={handleSave} className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4 no-print">
+      <form onSubmit={handleSave} className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-2xs space-y-4 no-print">
         <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 border-b border-stone-100 pb-2">
           Sipariş Durumu & Kargo Takip Yönetimi
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-stone-700 mb-1">Sipariş Durumu</label>
+            <label className="block text-[11px] font-bold text-stone-700 mb-1">Sipariş Durumu</label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as Order['status'])}
-              className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-bold"
+              className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl font-bold text-stone-900"
             >
               <option value="siparis_alindi">1. Sipariş Alındı (Ödeme Onaylı)</option>
               <option value="hazirlaniyor">2. Hazırlanıyor / Paketleniyor</option>
@@ -130,11 +130,11 @@ export default function OrderDetailPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-stone-700 mb-1">Kargo Firması</label>
+            <label className="block text-[11px] font-bold text-stone-700 mb-1">Kargo Firması</label>
             <select
               value={trackingCarrier}
               onChange={(e) => setTrackingCarrier(e.target.value)}
-              className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
+              className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900"
             >
               <option value="Yurtiçi Kargo">Yurtiçi Kargo</option>
               <option value="Aras Kargo">Aras Kargo</option>
@@ -145,25 +145,25 @@ export default function OrderDetailPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-stone-700 mb-1">Kargo Takip Numarası</label>
+            <label className="block text-[11px] font-bold text-stone-700 mb-1">Kargo Takip Numarası</label>
             <input
               type="text"
               placeholder="Örn: TK-987654321"
               value={trackingNumber}
               onChange={(e) => setTrackingNumber(e.target.value)}
-              className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono font-bold"
+              className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl font-mono font-bold text-stone-900"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-stone-700 mb-1">Yönetici İç Operasyon Notu</label>
+          <label className="block text-[11px] font-bold text-stone-700 mb-1">Yönetici İç Operasyon Notu</label>
           <input
             type="text"
             placeholder="Örn: Müşteri hediye paketi istedi, hediye kartı eklendi."
             value={adminNotes}
             onChange={(e) => setAdminNotes(e.target.value)}
-            className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
+            className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900"
           />
         </div>
 
@@ -171,10 +171,10 @@ export default function OrderDetailPage() {
           <button
             type="submit"
             disabled={isSaving}
-            className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
+            className="w-full sm:w-auto px-6 py-3 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 min-h-[44px]"
           >
-            <Save className="w-3.5 h-3.5" />
-            <span>{isSaving ? 'Kaydediliyor...' : 'Durumu Güncelle'}</span>
+            <Save className="w-4 h-4" />
+            <span>{isSaving ? 'Kaydediliyor...' : 'Durumu Canlı Güncelle'}</span>
           </button>
         </div>
       </form>

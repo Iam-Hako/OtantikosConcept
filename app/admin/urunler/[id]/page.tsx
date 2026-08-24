@@ -219,7 +219,7 @@ export default function EditProductPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 font-bold"
+                className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 font-bold"
               />
             </div>
 
@@ -231,7 +231,7 @@ export default function EditProductPage() {
                   required
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono"
+                  className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono"
                 />
               </div>
 
@@ -240,7 +240,7 @@ export default function EditProductPage() {
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
+                  className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
                 >
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -257,7 +257,7 @@ export default function EditProductPage() {
                 type="text"
                 value={shortDescription}
                 onChange={(e) => setShortDescription(e.target.value)}
-                className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
+                className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
               />
             </div>
 
@@ -267,7 +267,7 @@ export default function EditProductPage() {
                 rows={4}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none"
+                className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none"
               />
             </div>
           </div>
@@ -416,7 +416,7 @@ export default function EditProductPage() {
                 min="0"
                 value={stock}
                 onChange={(e) => setStock(Number(e.target.value))}
-                className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-bold"
+                className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-bold"
               />
             </div>
 
@@ -427,7 +427,7 @@ export default function EditProductPage() {
                 required
                 value={sku}
                 onChange={(e) => setSku(e.target.value)}
-                className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono"
+                className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono"
               />
             </div>
 
@@ -523,7 +523,7 @@ export default function EditProductPage() {
               placeholder="YouTube Embed URL"
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
-              className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
+              className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
             />
           </div>
 

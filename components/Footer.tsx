@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { 
   MapPin, 
   Phone, 
@@ -17,55 +18,58 @@ import { DataService } from '@/lib/data/store-data';
 import { Category } from '@/lib/types/ecommerce';
 
 export default function Footer() {
+  const pathname = usePathname();
   const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
     DataService.getCategories().then(setCategories);
   }, []);
 
+  if (pathname?.startsWith('/admin')) return null;
+
   return (
-    <footer className="bg-stone-950 text-stone-300 pt-16 pb-24 lg:pb-12 border-t border-stone-800">
+    <footer className="bg-stone-950 text-stone-300 pt-12 sm:pt-16 pb-24 lg:pb-12 border-t border-stone-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* VALUE PROPOSITIONS & TRUST BADGES */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pb-12 border-b border-stone-800 text-xs">
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-stone-900/60 border border-stone-800/80">
-            <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
-              <Truck className="w-5 h-5" />
+        {/* VALUE PROPOSITIONS & TRUST BADGES - 2x2 on Mobile, 4-col on Desktop */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 pb-12 border-b border-stone-800 text-xs">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 sm:gap-3 p-3 sm:p-4 rounded-2xl bg-stone-900/60 border border-stone-800/80">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
+              <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-white text-sm">Doğrudan Tahtakale Sevkiyatı</h4>
-              <p className="text-stone-400 mt-0.5">Eminönü merkezli hızlı kargo & mağazadan teslim</p>
+              <h4 className="font-bold text-white text-xs sm:text-sm">Tahtakale Sevkiyatı</h4>
+              <p className="text-stone-400 text-[11px] sm:text-xs mt-0.5">Eminönü hızlı kargo</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-stone-900/60 border border-stone-800/80">
-            <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-5 h-5" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 sm:gap-3 p-3 sm:p-4 rounded-2xl bg-stone-900/60 border border-stone-800/80">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-white text-sm">Net & Şeffaf Fiyat</h4>
-              <p className="text-stone-400 mt-0.5">Kupon oyunu yok, doğrudan net dürüst fiyatlar</p>
+              <h4 className="font-bold text-white text-xs sm:text-sm">Net & Şeffaf Fiyat</h4>
+              <p className="text-stone-400 text-[11px] sm:text-xs mt-0.5">Dürüst net fiyatlar</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-stone-900/60 border border-stone-800/80">
-            <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
-              <RotateCcw className="w-5 h-5" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 sm:gap-3 p-3 sm:p-4 rounded-2xl bg-stone-900/60 border border-stone-800/80">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
+              <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-white text-sm">14 Gün Kolay İade Masası</h4>
-              <p className="text-stone-400 mt-0.5">Online panelden tek tıkla iade/değişim talebi</p>
+              <h4 className="font-bold text-white text-xs sm:text-sm">14 Gün Kolay İade</h4>
+              <p className="text-stone-400 text-[11px] sm:text-xs mt-0.5">Online iade masası</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-stone-900/60 border border-stone-800/80">
-            <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
-              <Lock className="w-5 h-5" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 sm:gap-3 p-3 sm:p-4 rounded-2xl bg-stone-900/60 border border-stone-800/80">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
+              <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-white text-sm">256-Bit SSL Güvenli Ödeme</h4>
-              <p className="text-stone-400 mt-0.5">3D Secure ve sanal POS ile korumalı alışveriş</p>
+              <h4 className="font-bold text-white text-xs sm:text-sm">256-Bit SSL Güvenli</h4>
+              <p className="text-stone-400 text-[11px] sm:text-xs mt-0.5">3D Secure korumalı</p>
             </div>
           </div>
         </div>
@@ -106,11 +110,15 @@ export default function Footer() {
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-amber-500 shrink-0" />
-                <span>+90 (212) 522 34 56 (Hafta İçi 09:00 - 18:30)</span>
+                <a href="tel:+902125223456" className="hover:text-amber-400 transition">
+                  +90 (212) 522 34 56 (Hafta İçi 09:00 - 18:30)
+                </a>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-amber-500 shrink-0" />
-                <span>destek@otantikosconcept.com</span>
+                <a href="mailto:destek@otantikosconcept.com" className="hover:text-amber-400 transition">
+                  destek@otantikosconcept.com
+                </a>
               </div>
             </div>
           </div>
@@ -223,7 +231,7 @@ export default function Footer() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 text-stone-400">
+          <div className="flex flex-wrap items-center gap-2 text-stone-400">
             <span className="text-[10px] uppercase tracking-wider font-semibold">Güvenli Ödeme:</span>
             <div className="px-2 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-bold text-stone-300">
               3D Secure

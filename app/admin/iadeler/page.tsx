@@ -42,7 +42,54 @@ export default function AdminReturnsPage() {
         </p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
+      {/* Mobile Cards List (< md) */}
+      <div className="md:hidden space-y-3">
+        {returns.length === 0 ? (
+          <div className="p-8 text-center text-xs text-stone-400 bg-white rounded-2xl border border-stone-200">
+            Aktif iade/değişim talebi bulunmuyor.
+          </div>
+        ) : (
+          returns.map((ret) => (
+            <div key={ret.id} className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between border-b border-stone-100 pb-2 text-xs">
+                <div>
+                  <span className="font-mono font-bold text-stone-900">Talep #{ret.id}</span>
+                  <div className="text-[10px] text-stone-400">{formatDate(ret.created_at)}</div>
+                </div>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  ret.status === 'onaylandi' ? 'bg-emerald-100 text-emerald-800' :
+                  ret.status === 'reddedildi' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-900'
+                }`}>
+                  {ret.status.toUpperCase()}
+                </span>
+              </div>
+
+              <div className="text-xs space-y-1 text-stone-700">
+                <div><strong>Neden:</strong> {ret.reason}</div>
+                {ret.details && <div><strong>Müşteri Notu:</strong> {ret.details}</div>}
+                {ret.admin_response && (
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 mt-1">
+                    <strong>Cevabınız:</strong> {ret.admin_response}
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => {
+                  setActiveReturn(ret);
+                  setAdminResponse(ret.admin_response || '');
+                }}
+                className="w-full py-2.5 bg-stone-900 hover:bg-amber-600 active:scale-95 text-white font-bold rounded-xl text-xs transition flex items-center justify-center min-h-[40px] shadow-2xs"
+              >
+                İncele & Yanıtla
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table (md+) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
@@ -96,38 +143,38 @@ export default function AdminReturnsPage() {
       {/* Review & Respond Modal */}
       {activeReturn && (
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-4 animate-slide-up text-xs">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-8 shadow-2xl space-y-4 animate-slide-up text-xs max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <h3 className="font-bold text-sm text-stone-900">İade Talebi #{activeReturn.id}</h3>
-              <button onClick={() => setActiveReturn(null)} className="text-stone-400 hover:text-stone-700">✕</button>
+              <button onClick={() => setActiveReturn(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-stone-700">✕</button>
             </div>
 
-            <div className="p-3 bg-stone-50 rounded-xl space-y-1">
+            <div className="p-3.5 bg-stone-50 rounded-xl space-y-1">
               <div><strong>Neden:</strong> {activeReturn.reason}</div>
               <div><strong>Müşteri Notu:</strong> {activeReturn.details || 'Belirtilmedi'}</div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">Yönetici Yanıtı / Kargo Kodu</label>
+              <label className="block text-[11px] font-bold text-stone-700 mb-1">Yönetici Yanıtı / Kargo Kodu *</label>
               <textarea
                 rows={3}
                 value={adminResponse}
                 onChange={(e) => setAdminResponse(e.target.value)}
                 placeholder="Örn: Talebiniz onaylandı. Lütfen Yurtiçi Kargo 123456 anlaşma kodumuzla karşı ödemeli gönderiniz."
-                className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
+                className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-stone-900 transition"
               />
             </div>
 
             <div className="flex gap-2 justify-end pt-2">
               <button
                 onClick={() => handleUpdateStatus(activeReturn.id, 'reddedildi')}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg"
+                className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold rounded-xl text-xs min-h-[40px]"
               >
                 Talebi Reddet
               </button>
               <button
                 onClick={() => handleUpdateStatus(activeReturn.id, 'onaylandi')}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg"
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl text-xs min-h-[40px]"
               >
                 Talebi Onayla
               </button>

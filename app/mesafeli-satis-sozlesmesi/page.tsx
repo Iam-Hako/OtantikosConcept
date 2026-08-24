@@ -5,7 +5,7 @@ import { FileText } from 'lucide-react';
 
 export default function DistanceSellingPage() {
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6">
+    <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12 pb-24 lg:pb-12 space-y-6">
       <div className="border-b border-stone-200 pb-4">
         <h1 className="text-2xl sm:text-3xl font-serif font-black text-stone-900 flex items-center gap-3">
           <FileText className="w-8 h-8 text-amber-700" />
@@ -14,7 +14,7 @@ export default function DistanceSellingPage() {
         <p className="text-xs text-stone-500 mt-1">6502 Sayılı Tüketicinin Korunması Hakkında Kanun Uyarınca Düzenlenmiştir</p>
       </div>
 
-      <div className="prose prose-stone text-xs sm:text-sm text-stone-700 space-y-4 leading-relaxed bg-white p-6 sm:p-10 rounded-3xl border border-stone-200">
+      <div className="prose prose-stone text-xs sm:text-sm text-stone-700 space-y-4 leading-relaxed bg-white p-5 sm:p-10 rounded-3xl border border-stone-200 shadow-2xs">
         <h3 className="font-bold text-stone-900 text-base">MADDE 1 - TARAFLAR</h3>
         <p>
           <strong>SATICI:</strong> Otantikos Concept<br />

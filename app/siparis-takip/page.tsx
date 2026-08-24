@@ -21,7 +21,7 @@ import { formatPrice, formatDate } from '@/lib/utils/format';
 
 function OrderTrackingContent() {
   const searchParams = useSearchParams();
-  const initialOrderNumber = searchParams?.get('order_number') || '';
+  const initialOrderNumber = searchParams?.get('order_number') || searchParams?.get('siparis') || '';
   const initialEmail = searchParams?.get('email') || '';
 
   const [orderNumber, setOrderNumber] = useState(initialOrderNumber);
@@ -70,12 +70,12 @@ function OrderTrackingContent() {
   const currentStep = order ? getStepIndex(order.status) : 0;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8 pb-24 lg:pb-12">
       <div className="text-center space-y-2">
-        <div className="inline-flex p-3 bg-amber-100 text-amber-800 rounded-2xl mb-1">
-          <Truck className="w-8 h-8" />
+        <div className="inline-flex p-3 bg-amber-100 text-amber-800 rounded-2xl mb-1 shadow-2xs">
+          <Truck className="w-7 h-7 sm:w-8 sm:h-8" />
         </div>
-        <h1 className="text-2xl sm:text-3xl font-serif font-black text-stone-900">
+        <h1 className="text-2xl sm:text-3xl font-serif font-black text-stone-900 leading-tight">
           Canlı Kargo & Sipariş Takibi
         </h1>
         <p className="text-xs sm:text-sm text-stone-500 max-w-md mx-auto">
@@ -83,42 +83,43 @@ function OrderTrackingContent() {
         </p>
       </div>
 
-      <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm max-w-xl mx-auto">
+      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-stone-200 shadow-2xs max-w-xl mx-auto">
         <form onSubmit={handleSearch} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-stone-700 mb-1">
+            <label className="block text-[11px] font-bold text-stone-700 mb-1">
               Sipariş Takip Numarası *
             </label>
             <input
               type="text"
               required
-              placeholder="Örn: OTN-2026-78412"
+              autoCapitalize="characters"
+              placeholder="Örn: OT-20260824-001"
               value={orderNumber}
-              onChange={(e) => setOrderNumber(e.target.value)}
-              className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 font-mono"
+              onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
+              className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 font-mono text-stone-900 transition"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-stone-700 mb-1">
+            <label className="block text-[11px] font-bold text-stone-700 mb-1">
               E-Posta Adresi veya Alıcı Adı (Doğrulama için)
             </label>
             <input
               type="text"
-              placeholder="ahmet@example.com veya Ahmet Yılmaz"
+              placeholder="ahmet@ornek.com veya Ahmet Yılmaz"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600"
+              className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 text-stone-900 transition"
             />
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 min-h-[48px] disabled:opacity-50"
           >
             <Search className="w-4 h-4" />
-            <span>{isLoading ? 'Sorgulanıyor...' : 'Siparişi Sorgula'}</span>
+            <span>{isLoading ? 'Sorgulanıyor...' : 'Siparişi Canlı Sorgula'}</span>
           </button>
         </form>
       </div>
@@ -126,7 +127,7 @@ function OrderTrackingContent() {
       {hasSearched && (
         <>
           {!order ? (
-            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-8 text-center max-w-md mx-auto">
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 sm:p-8 text-center max-w-md mx-auto">
               <AlertCircle className="w-8 h-8 text-rose-600 mx-auto mb-2" />
               <h3 className="text-sm font-bold text-stone-900">Sipariş Bulunamadı</h3>
               <p className="text-xs text-stone-600 mt-1">
@@ -134,8 +135,8 @@ function OrderTrackingContent() {
               </p>
             </div>
           ) : (
-            <div className="bg-white rounded-3xl border border-stone-200 p-6 sm:p-10 shadow-md space-y-8 animate-slide-up">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-stone-100">
+            <div className="bg-white rounded-3xl border border-stone-200 p-5 sm:p-10 shadow-2xs space-y-6 sm:space-y-8 animate-slide-up">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 sm:pb-6 border-b border-stone-100">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-stone-400">Sipariş No:</span>
@@ -154,80 +155,65 @@ function OrderTrackingContent() {
                 </div>
               </div>
 
-              <div className="py-4">
-                <div className="relative flex items-center justify-between">
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-stone-200 -z-0" />
+              {/* Responsive Progress Stepper */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
+                <div className="p-3 rounded-2xl border border-stone-200/80 bg-stone-50/50 space-y-1">
                   <div
-                    className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-amber-600 transition-all duration-500 -z-0"
-                    style={{ width: `${(Math.max(0, currentStep) / 3) * 100}%` }}
-                  />
-
-                  <div className="relative z-10 flex flex-col items-center text-center">
-                    <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition ${
-                        currentStep >= 0
-                          ? 'bg-amber-600 text-white ring-4 ring-amber-100'
-                          : 'bg-stone-200 text-stone-500'
-                      }`}
-                    >
-                      {currentStep > 0 ? '✓' : '1'}
-                    </div>
-                    <span className="mt-2 text-xs font-bold text-stone-900">Sipariş Alındı</span>
-                    <span className="text-[10px] text-stone-400">Onaylandı</span>
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs mx-auto shadow-2xs ${
+                      currentStep >= 0 ? 'bg-amber-600 text-white' : 'bg-stone-200 text-stone-500'
+                    }`}
+                  >
+                    {currentStep > 0 ? '✓' : '1'}
                   </div>
+                  <div className="font-bold text-stone-900 text-xs">Sipariş Alındı</div>
+                  <div className="text-[10px] text-stone-400">Ödeme onaylandı</div>
+                </div>
 
-                  <div className="relative z-10 flex flex-col items-center text-center">
-                    <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition ${
-                        currentStep >= 1
-                          ? 'bg-amber-600 text-white ring-4 ring-amber-100'
-                          : 'bg-stone-200 text-stone-500'
-                      }`}
-                    >
-                      {currentStep > 1 ? '✓' : '2'}
-                    </div>
-                    <span className="mt-2 text-xs font-bold text-stone-900">Hazırlanıyor</span>
-                    <span className="text-[10px] text-stone-400">Tahtakale Deposu</span>
+                <div className="p-3 rounded-2xl border border-stone-200/80 bg-stone-50/50 space-y-1">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs mx-auto shadow-2xs ${
+                      currentStep >= 1 ? 'bg-amber-600 text-white animate-pulse' : 'bg-stone-200 text-stone-500'
+                    }`}
+                  >
+                    {currentStep > 1 ? '✓' : '2'}
                   </div>
+                  <div className="font-bold text-amber-800 text-xs">Hazırlanıyor</div>
+                  <div className="text-[10px] text-stone-400">Tahtakale depomuzda</div>
+                </div>
 
-                  <div className="relative z-10 flex flex-col items-center text-center">
-                    <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition ${
-                        currentStep >= 2
-                          ? 'bg-amber-600 text-white ring-4 ring-amber-100'
-                          : 'bg-stone-200 text-stone-500'
-                      }`}
-                    >
-                      {currentStep > 2 ? '✓' : '3'}
-                    </div>
-                    <span className="mt-2 text-xs font-bold text-stone-900">
-                      {order.delivery_type === 'magaza_teslim' ? 'Mağazada Hazır' : 'Kargoya Verildi'}
-                    </span>
-                    <span className="text-[10px] text-stone-400">
-                      {order.tracking_number || 'Takip No Bekleniyor'}
-                    </span>
+                <div className="p-3 rounded-2xl border border-stone-200/80 bg-stone-50/50 space-y-1">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs mx-auto shadow-2xs ${
+                      currentStep >= 2 ? 'bg-amber-600 text-white' : 'bg-stone-200 text-stone-500'
+                    }`}
+                  >
+                    {currentStep > 2 ? '✓' : '3'}
                   </div>
+                  <div className="font-bold text-stone-900 text-xs">
+                    {order.delivery_type === 'pickup' ? 'Mağazada Hazır' : 'Kargoya Verildi'}
+                  </div>
+                  <div className="text-[10px] text-stone-400 truncate">
+                    {order.tracking_number || 'Takip No Bekleniyor'}
+                  </div>
+                </div>
 
-                  <div className="relative z-10 flex flex-col items-center text-center">
-                    <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shadow-xs transition ${
-                        currentStep >= 3
-                          ? 'bg-emerald-600 text-white ring-4 ring-emerald-100'
-                          : 'bg-stone-200 text-stone-500'
-                      }`}
-                    >
-                      {currentStep >= 3 ? '✓' : '4'}
-                    </div>
-                    <span className="mt-2 text-xs font-bold text-stone-900">Teslim Edildi</span>
-                    <span className="text-[10px] text-stone-400">Teslim Tamamlandı</span>
+                <div className="p-3 rounded-2xl border border-stone-200/80 bg-stone-50/50 space-y-1">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs mx-auto shadow-2xs ${
+                      currentStep >= 3 ? 'bg-emerald-600 text-white' : 'bg-stone-200 text-stone-500'
+                    }`}
+                  >
+                    {currentStep >= 3 ? '✓' : '4'}
                   </div>
+                  <div className="font-bold text-stone-900 text-xs">Teslim Edildi</div>
+                  <div className="text-[10px] text-stone-400">Alıcıya ulaştı</div>
                 </div>
               </div>
 
               {order.tracking_number && (
                 <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Truck className="w-6 h-6 text-emerald-700" />
+                    <Truck className="w-6 h-6 text-emerald-700 shrink-0" />
                     <div>
                       <h4 className="text-xs font-bold text-emerald-900">
                         {order.tracking_carrier || 'Yurtiçi Kargo'} ile Sevk Edildi
@@ -246,10 +232,10 @@ function OrderTrackingContent() {
                     Teslimat & Adres Bilgileri
                   </h4>
                   <div className="p-4 rounded-xl bg-stone-50 space-y-1 text-stone-600">
-                    <div className="font-semibold text-stone-900">{order.shipping_address.full_name}</div>
-                    <div>{order.shipping_address.province} / {order.shipping_address.district}</div>
-                    <div>{order.shipping_address.full_address}</div>
-                    {order.shipping_address.courier_note && (
+                    <div className="font-semibold text-stone-900">{order.shipping_address?.full_name}</div>
+                    <div>{order.shipping_address?.province} / {order.shipping_address?.district}</div>
+                    <div>{order.shipping_address?.full_address}</div>
+                    {order.shipping_address?.courier_note && (
                       <div className="text-stone-500 italic mt-1">Kurye Notu: "{order.shipping_address.courier_note}"</div>
                     )}
                   </div>
@@ -279,9 +265,9 @@ function OrderTrackingContent() {
                           {item.variant_name && (
                             <div className="text-[10px] text-stone-500">Seçenek: {item.variant_name}</div>
                           )}
-                          <div className="text-[10px] text-stone-400">{item.quantity} Adet x {formatPrice(item.price)}</div>
+                          <div className="text-[10px] text-stone-400">{item.quantity} Adet x {formatPrice(item.unit_price || item.price)}</div>
                         </div>
-                        <span className="font-bold text-stone-900">{formatPrice(item.total)}</span>
+                        <span className="font-bold text-stone-900">{formatPrice(item.total_price || item.total)}</span>
                       </div>
                     ))}
 

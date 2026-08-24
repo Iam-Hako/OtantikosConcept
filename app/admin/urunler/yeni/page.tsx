@@ -215,7 +215,7 @@ export default function NewProductPage() {
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
                 placeholder="Örn: 316L Kararmaz Çelik İtalyan Kolye"
-                className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 font-medium"
+                className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 font-medium"
               />
             </div>
 
@@ -227,7 +227,7 @@ export default function NewProductPage() {
                   required
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono text-stone-600"
+                  className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono text-stone-600"
                 />
               </div>
 
@@ -236,7 +236,7 @@ export default function NewProductPage() {
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
+                  className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
                 >
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -254,7 +254,7 @@ export default function NewProductPage() {
                 value={shortDescription}
                 onChange={(e) => setShortDescription(e.target.value)}
                 placeholder="Örn: Suya, parfüme dayanıklı 316L çelik İtalyan ezme kolye."
-                className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
+                className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
               />
             </div>
 
@@ -265,7 +265,7 @@ export default function NewProductPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Ürünün detaylı zanaat ve malzeme bilgileri..."
-                className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none"
+                className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none"
               />
             </div>
           </div>
@@ -430,7 +430,7 @@ export default function NewProductPage() {
                 min="0"
                 value={stock}
                 onChange={(e) => setStock(Number(e.target.value))}
-                className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-bold"
+                className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-bold"
               />
             </div>
 
@@ -441,7 +441,7 @@ export default function NewProductPage() {
                 required
                 value={sku}
                 onChange={(e) => setSku(e.target.value)}
-                className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono"
+                className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono"
               />
             </div>
 
@@ -541,7 +541,7 @@ export default function NewProductPage() {
               placeholder="YouTube Embed URL veya MP4 linki"
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
-              className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
+              className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
             />
             <p className="text-[10px] text-stone-400">
               Ürün sayfasında video oynatıcı olarak görüntülenir.

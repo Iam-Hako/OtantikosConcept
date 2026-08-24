@@ -7,7 +7,7 @@ import { Sparkles, MapPin, ShieldCheck, Truck, Store, ArrowRight } from 'lucide-
 
 export default function AboutPage() {
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+    <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12 pb-24 lg:pb-12 space-y-10">
       
       <div className="text-center space-y-3">
         <div className="relative w-16 h-16 mx-auto bg-stone-900 rounded-2xl p-2 border border-stone-800 shadow-md">
@@ -22,7 +22,7 @@ export default function AboutPage() {
         </p>
       </div>
 
-      <div className="bg-white p-6 sm:p-10 rounded-3xl border border-stone-200 shadow-xs space-y-6 text-xs sm:text-sm text-stone-700 leading-relaxed">
+      <div className="bg-white p-5 sm:p-10 rounded-3xl border border-stone-200 shadow-2xs shadow-xs space-y-6 text-xs sm:text-sm text-stone-700 leading-relaxed">
         <p>
           <strong>Otantikos Concept</strong>, İstanbul'un ticaret kalbi olan Eminönü Tahtakale Marpuççular Caddesi'nde doğdu. Yılların zanaat mirasını, el işçiliği mozaik cam lambaları, 316L medikal çelik takıları ve dünyadaki en son trend mekanik oyuncakları tek bir çatı altında topluyoruz.
         </p>

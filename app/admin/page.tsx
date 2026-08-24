@@ -181,7 +181,7 @@ export default function AdminDashboardPage() {
       )}
 
       {/* Recent Orders Overview */}
-      <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs space-y-4 p-6">
+      <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs space-y-4 p-4 sm:p-6">
         <div className="flex items-center justify-between border-b border-stone-100 pb-4">
           <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
             <ShoppingBag className="w-4 h-4 text-amber-700" />
@@ -192,7 +192,33 @@ export default function AdminDashboardPage() {
           </Link>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile Recent Orders Cards (< md) */}
+        <div className="md:hidden space-y-2.5">
+          {orders.slice(0, 5).map((ord) => (
+            <div key={ord.id} className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-xs space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-mono font-bold text-stone-900">{ord.order_number}</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 capitalize">
+                  {ord.status.replace('_', ' ')}
+                </span>
+              </div>
+              <div className="flex justify-between text-stone-600">
+                <span>{ord.shipping_address?.full_name}</span>
+                <strong className="text-amber-700">{formatPrice(ord.total_amount)}</strong>
+              </div>
+              <Link
+                href={`/admin/siparisler/${ord.id}`}
+                className="w-full py-2 bg-stone-900 hover:bg-amber-600 text-white rounded-lg font-bold text-[11px] transition flex items-center justify-center gap-1.5"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Fiş & Detayları Yönet</span>
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table (md+) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-stone-200 text-stone-400 uppercase font-semibold text-[10px]">
@@ -208,10 +234,10 @@ export default function AdminDashboardPage() {
               {orders.slice(0, 5).map((ord) => (
                 <tr key={ord.id} className="hover:bg-stone-50 transition">
                   <td className="py-3 font-mono font-bold text-stone-900">{ord.order_number}</td>
-                  <td className="py-3">{ord.shipping_address.full_name}</td>
+                  <td className="py-3">{ord.shipping_address?.full_name}</td>
                   <td className="py-3">
                     <span className="text-[11px] text-stone-600">
-                      {ord.delivery_type === 'magaza_teslim' ? '🏪 Tahtakale Mağaza' : '🚚 Standart Kargo'}
+                      {ord.delivery_type === 'pickup' ? '🏪 Tahtakale Mağaza' : '🚚 Standart Kargo'}
                     </span>
                   </td>
                   <td className="py-3 font-bold text-amber-700">{formatPrice(ord.total_amount)}</td>

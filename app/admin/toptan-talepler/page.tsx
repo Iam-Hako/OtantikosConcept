@@ -26,7 +26,56 @@ export default function AdminWholesaleRequestsPage() {
         </p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
+      {/* Mobile Cards List (< md) */}
+      <div className="md:hidden space-y-3">
+        {requests.length === 0 ? (
+          <div className="p-8 text-center text-xs text-stone-400 bg-white rounded-2xl border border-stone-200">
+            Toptan teklif talebi bulunmuyor.
+          </div>
+        ) : (
+          requests.map((r) => (
+            <div key={r.id} className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3 text-xs">
+              <div className="flex items-center justify-between border-b border-stone-100 pb-2">
+                <div>
+                  <div className="font-bold text-stone-900 text-sm">{r.company_name}</div>
+                  <div className="text-[10px] text-stone-400">{r.contact_name} • {formatDate(r.created_at)}</div>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200">
+                  {r.status.toUpperCase()}
+                </span>
+              </div>
+
+              <div className="space-y-1 text-stone-700">
+                <div><strong>Şehir:</strong> {r.city}</div>
+                <div><strong>Tahmini Hacim:</strong> {r.estimated_volume || '-'}</div>
+                {r.notes && <div className="text-stone-600 italic">"{r.notes}"</div>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-stone-100">
+                <a
+                  href={`tel:${r.phone}`}
+                  className="py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 min-h-[40px] shadow-2xs"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Telefon</span>
+                </a>
+                <a
+                  href={`https://wa.me/${r.phone.replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 min-h-[40px] shadow-2xs"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>WhatsApp</span>
+                </a>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table (md+) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>

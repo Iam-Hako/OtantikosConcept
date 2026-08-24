@@ -146,19 +146,22 @@ export default function AdminCategoriesPage() {
       {/* Category Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-4 animate-slide-up">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-8 shadow-2xl space-y-4 animate-slide-up max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <h3 className="font-bold text-base text-stone-900">
                 {editingId ? 'Kategori Düzenle' : '+ Yeni Kategori Ekle'}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-stone-400 hover:text-stone-700">
+              <button 
+                onClick={() => setIsModalOpen(false)} 
+                className="w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-stone-700 hover:bg-stone-100"
+              >
                 ✕
               </button>
             </div>
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">Kategori Adı *</label>
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">Kategori Adı *</label>
                 <input
                   type="text"
                   required
@@ -167,56 +170,56 @@ export default function AdminCategoriesPage() {
                     setName(e.target.value);
                     if (!editingId) setSlug(slugify(e.target.value));
                   }}
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
+                  className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-stone-900 transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">URL Slug</label>
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">URL Slug</label>
                 <input
                   type="text"
                   required
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono"
+                  className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl font-mono text-stone-900 transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">Kategori Görsel URL</label>
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">Kategori Görsel URL</label>
                 <input
                   type="text"
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
+                  className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 transition"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">Sıra No</label>
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Sıra No</label>
                   <input
                     type="number"
                     value={displayOrder}
                     onChange={(e) => setDisplayOrder(Number(e.target.value))}
-                    className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
+                    className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 transition"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">Açıklama</label>
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">Açıklama</label>
                 <textarea
                   rows={2}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
+                  className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 transition"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition"
+                className="w-full py-3.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm transition min-h-[44px]"
               >
                 Kategoriyi Kaydet
               </button>

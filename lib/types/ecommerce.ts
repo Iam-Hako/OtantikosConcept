@@ -79,7 +79,7 @@ export interface Product {
 
 export type OrderStatus = 'siparis_alindi' | 'hazirlaniyor' | 'kargoya_verildi' | 'teslim_edildi' | 'iptal_edildi';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
-export type DeliveryType = 'kargo' | 'magaza_teslim';
+export type DeliveryType = 'kargo' | 'magaza_teslim' | 'pickup' | 'adrese_teslim';
 
 export interface AddressData {
   full_name: string;
@@ -106,8 +106,10 @@ export interface OrderItem {
   product_name: string;
   variant_name?: string | null;
   price: number;
+  unit_price?: number;
   quantity: number;
   total: number;
+  total_price?: number;
   image_url?: string;
 }
 

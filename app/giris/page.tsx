@@ -4,7 +4,7 @@ import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Lock, Mail } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/store/auth-context';
 import { toast } from 'sonner';
 
@@ -22,6 +22,7 @@ function LoginForm() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   React.useEffect(() => {
@@ -47,25 +48,26 @@ function LoginForm() {
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-16 space-y-6">
+    <div className="max-w-md mx-auto px-4 py-8 sm:py-16 space-y-6 pb-20">
       <div className="text-center space-y-2">
         <div className="relative w-14 h-14 mx-auto bg-stone-900 rounded-2xl p-2 border border-stone-800 shadow-md">
-          <Image src="/images/logo.webp" alt="Otantikos Logo" fill className="object-contain p-1" />
+          <Image src="/images/logo.webp" alt="Otantikos Logo" fill sizes="56px" className="object-contain p-1" />
         </div>
-        <h1 className="text-2xl font-serif font-black text-stone-900">
-          Otantikos Hesabınıza Giriş Yapın
+        <h1 className="text-2xl sm:text-3xl font-serif font-black text-stone-900 leading-tight">
+          Hesabınıza Giriş Yapın
         </h1>
         <p className="text-xs text-stone-500">
           Siparişlerinizi ve hesap bilgilerinizi güvenle yönetin.
         </p>
       </div>
 
-      <div className="bg-white p-8 rounded-3xl border border-stone-200 shadow-sm space-y-6">
+      <div className="bg-white p-5 sm:p-8 rounded-3xl border border-stone-200 shadow-2xs space-y-5">
         <button
+          type="button"
           onClick={() => loginWithGoogle(safeRedirect)}
-          className="w-full py-3 px-4 bg-white border border-stone-300 hover:bg-stone-50 text-stone-700 text-xs font-bold rounded-xl shadow-2xs transition flex items-center justify-center gap-3"
+          className="w-full py-3.5 px-4 bg-white border border-stone-300 hover:bg-stone-50 active:scale-95 text-stone-700 text-xs font-bold rounded-xl shadow-2xs transition flex items-center justify-center gap-3 min-h-[48px]"
         >
-          <svg className="w-4 h-4" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
@@ -82,49 +84,60 @@ function LoginForm() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-stone-700 mb-1">E-Posta Adresiniz</label>
+            <label className="block text-[11px] font-bold text-stone-700 mb-1">E-Posta Adresiniz</label>
             <div className="relative">
               <input
                 type="email"
                 required
+                autoComplete="email"
+                inputMode="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="ahmet@example.com"
-                className="w-full text-xs p-3 pl-10 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600"
+                placeholder="ahmet@ornek.com"
+                className="w-full text-base sm:text-xs p-3 pl-10 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 text-stone-900 transition"
               />
               <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-stone-700 mb-1">Şifreniz</label>
+            <label className="block text-[11px] font-bold text-stone-700 mb-1">Şifreniz</label>
             <div className="relative">
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full text-xs p-3 pl-10 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600"
+                className="w-full text-base sm:text-xs p-3 pl-10 pr-10 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 text-stone-900 transition"
               />
               <Lock className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Şifreyi Gizle' : 'Şifreyi Göster'}
+                className="absolute right-3 top-3 text-stone-400 hover:text-stone-700 p-1"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition"
+            className="w-full py-3.5 bg-stone-900 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition flex items-center justify-center min-h-[48px] disabled:opacity-50"
           >
             {isLoading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
           </button>
         </form>
 
-        <div className="text-center text-xs text-stone-500 space-y-1">
+        <div className="pt-2 text-center text-xs text-stone-500 space-y-1">
           <div>
             Hesabınız yok mu?{' '}
             <Link href="/kayit" className="text-amber-700 font-bold hover:underline">
-              Kayıt Olun
+              Hemen Kayıt Olun
             </Link>
           </div>
           <div>

@@ -103,10 +103,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Body: Sidebar + Main Content */}
       <div className="flex-1 flex">
         
+        {/* Backdrop for Mobile Sidebar */}
+        {isSidebarOpen && (
+          <div
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-stone-950/70 backdrop-blur-xs z-30 lg:hidden transition-opacity"
+          />
+        )}
+
         {/* Sidebar */}
         <aside
-          className={`w-64 bg-stone-900 text-stone-300 border-r border-stone-800 p-4 space-y-1.5 shrink-0 ${
-            isSidebarOpen ? 'fixed inset-y-0 left-0 z-40 block top-14' : 'hidden lg:block'
+          className={`w-64 bg-stone-900 text-stone-300 border-r border-stone-800 p-4 space-y-1.5 shrink-0 z-40 ${
+            isSidebarOpen ? 'fixed inset-y-0 left-0 top-14 block' : 'hidden lg:block'
           }`}
         >
           <div className="text-[10px] font-bold uppercase tracking-wider text-stone-500 px-3 py-2">
@@ -123,14 +131,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsSidebarOpen(false)}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
+                  className={`flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-semibold transition min-h-[44px] ${
                     isActive
                       ? 'bg-amber-600 text-white shadow-xs font-bold'
                       : 'text-stone-400 hover:bg-stone-800 hover:text-white'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-4 h-4 shrink-0" />
                     <span>{item.label}</span>
                   </div>
                   {item.badge && (
@@ -147,7 +155,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </aside>
 
         {/* Content Area */}
-        <main className="flex-1 p-4 sm:p-8 overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-8 overflow-x-hidden">
           {children}
         </main>
 

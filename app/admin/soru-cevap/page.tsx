@@ -48,7 +48,56 @@ export default function AdminQAQuestionsPage() {
         </p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
+      {/* Mobile Cards List (< md) */}
+      <div className="md:hidden space-y-3">
+        {questions.length === 0 ? (
+          <div className="p-8 text-center text-xs text-stone-400 bg-white rounded-2xl border border-stone-200">
+            Soru bulunamadı.
+          </div>
+        ) : (
+          questions.map((q) => {
+            const prod = products.find((p) => p.id === q.product_id);
+            return (
+              <div key={q.id} className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3 text-xs">
+                <div className="flex items-center justify-between border-b border-stone-100 pb-2">
+                  <span className="font-bold text-stone-900 line-clamp-1">{prod?.name || 'Ürün'}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                    q.is_approved ? 'text-emerald-800 bg-emerald-50 border-emerald-200' : 'text-amber-800 bg-amber-50 border-amber-200'
+                  }`}>
+                    {q.is_approved ? 'Onaylı' : 'Yanıt Bekliyor'}
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-stone-800 font-semibold">❓ "{q.question_text}"</div>
+                  {q.answer_text && (
+                    <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 mt-1">
+                      <strong>Cevabınız:</strong> {q.answer_text}
+                    </div>
+                  )}
+                  <div className="text-[10px] text-stone-400 pt-1">
+                    {q.user_name} • {formatDate(q.created_at)}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveQuestion(q);
+                    setAnswerText(q.answer_text || '');
+                  }}
+                  className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold rounded-xl transition flex items-center justify-center min-h-[40px] shadow-2xs"
+                >
+                  {q.answer_text ? 'Cevabı Düzenle' : 'Soruyu Yanıtla'}
+                </button>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop Table (md+) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
@@ -103,39 +152,39 @@ export default function AdminQAQuestionsPage() {
       {/* Answer Modal */}
       {activeQuestion && (
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-slide-up text-xs">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 animate-slide-up text-xs max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <h3 className="font-bold text-sm text-stone-900">Soruyu Yanıtla & Onayla</h3>
-              <button onClick={() => setActiveQuestion(null)} className="text-stone-400 hover:text-stone-700">✕</button>
+              <button onClick={() => setActiveQuestion(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-stone-700">✕</button>
             </div>
 
-            <div className="p-3 bg-stone-50 rounded-xl space-y-1">
+            <div className="p-3.5 bg-stone-50 rounded-xl space-y-1">
               <div><strong>Soran:</strong> {activeQuestion.user_name}</div>
               <div><strong>Soru:</strong> {activeQuestion.question_text}</div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">Otantikos Yetkili Yanıtı *</label>
+              <label className="block text-[11px] font-bold text-stone-700 mb-1">Otantikos Yetkili Yanıtı *</label>
               <textarea
                 rows={3}
                 required
                 value={answerText}
                 onChange={(e) => setAnswerText(e.target.value)}
                 placeholder="Müşteriye verilecek resmi yanıt..."
-                className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
+                className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-stone-900 transition"
               />
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setActiveQuestion(null)}
-                className="px-4 py-2 border border-stone-300 text-stone-700 rounded-lg"
+                className="px-4 py-2.5 border border-stone-300 text-stone-700 rounded-xl active:scale-95 min-h-[40px]"
               >
                 İptal
               </button>
               <button
                 onClick={() => handleAnswerSubmit(activeQuestion.id)}
-                className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg"
+                className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold rounded-xl min-h-[40px] shadow-sm"
               >
                 Yanıtı Kaydet & Yayınla
               </button>

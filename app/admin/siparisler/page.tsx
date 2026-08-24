@@ -72,8 +72,58 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      {/* Orders Table */}
-      <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
+      {/* Mobile Card List (< md) */}
+      <div className="md:hidden space-y-3">
+        {filtered.length === 0 ? (
+          <div className="p-8 text-center text-xs text-stone-400 bg-white rounded-2xl border border-stone-200">
+            Kriterlere uygun sipariş bulunamadı.
+          </div>
+        ) : (
+          filtered.map((ord) => (
+            <div key={ord.id} className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between border-b border-stone-100 pb-2.5 text-xs">
+                <div>
+                  <div className="font-mono font-black text-stone-900 text-sm">{ord.order_number}</div>
+                  <div className="text-[10px] text-stone-400">{formatDate(ord.created_at)}</div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 capitalize">
+                  {ord.status.replace('_', ' ')}
+                </span>
+              </div>
+
+              <div className="text-xs space-y-1 text-stone-700">
+                <div className="flex justify-between">
+                  <span className="text-stone-400">Müşteri:</span>
+                  <strong className="text-stone-900">{ord.shipping_address?.full_name}</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-stone-400">Telefon:</span>
+                  <span>{ord.shipping_address?.phone}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-stone-400">Teslimat:</span>
+                  <span>{ord.delivery_type === 'pickup' ? '🏪 Mağaza Teslim' : `🚚 ${ord.shipping_address?.province || ''}`}</span>
+                </div>
+                <div className="flex justify-between font-bold pt-1 border-t border-stone-100 text-stone-900">
+                  <span>Toplam Tutar:</span>
+                  <span className="text-amber-700">{formatPrice(ord.total_amount)}</span>
+                </div>
+              </div>
+
+              <Link
+                href={`/admin/siparisler/${ord.id}`}
+                className="w-full py-2.5 bg-stone-900 hover:bg-amber-600 active:scale-95 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 min-h-[40px] shadow-2xs"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Koli Fişi & Siparişi Yönet</span>
+              </Link>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Orders Table (md+) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
@@ -97,18 +147,18 @@ export default function AdminOrdersPage() {
                   </td>
 
                   <td className="py-3.5 px-4">
-                    <div className="font-semibold text-stone-900">{ord.shipping_address.full_name}</div>
-                    <div className="text-[10px] text-stone-500">{ord.shipping_address.phone}</div>
+                    <div className="font-semibold text-stone-900">{ord.shipping_address?.full_name}</div>
+                    <div className="text-[10px] text-stone-500">{ord.shipping_address?.phone}</div>
                   </td>
 
                   <td className="py-3.5 px-4">
-                    {ord.delivery_type === 'magaza_teslim' ? (
+                    {ord.delivery_type === 'pickup' ? (
                       <span className="text-amber-800 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[10px]">
                         🏪 Tahtakale Mağaza
                       </span>
                     ) : (
                       <span className="text-stone-600 text-[11px]">
-                        🚚 {ord.shipping_address.province} / {ord.shipping_address.district}
+                        🚚 {ord.shipping_address?.province} / {ord.shipping_address?.district}
                       </span>
                     )}
                   </td>

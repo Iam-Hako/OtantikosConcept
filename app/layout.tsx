@@ -1,4 +1,5 @@
-import type { Metadata } from 'next';
+import { Suspense } from 'react';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { CartProvider } from '@/lib/store/cart-store';
 import { WishlistProvider } from '@/lib/store/wishlist-store';
@@ -10,6 +11,16 @@ import MobileBottomNav from '@/components/MobileBottomNav';
 import CartDrawer from '@/components/CartDrawer';
 import LiveChatWidget from '@/components/LiveChatWidget';
 import CookieConsent from '@/components/CookieConsent';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
+  themeColor: '#cf8644',
+};
 
 export const metadata: Metadata = {
   title: 'Otantikos Concept | Eminönü Tahtakale Hediyelik Eşya, Çelik Takı & Trend Oyuncaklar',
@@ -38,17 +49,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr">
-      <body className="flex flex-col min-h-screen font-sans bg-stone-50 text-stone-900">
+    <html lang="tr" className="scroll-smooth">
+      <body className="flex flex-col min-h-screen font-sans bg-stone-50 text-stone-900 overflow-x-hidden w-full max-w-full antialiased">
         <AuthProvider>
           <WishlistProvider>
             <CartProvider>
-              <Navbar />
-              <main className="flex-1">{children}</main>
+              <Suspense fallback={null}>
+                <Navbar />
+              </Suspense>
+              <main className="flex-1 pb-16 lg:pb-0">{children}</main>
               <Footer />
-              <MobileBottomNav />
-              <CartDrawer />
-              <LiveChatWidget />
+              <Suspense fallback={null}>
+                <MobileBottomNav />
+              </Suspense>
+              <Suspense fallback={null}>
+                <CartDrawer />
+              </Suspense>
+              <Suspense fallback={null}>
+                <LiveChatWidget />
+              </Suspense>
               <CookieConsent />
               <Toaster position="top-right" richColors closeButton />
             </CartProvider>

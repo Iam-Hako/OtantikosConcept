@@ -43,7 +43,55 @@ export default function AdminReviewsPage() {
         </p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
+      {/* Mobile Cards List (< md) */}
+      <div className="md:hidden space-y-3">
+        {reviews.length === 0 ? (
+          <div className="p-8 text-center text-xs text-stone-400 bg-white rounded-2xl border border-stone-200">
+            Değerlendirme bulunamadı.
+          </div>
+        ) : (
+          reviews.map((r) => {
+            const prod = products.find((p) => p.id === r.product_id);
+            return (
+              <div key={r.id} className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3 text-xs">
+                <div className="flex items-center justify-between border-b border-stone-100 pb-2">
+                  <div className="flex text-amber-500">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className={`w-3.5 h-3.5 ${i < r.rating ? 'fill-amber-400' : 'text-stone-300'}`} />
+                    ))}
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                    r.is_approved ? 'text-emerald-800 bg-emerald-50 border-emerald-200' : 'text-rose-800 bg-rose-50 border-rose-200'
+                  }`}>
+                    {r.is_approved ? 'Yayında' : 'Gizli / Onay Bekliyor'}
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="font-bold text-stone-900">{prod?.name || 'Ürün'}</div>
+                  <p className="text-stone-600 italic leading-relaxed">"{r.comment}"</p>
+                  <div className="text-[10px] text-stone-400 pt-1">
+                    {r.user_name} • {formatDate(r.created_at)}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleToggleApprove(r.id, r.is_approved)}
+                  className={`w-full py-2.5 rounded-xl font-bold transition flex items-center justify-center min-h-[40px] shadow-2xs ${
+                    r.is_approved ? 'bg-stone-200 text-stone-800 hover:bg-stone-300' : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                  }`}
+                >
+                  {r.is_approved ? 'Yayından Kaldır / Gizle' : 'Yorumu Onayla & Yayınla'}
+                </button>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop Table (md+) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
