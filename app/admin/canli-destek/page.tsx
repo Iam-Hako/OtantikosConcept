@@ -57,7 +57,26 @@ export default function AdminLiveChatPage() {
   useEffect(() => {
     loadSessions(false);
 
-    // 1. Supabase Realtime Channel for zero-latency incoming messages
+    // 1. BroadcastChannel for instant local cross-tab sync
+    let bc: BroadcastChannel | null = null;
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        bc = new BroadcastChannel('otantikos_live_chat');
+        bc.onmessage = (event) => {
+          if (event.data?.type === 'new_message') {
+            const newM = event.data.message as LiveChatMessage;
+            if (newM.sender_type === 'customer' && soundEnabledRef.current) {
+              sounds.playChatNotification();
+            }
+            loadSessions(true);
+          }
+        };
+      } catch {
+        // Ignore
+      }
+    }
+
+    // 2. Supabase Realtime Channel for zero-latency incoming messages
     let channel: any = null;
     try {
       const supabase = createClient();
@@ -83,13 +102,20 @@ export default function AdminLiveChatPage() {
       // Fallback
     }
 
-    // 2. Background Polling Fallback (Every 4 seconds)
+    // 3. Background Polling Fallback (Every 2.5 seconds)
     const interval = setInterval(() => {
       loadSessions(true);
-    }, 4000);
+    }, 2500);
 
     return () => {
       clearInterval(interval);
+      if (bc) {
+        try {
+          bc.close();
+        } catch {
+          // Ignore
+        }
+      }
       if (channel) {
         try {
           const supabase = createClient();

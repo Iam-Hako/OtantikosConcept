@@ -64,7 +64,29 @@ export default function LiveChatWidget() {
       }
     });
 
-    // 2. Supabase Realtime Channel
+    // 2. BroadcastChannel for instant local cross-tab sync
+    let bc: BroadcastChannel | null = null;
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        bc = new BroadcastChannel('otantikos_live_chat');
+        bc.onmessage = (event) => {
+          if (event.data?.sessionId === sessionId && event.data?.message) {
+            const newM = event.data.message as LiveChatMessage;
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === newM.id)) return prev;
+              if (newM.sender_type === 'admin' && soundEnabledRef.current) {
+                sounds.playChatNotification();
+              }
+              return [...prev, newM];
+            });
+          }
+        };
+      } catch {
+        // Ignore
+      }
+    }
+
+    // 3. Supabase Realtime Channel
     let channel: any = null;
     try {
       const supabase = createClient();
@@ -99,7 +121,7 @@ export default function LiveChatWidget() {
       // Fallback
     }
 
-    // 3. Fallback Polling (Every 4 seconds)
+    // 4. Background Sync Polling (Every 2.5 seconds)
     const interval = setInterval(async () => {
       const sess = await DataService.getChatSession(sessionId);
       if (sess && sess.messages) {
@@ -115,10 +137,17 @@ export default function LiveChatWidget() {
           return prev;
         });
       }
-    }, 4000);
+    }, 2500);
 
     return () => {
       clearInterval(interval);
+      if (bc) {
+        try {
+          bc.close();
+        } catch {
+          // Ignore
+        }
+      }
       if (channel) {
         try {
           const supabase = createClient();

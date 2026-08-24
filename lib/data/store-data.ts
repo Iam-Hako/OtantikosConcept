@@ -905,6 +905,22 @@ export const DataService = {
   // 7. LIVE CHAT (REALTIME SESSIONS & MESSAGES)
   // ==========================================
   async getChatSessions(): Promise<LiveChatSession[]> {
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch('/api/live-chat');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            runtimeChatSessions = data;
+            setLocal('all_chat_sessions', data);
+            return data;
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -933,6 +949,20 @@ export const DataService = {
   },
 
   async getChatSession(sessionId: string): Promise<LiveChatSession | null> {
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch(`/api/live-chat?session_id=${encodeURIComponent(sessionId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.session_id) {
+            return data as LiveChatSession;
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -1006,10 +1036,45 @@ export const DataService = {
     runtimeChatSessions = sessions;
     setLocal('all_chat_sessions', sessions);
 
-    // 2. Persist to Supabase: ALWAYS upsert parent session first, then insert message
+    // 2. BroadcastChannel for 0ms cross-tab sync
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const bc = new BroadcastChannel('otantikos_live_chat');
+        bc.postMessage({
+          type: 'new_message',
+          sessionId,
+          senderType,
+          message: newMsg,
+          session,
+        });
+        bc.close();
+      } catch {
+        // Ignore
+      }
+    }
+
+    // 3. Post to Server API (Shared across all devices & browsers)
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch('/api/live-chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId,
+            sender_type: senderType,
+            message_text: messageText,
+            customer_name: session.customer_name,
+            customer_email: session.customer_email,
+          }),
+        });
+      } catch {
+        // API fallback
+      }
+    }
+
+    // 4. Also persist to Supabase if database tables are present
     try {
       const supabase = createClient();
-      
       await supabase
         .from('live_chat_sessions')
         .upsert({
