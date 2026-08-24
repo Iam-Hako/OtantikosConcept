@@ -7,7 +7,7 @@ import { Heart, ShoppingBag, Star, Play, Sparkles } from 'lucide-react';
 import { Product } from '@/lib/types/ecommerce';
 import { useCart } from '@/lib/store/cart-store';
 import { useWishlist } from '@/lib/store/wishlist-store';
-import { formatPrice } from '@/lib/utils/format';
+import { formatPrice, convertGoogleDriveVideoUrl } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
 interface ProductCardProps {
@@ -78,14 +78,18 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
               muted
               loop
               playsInline
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
             />
           ) : hasVideo ? (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-stone-900 text-white p-4">
-              <div className="w-10 h-10 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center mb-2 shadow-md">
-                <Play className="w-5 h-5 fill-stone-950 ml-0.5" />
-              </div>
-              <span className="text-[11px] font-bold text-amber-300">Video İnceleme</span>
+            <div className="relative w-full h-full bg-stone-950 overflow-hidden pointer-events-none">
+              <iframe
+                src={convertGoogleDriveVideoUrl(product.video_url!)}
+                className="w-full h-full border-0 pointer-events-none object-cover scale-105"
+                allow="autoplay; encrypted-media"
+                sandbox="allow-scripts allow-same-origin allow-presentation"
+                tabIndex={-1}
+              />
+              <div className="absolute inset-0 bg-transparent pointer-events-none" />
             </div>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-stone-100 text-stone-400 p-4">

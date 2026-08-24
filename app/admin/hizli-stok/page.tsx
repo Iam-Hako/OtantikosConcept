@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Zap, Save, Check, Search, RefreshCw, ArrowLeft } from 'lucide-react';
+import { Zap, Save, Check, Search, RefreshCw, ArrowLeft, Play, Sparkles } from 'lucide-react';
 import { Product } from '@/lib/types/ecommerce';
 import { DataService, normalizeTurkish } from '@/lib/data/store-data';
 import { formatPrice } from '@/lib/utils/format';
@@ -28,22 +28,22 @@ export default function QuickStockPage() {
     loadProducts();
   }, []);
 
-  const handleStockChange = (productId: string, val: number) => {
+  const handleStockChange = (id: string, val: number) => {
     setEditedValues((prev) => ({
       ...prev,
-      [productId]: {
-        ...prev[productId],
-        stock: Math.max(0, val),
+      [id]: {
+        ...prev[id],
+        stock: Math.max(0, isNaN(val) ? 0 : val),
       },
     }));
   };
 
-  const handlePriceChange = (productId: string, val: number) => {
+  const handlePriceChange = (id: string, val: number) => {
     setEditedValues((prev) => ({
       ...prev,
-      [productId]: {
-        ...prev[productId],
-        price: Math.max(0, val),
+      [id]: {
+        ...prev[id],
+        price: Math.max(0, isNaN(val) ? 0 : val),
       },
     }));
   };
@@ -53,34 +53,48 @@ export default function QuickStockPage() {
     if (!current) return;
 
     setIsSaving((prev) => ({ ...prev, [product.id]: true }));
-    await DataService.updateQuickStockAndPrice(product.id, current.stock, current.price);
-    
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === product.id ? { ...p, stock: current.stock, price: current.price } : p
-      )
+    const ok = await DataService.updateQuickStockAndPrice(
+      product.id,
+      current.stock,
+      current.price
     );
     setIsSaving((prev) => ({ ...prev, [product.id]: false }));
 
-    toast.success(`"${product.name}" güncellendi!`, {
-      description: `Yeni Stok: ${current.stock} adet | Yeni Fiyat: ${formatPrice(current.price)} (Anında canlıda)`,
-    });
+    if (ok) {
+      toast.success(`"${product.name}" güncellendi!`, {
+        description: `Yeni Stok: ${current.stock} Adet | Yeni Fiyat: ${formatPrice(current.price)}`,
+      });
+      setProducts((prev) =>
+        prev.map((p) => (p.id === product.id ? { ...p, stock: current.stock, price: current.price } : p))
+      );
+    } else {
+      toast.error('Güncelleme kaydedilemedi.');
+    }
   };
 
   const handleSaveAll = async () => {
-    for (const p of products) {
+    const changedProducts = products.filter((p) => {
       const current = editedValues[p.id];
-      if (current && (current.stock !== p.stock || current.price !== p.price)) {
-        await DataService.updateQuickStockAndPrice(p.id, current.stock, current.price);
+      return current && (current.stock !== p.stock || current.price !== p.price);
+    });
+
+    if (changedProducts.length === 0) {
+      toast.info('Değişiklik yapılan ürün bulunmuyor.');
+      return;
+    }
+
+    let successCount = 0;
+    for (const p of changedProducts) {
+      const current = editedValues[p.id];
+      if (current) {
+        const ok = await DataService.updateQuickStockAndPrice(p.id, current.stock, current.price);
+        if (ok) successCount++;
       }
     }
-    setProducts((prev) =>
-      prev.map((p) => {
-        const current = editedValues[p.id];
-        return current ? { ...p, stock: current.stock, price: current.price } : p;
-      })
-    );
-    toast.success('Tüm ürün stok ve fiyat değişiklikleri canlıya kaydedildi!');
+
+    toast.success(`${successCount} ürünün stok ve fiyatı başarıyla güncellendi!`);
+    const list = await DataService.getAllAdminProducts();
+    setProducts(list);
   };
 
   const filtered = products.filter((p) => {
@@ -92,21 +106,27 @@ export default function QuickStockPage() {
   return (
     <div className="space-y-6">
       
-      {/* Header */}
+      {/* Top Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-serif font-black text-stone-900 flex items-center gap-2">
-            <Zap className="w-6 h-6 text-amber-600" />
-            <span>Hızlı Toplu Stok & Fiyat Düzenleme Izgarası (Quick Grid)</span>
-          </h1>
-          <p className="text-xs text-stone-500 mt-0.5">
-            Ürün sayfasına girmeden doğrudan tablo üzerinden anlık stok adedini ve satış fiyatını değiştirip kaydedin.
+          <div className="flex items-center gap-2">
+            <Link href="/admin/urunler" className="p-1.5 rounded-lg border border-stone-200 text-stone-500 hover:text-stone-900 transition">
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+            <h1 className="text-xl sm:text-2xl font-serif font-black text-stone-900 flex items-center gap-2">
+              <Zap className="w-6 h-6 text-amber-600" />
+              <span>Hızlı Stok & Fiyat Matrisi</span>
+            </h1>
+          </div>
+          <p className="text-xs text-stone-500 mt-0.5 ml-8">
+            Tüm Tahtakale ürünlerinin stok adetlerini ve satış fiyatlarını Excel hızında tek ekrandan düzenleyin.
           </p>
         </div>
 
         <button
+          type="button"
           onClick={handleSaveAll}
-          className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2"
+          className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 min-h-[44px]"
         >
           <Save className="w-4 h-4" />
           <span>Tüm Değişiklikleri Kaydet</span>
@@ -133,7 +153,11 @@ export default function QuickStockPage() {
       {/* Mobile Card View (< md) */}
       <div className="md:hidden space-y-3">
         {filtered.map((product) => {
-          const cover = product.images?.[0]?.image_url || '/images/logo.webp';
+          const validImages = (product.images || []).filter(
+            (img) => img.image_url && img.image_url !== '/images/logo.webp' && !img.image_url.endsWith('logo.webp')
+          );
+          const cover = validImages[0]?.image_url;
+          const hasVideo = Boolean(product.video_url && product.video_url.trim());
           const current = editedValues[product.id] || { stock: product.stock, price: product.price };
           const isChanged = current.stock !== product.stock || current.price !== product.price;
 
@@ -145,8 +169,17 @@ export default function QuickStockPage() {
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className="relative w-14 h-14 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden shrink-0">
-                  <Image src={cover} alt={product.name} fill sizes="56px" className="object-cover" />
+                <div className="relative w-14 h-14 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden shrink-0 flex items-center justify-center">
+                  {cover ? (
+                    <Image src={cover} alt={product.name} fill sizes="56px" className="object-cover" />
+                  ) : hasVideo ? (
+                    <div className="w-full h-full bg-stone-900 text-amber-400 flex flex-col items-center justify-center p-1">
+                      <Play className="w-4 h-4 fill-amber-400" />
+                      <span className="text-[8px] font-bold text-stone-300">Video</span>
+                    </div>
+                  ) : (
+                    <Sparkles className="w-4 h-4 text-stone-300" />
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <span className="text-[10px] uppercase font-bold text-amber-700">{product.category?.name || 'Tahtakale'}</span>
@@ -160,23 +193,18 @@ export default function QuickStockPage() {
                   <label className="block text-[10px] font-bold text-stone-600 mb-1">Stok (Adet)</label>
                   <input
                     type="number"
-                    inputMode="numeric"
                     min="0"
                     value={current.stock}
                     onChange={(e) => handleStockChange(product.id, Number(e.target.value))}
-                    className={`w-full text-base sm:text-xs font-bold p-2.5 border rounded-xl focus:outline-none focus:border-amber-600 text-center ${
-                      current.stock <= 5 ? 'bg-rose-50 border-rose-300 text-rose-700' : 'bg-stone-50 border-stone-300 text-stone-900'
-                    }`}
+                    className="w-full text-base sm:text-xs font-bold p-2.5 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-center text-stone-900"
                   />
                 </div>
-
                 <div>
                   <label className="block text-[10px] font-bold text-stone-600 mb-1">Fiyat (₺)</label>
                   <input
                     type="number"
-                    inputMode="numeric"
-                    step="1"
                     min="0"
+                    step="0.01"
                     value={current.price}
                     onChange={(e) => handlePriceChange(product.id, Number(e.target.value))}
                     className="w-full text-base sm:text-xs font-bold p-2.5 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-center text-stone-900"
@@ -224,7 +252,11 @@ export default function QuickStockPage() {
             </thead>
             <tbody className="divide-y divide-stone-100">
               {filtered.map((product) => {
-                const cover = product.images?.[0]?.image_url || '/images/logo.webp';
+                const validImages = (product.images || []).filter(
+                  (img) => img.image_url && img.image_url !== '/images/logo.webp' && !img.image_url.endsWith('logo.webp')
+                );
+                const cover = validImages[0]?.image_url;
+                const hasVideo = Boolean(product.video_url && product.video_url.trim());
                 const current = editedValues[product.id] || { stock: product.stock, price: product.price };
                 const isChanged = current.stock !== product.stock || current.price !== product.price;
 
@@ -233,8 +265,17 @@ export default function QuickStockPage() {
                     
                     {/* Image & Title */}
                     <td className="py-3 px-4 flex items-center gap-3">
-                      <div className="relative w-12 h-12 rounded-lg bg-stone-100 border border-stone-200 overflow-hidden shrink-0">
-                        <Image src={cover} alt={product.name} fill className="object-cover" />
+                      <div className="relative w-12 h-12 rounded-lg bg-stone-100 border border-stone-200 overflow-hidden shrink-0 flex items-center justify-center">
+                        {cover ? (
+                          <Image src={cover} alt={product.name} fill className="object-cover" />
+                        ) : hasVideo ? (
+                          <div className="w-full h-full bg-stone-900 text-amber-400 flex flex-col items-center justify-center p-0.5">
+                            <Play className="w-4 h-4 fill-amber-400" />
+                            <span className="text-[7px] font-bold text-stone-300">Video</span>
+                          </div>
+                        ) : (
+                          <Sparkles className="w-4 h-4 text-stone-300" />
+                        )}
                       </div>
                       <div>
                         <Link href={`/admin/urunler/${product.id}`} className="font-bold text-stone-900 hover:text-amber-700">

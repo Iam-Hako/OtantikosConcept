@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Package, Plus, Search, Edit3, Trash2, ExternalLink, Sparkles } from 'lucide-react';
+import { Package, Plus, Search, Edit3, Trash2, ExternalLink, Sparkles, Play } from 'lucide-react';
 import { Product } from '@/lib/types/ecommerce';
 import { DataService, normalizeTurkish } from '@/lib/data/store-data';
 import { actionDeleteProduct } from '@/app/actions/ecommerce-actions';
@@ -48,40 +48,39 @@ export default function AdminProductsPage() {
   return (
     <div className="space-y-6">
       
-      {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-serif font-black text-stone-900 flex items-center gap-2">
             <Package className="w-6 h-6 text-amber-600" />
-            <span>Ürün & Dinamik Özellik Yönetimi</span>
+            <span>Ürün Envanter Yönetimi</span>
           </h1>
           <p className="text-xs text-stone-500 mt-0.5">
-            Tüm Tahtakale ürünlerini, dinamik teknik özellik tablolarını, varyant ve görsellerini yönetin.
+            Tüm ürünleri listeleyin, yeni ürün ekleyin, stok ve fiyat güncelleyin.
           </p>
         </div>
 
         <Link
           href="/admin/urunler/yeni"
-          className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs transition min-h-[44px]"
         >
           <Plus className="w-4 h-4" />
-          <span>+ Yeni Ürün Ekle</span>
+          <span>Yeni Ürün Ekle</span>
         </Link>
       </div>
 
-      {/* Search & Actions */}
-      <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-md">
+      {/* Search and Filters Bar */}
+      <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative w-full sm:w-80">
+          <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Ürün adı veya SKU ile filtreleyin..."
+            placeholder="Ürün adı veya SKU ara..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full text-xs py-2 pl-9 pr-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500"
+            className="w-full pl-9 pr-4 py-2 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-amber-500 transition"
           />
-          <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
         </div>
-        <div className="text-xs text-stone-500 font-semibold">
+        <div className="text-xs text-stone-500 self-start sm:self-center font-medium">
           Toplam <strong>{filtered.length}</strong> Ürün
         </div>
       </div>
@@ -94,12 +93,26 @@ export default function AdminProductsPage() {
           </div>
         ) : (
           filtered.map((product) => {
-            const cover = product.images?.[0]?.image_url || '/images/logo.webp';
+            const validImages = (product.images || []).filter(
+              (img) => img.image_url && img.image_url !== '/images/logo.webp' && !img.image_url.endsWith('logo.webp')
+            );
+            const cover = validImages[0]?.image_url;
+            const hasVideo = Boolean(product.video_url && product.video_url.trim());
+
             return (
               <div key={product.id} className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="relative w-16 h-16 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden shrink-0">
-                    <Image src={cover} alt={product.name} fill sizes="64px" className="object-cover" />
+                  <div className="relative w-16 h-16 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden shrink-0 flex items-center justify-center">
+                    {cover ? (
+                      <Image src={cover} alt={product.name} fill sizes="64px" className="object-cover" />
+                    ) : hasVideo ? (
+                      <div className="w-full h-full bg-stone-900 text-amber-400 flex flex-col items-center justify-center p-1">
+                        <Play className="w-5 h-5 fill-amber-400" />
+                        <span className="text-[8px] font-bold text-stone-300 mt-0.5">Video</span>
+                      </div>
+                    ) : (
+                      <Sparkles className="w-5 h-5 text-stone-300" />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -138,7 +151,7 @@ export default function AdminProductsPage() {
                     </Link>
                     <button
                       onClick={() => handleDelete(product.id, product.name)}
-                      className="p-2 text-stone-400 hover:text-rose-600 rounded-lg border border-stone-200 active:scale-95"
+                      className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg border border-rose-200 active:scale-95 min-h-[36px]"
                       title="Sil"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -168,13 +181,27 @@ export default function AdminProductsPage() {
             </thead>
             <tbody className="divide-y divide-stone-100">
               {filtered.map((product) => {
-                const cover = product.images?.[0]?.image_url || '/images/logo.webp';
+                const validImages = (product.images || []).filter(
+                  (img) => img.image_url && img.image_url !== '/images/logo.webp' && !img.image_url.endsWith('logo.webp')
+                );
+                const cover = validImages[0]?.image_url;
+                const hasVideo = Boolean(product.video_url && product.video_url.trim());
+
                 return (
                   <tr key={product.id} className="hover:bg-stone-50 transition">
                     
                     <td className="py-3 px-4 flex items-center gap-3">
-                      <div className="relative w-12 h-12 rounded-lg bg-stone-100 border border-stone-200 overflow-hidden shrink-0">
-                        <Image src={cover} alt={product.name} fill className="object-cover" />
+                      <div className="relative w-12 h-12 rounded-lg bg-stone-100 border border-stone-200 overflow-hidden shrink-0 flex items-center justify-center">
+                        {cover ? (
+                          <Image src={cover} alt={product.name} fill className="object-cover" />
+                        ) : hasVideo ? (
+                          <div className="w-full h-full bg-stone-900 text-amber-400 flex flex-col items-center justify-center p-0.5">
+                            <Play className="w-4 h-4 fill-amber-400" />
+                            <span className="text-[7px] font-bold text-stone-300">Video</span>
+                          </div>
+                        ) : (
+                          <Sparkles className="w-4 h-4 text-stone-300" />
+                        )}
                       </div>
                       <div>
                         <div className="font-bold text-stone-900 line-clamp-1">{product.name}</div>

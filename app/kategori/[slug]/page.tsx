@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Product, Category } from '@/lib/types/ecommerce';
 import { DataService, normalizeTurkish } from '@/lib/data/store-data';
+import ProductCard from '@/components/ProductCard';
 import { useCart } from '@/lib/store/cart-store';
 import { useWishlist } from '@/lib/store/wishlist-store';
 import { formatPrice } from '@/lib/utils/format';
@@ -323,102 +324,9 @@ function CategoryContent() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => {
-                const cover = product.images?.[0]?.image_url || '/images/logo.webp';
-                const fav = isFavorite(product.id);
-
-                return (
-                  <div
-                    key={product.id}
-                    className="group bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col"
-                  >
-                    {/* Image Area */}
-                    <div className="relative aspect-square bg-stone-100 overflow-hidden">
-                      <Link href={`/urun/${product.slug}`} className="block w-full h-full">
-                        <Image
-                          src={cover}
-                          alt={product.name}
-                          fill
-                          className="object-cover group-hover:scale-105 transition duration-500"
-                        />
-                      </Link>
-
-                      {/* Badges */}
-                      <div className="absolute top-3 left-3 flex flex-col gap-1">
-                        {product.is_new && (
-                          <span className="bg-stone-900 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md shadow-xs">
-                            Yeni
-                          </span>
-                        )}
-                        {product.stock === 0 && (
-                          <span className="bg-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
-                            Tükendi
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Wishlist Button */}
-                      <button
-                        onClick={() => toggleFavorite(product)}
-                        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs text-stone-700 hover:text-rose-600 flex items-center justify-center shadow-md transition"
-                      >
-                        <Heart className={`w-4 h-4 ${fav ? 'fill-rose-500 text-rose-500' : ''}`} />
-                      </button>
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-5 flex-1 flex flex-col justify-between">
-                      <div>
-                        {product.category && (
-                          <span className="text-[11px] font-semibold text-amber-700 uppercase tracking-wider">
-                            {product.category.name}
-                          </span>
-                        )}
-                        <h3 className="font-bold text-sm text-stone-900 mt-1 line-clamp-2 hover:text-amber-700 transition">
-                          <Link href={`/urun/${product.slug}`}>
-                            {product.name}
-                          </Link>
-                        </h3>
-
-                        <div className="flex items-center gap-1.5 mt-2 text-xs text-stone-500">
-                          <div className="flex items-center text-amber-500">
-                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                            <span className="font-bold ml-1 text-stone-800">{product.rating}</span>
-                          </div>
-                          <span>•</span>
-                          <span>({product.review_count})</span>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
-                        <div>
-                          <div className="text-[10px] text-stone-400">Net Fiyat:</div>
-                          <div className="text-base font-black text-amber-700">
-                            {formatPrice(product.price)}
-                          </div>
-                        </div>
-
-                        {product.stock > 0 ? (
-                          <button
-                            onClick={() => addItem(product, product.variants?.[0] || null)}
-                            className="px-3.5 py-2 bg-stone-900 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5"
-                          >
-                            <ShoppingBag className="w-3.5 h-3.5" />
-                            <span>Sepete Ekle</span>
-                          </button>
-                        ) : (
-                          <Link
-                            href={`/urun/${product.slug}`}
-                            className="px-3.5 py-2 bg-stone-100 text-stone-600 hover:bg-stone-200 text-xs font-bold rounded-xl transition"
-                          >
-                            Haber Ver
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {filteredProducts.map((product, idx) => (
+                <ProductCard key={product.id} product={product} priority={idx < 4} />
+              ))}
             </div>
           )}
 

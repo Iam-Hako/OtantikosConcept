@@ -432,7 +432,7 @@ export const DataService = {
         name: cat.name || 'Yeni Kategori',
         slug: cat.slug || `kategori-${Date.now()}`,
         description: cat.description || '',
-        image_url: cat.image_url || 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=800',
+        image_url: cat.image_url || '',
         display_order: cat.display_order ?? (list.length + 1),
         is_active: cat.is_active ?? true,
         created_at: new Date().toISOString(),
