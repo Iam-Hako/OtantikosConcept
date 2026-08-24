@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Category, ProductSpecification, ProductVariant, ProductImage, Product } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
-import { slugify } from '@/lib/utils/format';
+import { slugify, convertGoogleDriveUrl, convertGoogleDriveVideoUrl } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
 export default function EditProductPage() {
@@ -119,10 +119,11 @@ export default function EditProductPage() {
   // Gallery Helpers
   const handleAddImage = () => {
     if (!newImageUrl.trim()) return;
+    const formatted = convertGoogleDriveUrl(newImageUrl.trim());
     setImages((prev) => [
       ...prev,
       {
-        image_url: newImageUrl.trim(),
+        image_url: formatted,
         is_cover: prev.length === 0,
         display_order: prev.length + 1,
         alt_text: name,
@@ -158,7 +159,7 @@ export default function EditProductPage() {
       sku,
       short_description: shortDescription,
       description,
-      video_url: videoUrl || null,
+      video_url: convertGoogleDriveVideoUrl(videoUrl) || null,
       is_featured: isFeatured,
       is_new: isNew,
       specifications: specs.filter((s) => s.spec_key.trim() && s.spec_value.trim()),
