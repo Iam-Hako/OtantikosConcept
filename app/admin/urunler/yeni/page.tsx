@@ -21,6 +21,7 @@ import {
 import { Category, ProductSpecification, ProductVariant, ProductImage } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
 import { slugify, convertGoogleDriveUrl, convertGoogleDriveVideoUrl } from '@/lib/utils/format';
+import { uploadMediaFile } from '@/lib/utils/upload';
 import { toast } from 'sonner';
 
 export default function NewProductPage() {
@@ -146,22 +147,12 @@ export default function NewProductPage() {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!res.ok) throw new Error('Yükleme başarısız');
-        const data = await res.json();
-
-        if (data.url) {
+        const uploadedUrl = await uploadMediaFile(file);
+        if (uploadedUrl) {
           setImages((prev) => [
             ...prev,
             {
-              image_url: data.url,
+              image_url: uploadedUrl,
               is_cover: prev.length === 0,
               display_order: prev.length + 1,
               alt_text: name || file.name,
@@ -169,8 +160,8 @@ export default function NewProductPage() {
           ]);
           successCount++;
         }
-      } catch {
-        toast.error(`"${file.name}" yüklenirken hata oluştu.`);
+      } catch (err: any) {
+        toast.error(`"${file.name}" yüklenirken hata: ${err.message || 'Hata oluştu'}`);
       }
     }
 
@@ -187,22 +178,13 @@ export default function NewProductPage() {
 
     setIsUploadingVideo(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) throw new Error('Video yükleme başarısız');
-      const data = await res.json();
-      if (data.url) {
-        setVideoUrl(data.url);
+      const uploadedUrl = await uploadMediaFile(file);
+      if (uploadedUrl) {
+        setVideoUrl(uploadedUrl);
         toast.success('Tanıtım videosu başarıyla yüklendi!');
       }
-    } catch {
-      toast.error('Video yüklenirken hata oluştu.');
+    } catch (err: any) {
+      toast.error(`Video yüklenirken hata: ${err.message || 'Bağlantı hatası'}`);
     } finally {
       setIsUploadingVideo(false);
       if (e.target) e.target.value = '';
