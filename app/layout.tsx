@@ -11,6 +11,7 @@ import MobileBottomNav from '@/components/MobileBottomNav';
 import CartDrawer from '@/components/CartDrawer';
 import LiveChatWidget from '@/components/LiveChatWidget';
 import CookieConsent from '@/components/CookieConsent';
+import NavigationLoader from '@/components/NavigationLoader';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -69,6 +70,9 @@ export default function RootLayout({
                 <LiveChatWidget />
               </Suspense>
               <CookieConsent />
+              <Suspense fallback={null}>
+                <NavigationLoader />
+              </Suspense>
               <Toaster position="top-right" richColors closeButton />
             </CartProvider>
           </WishlistProvider>
