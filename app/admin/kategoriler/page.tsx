@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { Layers, Plus, Trash2, Edit3, Save, Sparkles } from 'lucide-react';
+import { Layers, Plus, Trash2, Edit3, Save, Sparkles, UploadCloud, Loader2 } from 'lucide-react';
 import { Category } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
-import { slugify } from '@/lib/utils/format';
+import { slugify, convertGoogleDriveUrl } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
 export default function AdminCategoriesPage() {
@@ -19,6 +19,8 @@ export default function AdminCategoriesPage() {
   const [imageUrl, setImageUrl] = useState('');
   const [displayOrder, setDisplayOrder] = useState<number>(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadCategories();
@@ -49,6 +51,34 @@ export default function AdminCategoriesPage() {
     setIsModalOpen(true);
   };
 
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Yükleme başarısız');
+      const data = await res.json();
+      if (data.url) {
+        setImageUrl(data.url);
+        toast.success('Kategori görseli yüklendi!');
+      }
+    } catch {
+      toast.error('Görsel yüklenirken hata oluştu.');
+    } finally {
+      setIsUploading(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -58,7 +88,7 @@ export default function AdminCategoriesPage() {
       name,
       slug: slug || slugify(name),
       description,
-      image_url: imageUrl,
+      image_url: convertGoogleDriveUrl(imageUrl),
       display_order: Number(displayOrder),
       is_active: true,
     });
@@ -186,13 +216,51 @@ export default function AdminCategoriesPage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-stone-700 mb-1">Kategori Görsel URL</label>
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">Kategori Görseli</label>
+                
                 <input
-                  type="text"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 transition"
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageFileUpload}
+                  accept="image/*"
+                  className="hidden"
                 />
+
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    disabled={isUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full p-3 rounded-xl border border-dashed border-amber-400 bg-amber-50/60 hover:bg-amber-50 transition flex items-center justify-center gap-2 text-xs font-bold text-stone-700 disabled:opacity-50"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />
+                        <span>Görsel Yükleniyor...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud className="w-4 h-4 text-amber-600" />
+                        <span>Bilgisayardan Fotoğraf Yükle</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="veya Görsel URL'si yapıştırın..."
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      className="flex-1 text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 transition focus:outline-none"
+                    />
+                    {imageUrl && (
+                      <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-stone-200 shrink-0">
+                        <Image src={imageUrl} alt="" fill className="object-cover" />
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
