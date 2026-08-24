@@ -178,11 +178,17 @@ export default function AdminLiveChatPage() {
     };
   }, [loadSessions]);
 
-  useEffect(() => {
+  const scrollToBottom = useCallback(() => {
     if (feedRef.current) {
       feedRef.current.scrollTop = feedRef.current.scrollHeight;
     }
-  }, [activeSession?.messages]);
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+    const t = setTimeout(scrollToBottom, 50);
+    return () => clearTimeout(t);
+  }, [activeSession?.session_id, activeSession?.messages?.length, scrollToBottom]);
 
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,6 +204,7 @@ export default function AdminLiveChatPage() {
     );
 
     await loadSessions(false);
+    setTimeout(scrollToBottom, 100);
   };
 
   const handleToggleStatus = async (status: 'active' | 'closed') => {
@@ -261,10 +268,10 @@ export default function AdminLiveChatPage() {
   const closedCount = sessions.filter(s => s.status === 'closed').length;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4">
       
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div>
           <h1 className="text-lg sm:text-2xl font-serif font-black text-stone-900 flex items-center gap-2">
             <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" />
@@ -287,15 +294,15 @@ export default function AdminLiveChatPage() {
       </div>
 
       {/* Main Chat Grid with Master-Detail on Mobile */}
-      <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-2xs grid grid-cols-1 lg:grid-cols-12 h-[calc(100dvh-180px)] min-h-[560px]">
+      <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-2xs grid grid-cols-1 lg:grid-cols-12 h-[calc(100vh-140px)] min-h-[500px]">
         
         {/* Left: Chat Sessions List & Filter Drawer (4 Cols) */}
-        <div className={`lg:col-span-5 xl:col-span-4 border-r border-stone-200 flex flex-col bg-stone-50/50 ${
+        <div className={`lg:col-span-5 xl:col-span-4 border-r border-stone-200 flex flex-col h-full overflow-hidden bg-stone-50/50 ${
           mobileView === 'chat' ? 'hidden lg:flex' : 'flex'
         }`}>
           
           {/* Status Tabs */}
-          <div className="p-3 border-b border-stone-200 bg-white flex items-center gap-1">
+          <div className="p-3 border-b border-stone-200 bg-white flex items-center gap-1 shrink-0">
             <button
               onClick={() => setFilterStatus('all')}
               className={`flex-1 py-2 px-2 text-center text-xs font-bold rounded-xl transition flex items-center justify-center gap-1 ${
@@ -339,7 +346,7 @@ export default function AdminLiveChatPage() {
           </div>
 
           {/* Search Box */}
-          <div className="p-3 border-b border-stone-200 bg-stone-50">
+          <div className="p-3 border-b border-stone-200 bg-stone-50 shrink-0">
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -361,7 +368,7 @@ export default function AdminLiveChatPage() {
           </div>
 
           {/* Sessions List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-stone-100">
+          <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-stone-100">
             {filteredSessions.length === 0 ? (
               <div className="p-8 text-center text-xs text-stone-400">
                 {searchQuery ? 'Aramaya uygun görüşme bulunamadı.' : 'Bu kategoride görüşme bulunmuyor.'}
@@ -432,7 +439,7 @@ export default function AdminLiveChatPage() {
         </div>
 
         {/* Right: Active Chat Conversation (8 Cols) */}
-        <div className={`lg:col-span-7 xl:col-span-8 flex flex-col bg-white ${
+        <div className={`lg:col-span-7 xl:col-span-8 flex flex-col h-full overflow-hidden bg-white min-h-0 ${
           mobileView === 'list' ? 'hidden lg:flex' : 'flex'
         }`}>
           {activeSession ? (
@@ -530,7 +537,7 @@ export default function AdminLiveChatPage() {
 
               {/* Closed Warning Banner if archived */}
               {activeSession.status === 'closed' && (
-                <div className="bg-amber-50/80 border-b border-amber-200/60 p-2.5 px-4 text-xs text-amber-900 flex items-center justify-between">
+                <div className="bg-amber-50/80 border-b border-amber-200/60 p-2.5 px-4 text-xs text-amber-900 flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-2">
                     <Archive className="w-4 h-4 text-amber-700" />
                     <span>Bu görüşme sonlandırılmıştır. Yazacağınız yeni mesajla görüşme otomatik olarak yeniden açılacaktır.</span>
@@ -545,7 +552,7 @@ export default function AdminLiveChatPage() {
               )}
 
               {/* Messages Feed */}
-              <div ref={feedRef} className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-stone-50/40 text-xs">
+              <div ref={feedRef} className="flex-1 min-h-0 p-4 overflow-y-auto space-y-3.5 bg-stone-50/40 text-xs scroll-smooth">
                 {activeSession.messages?.map((m) => {
                   const isSenderAdmin = m.sender_type === 'admin';
                   return (
@@ -576,7 +583,7 @@ export default function AdminLiveChatPage() {
               </div>
 
               {/* Reply Input Form */}
-              <form onSubmit={handleSendReply} className="p-3 bg-white border-t border-stone-200 flex gap-2 shrink-0">
+              <form onSubmit={handleSendReply} className="p-3 bg-white border-t border-stone-200 flex gap-2 shrink-0 z-10">
                 <input
                   type="text"
                   value={adminReplyText}

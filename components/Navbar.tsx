@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { 
   Search, 
   ShoppingBag, 
@@ -26,6 +26,7 @@ import { formatPrice } from '@/lib/utils/format';
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { totalItems, openDrawer } = useCart();
   const { totalFavorites } = useWishlist();
   const { user, isAdmin, logout } = useAuth();
@@ -37,6 +38,10 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
 
   useEffect(() => {
     DataService.getCategories().then(setCategories);
