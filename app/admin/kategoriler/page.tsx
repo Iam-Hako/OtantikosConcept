@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
-import { Layers, Plus, Trash2, Edit3, Save, Sparkles, UploadCloud, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Layers, Plus, Trash2, Edit3, Sparkles } from 'lucide-react';
 import { Category } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
-import { slugify, convertGoogleDriveUrl } from '@/lib/utils/format';
+import { slugify } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
 export default function AdminCategoriesPage() {
@@ -16,11 +15,8 @@ export default function AdminCategoriesPage() {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
   const [displayOrder, setDisplayOrder] = useState<number>(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadCategories();
@@ -36,7 +32,6 @@ export default function AdminCategoriesPage() {
     setName('');
     setSlug('');
     setDescription('');
-    setImageUrl('https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=800');
     setDisplayOrder(categories.length + 1);
     setIsModalOpen(true);
   };
@@ -46,37 +41,8 @@ export default function AdminCategoriesPage() {
     setName(c.name);
     setSlug(c.slug);
     setDescription(c.description || '');
-    setImageUrl(c.image_url || '');
     setDisplayOrder(c.display_order);
     setIsModalOpen(true);
-  };
-
-  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) throw new Error('Yükleme başarısız');
-      const data = await res.json();
-      if (data.url) {
-        setImageUrl(data.url);
-        toast.success('Kategori görseli yüklendi!');
-      }
-    } catch {
-      toast.error('Görsel yüklenirken hata oluştu.');
-    } finally {
-      setIsUploading(false);
-      if (e.target) e.target.value = '';
-    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -88,7 +54,6 @@ export default function AdminCategoriesPage() {
       name,
       slug: slug || slugify(name),
       description,
-      image_url: convertGoogleDriveUrl(imageUrl),
       display_order: Number(displayOrder),
       is_active: true,
     });
@@ -124,7 +89,7 @@ export default function AdminCategoriesPage() {
 
         <button
           onClick={handleOpenNew}
-          className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2"
+          className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
           <span>+ Yeni Kategori Ekle</span>
@@ -134,40 +99,42 @@ export default function AdminCategoriesPage() {
       {/* Category Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {categories.map((c) => (
-          <div key={c.id} className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs flex flex-col justify-between">
-            <div className="relative h-36 bg-stone-100">
-              {c.image_url && <Image src={c.image_url} alt={c.name} fill className="object-cover" />}
-              <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-transparent" />
-              <div className="absolute bottom-3 left-3 text-white">
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-600 px-2 py-0.5 rounded">
+          <div key={c.id} className="bg-white rounded-2xl border border-stone-200 p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center font-bold text-sm">
+                  <Layers className="w-5 h-5 text-amber-700" />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-stone-100 text-stone-700 border border-stone-200 px-2.5 py-1 rounded-lg">
                   Sıra: {c.display_order}
                 </span>
-                <h3 className="font-bold text-sm mt-1">{c.name}</h3>
               </div>
+
+              <div>
+                <h3 className="font-bold text-base text-stone-900">{c.name}</h3>
+                <div className="text-[11px] text-amber-800 font-mono mt-0.5">/kategori/{c.slug}</div>
+              </div>
+
+              <p className="text-stone-600 text-xs line-clamp-2 leading-relaxed">
+                {c.description || 'Açıklama girilmemiş.'}
+              </p>
             </div>
 
-            <div className="p-4 space-y-2 text-xs flex-1 flex flex-col justify-between">
-              <div>
-                <div className="text-[11px] text-stone-400 font-mono">Slug: /kategori/{c.slug}</div>
-                <p className="text-stone-600 line-clamp-2 mt-1">{c.description || 'Açıklama girilmemiş.'}</p>
-              </div>
-
-              <div className="pt-3 border-t border-stone-100 flex items-center justify-end gap-2">
-                <button
-                  onClick={() => handleOpenEdit(c)}
-                  className="px-3 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg font-bold text-xs transition flex items-center gap-1"
-                >
-                  <Edit3 className="w-3 h-3" />
-                  <span>Düzenle</span>
-                </button>
-                <button
-                  onClick={() => handleDelete(c.id, c.name)}
-                  className="p-1 text-stone-400 hover:text-rose-600 transition"
-                  title="Sil"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+            <div className="pt-4 mt-4 border-t border-stone-100 flex items-center justify-end gap-2">
+              <button
+                onClick={() => handleOpenEdit(c)}
+                className="px-3.5 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg font-bold text-xs transition flex items-center gap-1"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Düzenle</span>
+              </button>
+              <button
+                onClick={() => handleDelete(c.id, c.name)}
+                className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                title="Sil"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
           </div>
         ))}
@@ -200,77 +167,30 @@ export default function AdminCategoriesPage() {
                     setName(e.target.value);
                     if (!editingId) setSlug(slugify(e.target.value));
                   }}
+                  placeholder="Örn: 316L Çelik Takılar"
                   className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-stone-900 transition"
                 />
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-stone-700 mb-1">URL Slug</label>
-                <input
-                  type="text"
-                  required
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
-                  className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl font-mono text-stone-900 transition"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-stone-700 mb-1">Kategori Görseli</label>
-                
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImageFileUpload}
-                  accept="image/*"
-                  className="hidden"
-                />
-
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    disabled={isUploading}
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full p-3 rounded-xl border border-dashed border-amber-400 bg-amber-50/60 hover:bg-amber-50 transition flex items-center justify-center gap-2 text-xs font-bold text-stone-700 disabled:opacity-50"
-                  >
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />
-                        <span>Görsel Yükleniyor...</span>
-                      </>
-                    ) : (
-                      <>
-                        <UploadCloud className="w-4 h-4 text-amber-600" />
-                        <span>Bilgisayardan Fotoğraf Yükle</span>
-                      </>
-                    )}
-                  </button>
-
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="veya Görsel URL'si yapıştırın..."
-                      value={imageUrl}
-                      onChange={(e) => setImageUrl(e.target.value)}
-                      className="flex-1 text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 transition focus:outline-none"
-                    />
-                    {imageUrl && (
-                      <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-stone-200 shrink-0">
-                        <Image src={imageUrl} alt="" fill className="object-cover" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Sıra No</label>
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">URL Slug</label>
+                  <input
+                    type="text"
+                    required
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl font-mono text-stone-900 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Menü Sıra No</label>
                   <input
                     type="number"
                     value={displayOrder}
                     onChange={(e) => setDisplayOrder(Number(e.target.value))}
-                    className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 transition"
+                    className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 transition font-bold"
                   />
                 </div>
               </div>
@@ -278,10 +198,11 @@ export default function AdminCategoriesPage() {
               <div>
                 <label className="block text-[11px] font-bold text-stone-700 mb-1">Açıklama</label>
                 <textarea
-                  rows={2}
+                  rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 transition"
+                  placeholder="Kategori hakkında kısa açıklama..."
+                  className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 transition focus:outline-none focus:border-amber-600"
                 />
               </div>
 
@@ -289,7 +210,7 @@ export default function AdminCategoriesPage() {
                 type="submit"
                 className="w-full py-3.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm transition min-h-[44px]"
               >
-                Kategoriyi Kaydet
+                {editingId ? 'Değişiklikleri Kaydet' : 'Kategoriyi Oluştur'}
               </button>
             </form>
           </div>
