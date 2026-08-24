@@ -33,7 +33,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 const CART_STORAGE_KEY = 'otantikos_cart_v2';
 const GIFT_OPTIONS_KEY = 'otantikos_gift_v2';
 const GIFT_WRAP_PRICE = 50.00;
-const STANDARD_SHIPPING_PRICE = 49.00;
+const STANDARD_SHIPPING_PRICE = 200.00;
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);

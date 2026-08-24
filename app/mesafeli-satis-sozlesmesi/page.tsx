@@ -35,7 +35,7 @@ export default function DistanceSellingPage() {
 
         <h3 className="font-bold text-stone-900 text-base">MADDE 4 - TESLİMAT VE MASRAFLAR</h3>
         <p>
-          Ürünler, ALICI'nın sipariş formunda belirttiği teslimat türüne göre anlaşmalı kargo firması aracılığıyla adrese veya Eminönü Tahtakale şubesinden teslim alınmak üzere hazırlanır. Kargo bedeli sipariş özetinde gösterildiği gibidir; belirlenen limit üzeri siparişlerde kargo ücretsizdir.
+          Ürünler, ALICI&apos;nın sipariş formunda belirttiği teslimat türüne göre anlaşmalı kargo firması aracılığıyla adrese veya Eminönü Tahtakale şubesinden teslim alınmak üzere hazırlanır. Standart kargo bedeli sipariş özetinde gösterildiği üzere sabit 200,00 TL&apos;dir; mağazadan elden teslim alımlarda kargo ücreti 0,00 TL&apos;dir.
         </p>
 
         <h3 className="font-bold text-stone-900 text-base">MADDE 5 - CAYMA HAKKI (14 GÜN)</h3>
