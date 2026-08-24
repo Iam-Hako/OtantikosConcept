@@ -17,7 +17,7 @@ export default function AdminLiveChatPage() {
 
   useEffect(() => {
     loadSessions();
-    const interval = setInterval(loadSessions, 4000);
+    const interval = setInterval(loadSessions, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -28,7 +28,15 @@ export default function AdminLiveChatPage() {
       setActiveSession(list[0]);
     } else if (activeSession) {
       const updated = list.find((s) => s.session_id === activeSession.session_id);
-      if (updated) setActiveSession(updated);
+      if (updated) {
+        if (updated.messages && activeSession.messages && updated.messages.length > activeSession.messages.length) {
+          const lastM = updated.messages[updated.messages.length - 1];
+          if (lastM.sender_type === 'customer' && soundEnabled) {
+            sounds.playChatNotification();
+          }
+        }
+        setActiveSession(updated);
+      }
     }
   };
 

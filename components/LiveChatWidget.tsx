@@ -52,6 +52,23 @@ export default function LiveChatWidget() {
     }
   }, [user]);
 
+  // Realtime Polling for incoming admin messages
+  useEffect(() => {
+    if (!sessionId || !hasStarted) return;
+    
+    const interval = setInterval(async () => {
+      const sess = await DataService.getChatSession(sessionId);
+      if (sess?.messages && sess.messages.length > messages.length) {
+        setMessages(sess.messages);
+        if (soundEnabled && sess.messages[sess.messages.length - 1].sender_type === 'admin') {
+          sounds.playChatNotification();
+        }
+      }
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [sessionId, hasStarted, messages.length, soundEnabled]);
+
   // Auto-scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
