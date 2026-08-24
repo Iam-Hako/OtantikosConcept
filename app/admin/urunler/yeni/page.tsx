@@ -213,7 +213,7 @@ export default function NewProductPage() {
       is_new: isNew,
       specifications: specs.filter((s) => s.spec_key.trim() && s.spec_value.trim()),
       variants: variants.filter((v) => v.value.trim()),
-      images: images.length > 0 ? images : [{ image_url: '/images/logo.webp', is_cover: true, display_order: 1 }],
+      images: images.length > 0 ? images : [],
     });
 
     toast.success(`"${newProd.name}" başarıyla oluşturuldu!`, {

@@ -28,7 +28,7 @@ import { Product, ProductVariant, Question, Review } from '@/lib/types/ecommerce
 import { DataService } from '@/lib/data/store-data';
 import { useCart } from '@/lib/store/cart-store';
 import { useWishlist } from '@/lib/store/wishlist-store';
-import { formatPrice } from '@/lib/utils/format';
+import { formatPrice, convertGoogleDriveVideoUrl } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
 export default function ProductDetailPage() {
@@ -42,6 +42,7 @@ export default function ProductDetailPage() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
+  const [activeMedia, setActiveMedia] = useState<'image' | 'video'>('image');
   const [quantity, setQuantity] = useState<number>(1);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -78,6 +79,15 @@ export default function ProductDetailPage() {
           setProduct(prod);
           if (prod.variants && prod.variants.length > 0) {
             setSelectedVariant(prod.variants[0]);
+          }
+
+          const validImgs = (prod.images || []).filter(
+            (img) => img.image_url && img.image_url !== '/images/logo.webp' && !img.image_url.endsWith('logo.webp')
+          );
+          if (validImgs.length === 0 && prod.video_url) {
+            setActiveMedia('video');
+          } else {
+            setActiveMedia('image');
           }
 
           // Fetch questions and reviews
@@ -185,8 +195,28 @@ export default function ProductDetailPage() {
   const currentStock = selectedVariant ? selectedVariant.stock : product.stock;
   const currentSKU = selectedVariant?.sku || product.sku;
   const isOutOfStock = currentStock <= 0;
-  const images = product.images && product.images.length > 0 ? product.images : [{ image_url: '/images/logo.webp', is_cover: true, display_order: 1 }];
-  const currentActiveImage = images[activeImageIndex]?.image_url || images[0]?.image_url;
+
+  const validImages = (product.images || []).filter(
+    (img) => img.image_url && img.image_url !== '/images/logo.webp' && !img.image_url.endsWith('logo.webp')
+  );
+  const hasValidImages = validImages.length > 0;
+  const hasVideo = Boolean(product.video_url && product.video_url.trim());
+  const currentActiveImage = validImages[activeImageIndex]?.image_url || validImages[0]?.image_url;
+
+  const isDirectVideo = (url?: string | null) => {
+    if (!url) return false;
+    const clean = url.split('?')[0].toLowerCase();
+    return (
+      clean.endsWith('.mp4') ||
+      clean.endsWith('.webm') ||
+      clean.endsWith('.mov') ||
+      clean.endsWith('.ogg') ||
+      url.includes('/storage/v1/object/public/') ||
+      url.includes('supabase.co/storage')
+    );
+  };
+
+  const isShowingVideo = activeMedia === 'video' || (!hasValidImages && hasVideo);
 
   const similarProducts = allProducts
     .filter((p) => p.id !== product.id && (p.category_id === product.category_id || p.is_featured))
@@ -213,19 +243,42 @@ export default function ProductDetailPage() {
       {/* 2. PRODUCT MAIN GALLERY & BUYING PANEL */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         
-        {/* Left Column: Gallery & Optical Loupe Zoom (7 Cols) */}
+        {/* Left Column: Gallery & Video & Optical Loupe Zoom (7 Cols) */}
         <div className="lg:col-span-7 space-y-4">
           <div className="flex flex-col-reverse sm:flex-row gap-4">
             
             {/* Thumbnails list */}
-            {images.length > 1 && (
+            {((validImages.length > 1) || (hasVideo && hasValidImages)) && (
               <div className="flex sm:flex-col gap-3 overflow-x-auto sm:overflow-y-auto max-h-[500px] shrink-0 pb-2 sm:pb-0">
-                {images.map((img, idx) => (
+                
+                {/* Video Thumbnail Button */}
+                {hasVideo && (
+                  <button
+                    onClick={() => setActiveMedia('video')}
+                    className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition shrink-0 bg-stone-900 flex flex-col items-center justify-center gap-1 group ${
+                      isShowingVideo ? 'border-amber-500 ring-2 ring-amber-500/30' : 'border-stone-700 hover:border-stone-500'
+                    }`}
+                    title="Tanıtım Videosunu İzle"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center group-hover:scale-110 transition shadow-md">
+                      <Play className="w-4 h-4 fill-stone-950 ml-0.5" />
+                    </div>
+                    <span className="text-[9px] font-bold text-amber-400 tracking-wider uppercase">Video</span>
+                  </button>
+                )}
+
+                {/* Photo Thumbnails */}
+                {validImages.map((img, idx) => (
                   <button
                     key={idx}
-                    onClick={() => setActiveImageIndex(idx)}
-                    className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition shrink-0 ${
-                      activeImageIndex === idx ? 'border-amber-600 ring-2 ring-amber-600/20' : 'border-stone-200 hover:border-stone-400'
+                    onClick={() => {
+                      setActiveMedia('image');
+                      setActiveImageIndex(idx);
+                    }}
+                    className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition shrink-0 bg-stone-100 ${
+                      !isShowingVideo && activeImageIndex === idx
+                        ? 'border-amber-600 ring-2 ring-amber-600/20'
+                        : 'border-stone-200 hover:border-stone-400'
                     }`}
                   >
                     <Image
@@ -239,60 +292,74 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            {/* Main Image with Optical Loupe Zoom */}
+            {/* Main Showcase (Video Player or Optical Lens Zoom Photo) */}
             <div 
               ref={imageContainerRef}
-              onMouseEnter={() => setIsZooming(true)}
-              onMouseLeave={() => setIsZooming(false)}
-              onMouseMove={handleMouseMove}
-              className="relative flex-1 aspect-square bg-stone-100 rounded-3xl overflow-hidden border border-stone-200 shadow-xs cursor-crosshair group"
+              onMouseEnter={() => !isShowingVideo && setIsZooming(true)}
+              onMouseLeave={() => !isShowingVideo && setIsZooming(false)}
+              onMouseMove={!isShowingVideo ? handleMouseMove : undefined}
+              className="relative flex-1 aspect-square bg-stone-950 rounded-3xl overflow-hidden border border-stone-200 shadow-xs group"
             >
-              <Image
-                src={currentActiveImage}
-                alt={product.name}
-                fill
-                className="object-cover"
-                priority
-              />
+              {isShowingVideo ? (
+                // Direct Video Player or Embed
+                <div className="w-full h-full flex items-center justify-center bg-black">
+                  {isDirectVideo(product.video_url) ? (
+                    <video
+                      src={product.video_url!}
+                      controls
+                      autoPlay
+                      playsInline
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <iframe
+                      src={convertGoogleDriveVideoUrl(product.video_url!)}
+                      title={`${product.name} Video`}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  )}
+                </div>
+              ) : hasValidImages ? (
+                // Photo with Optical Loupe Lens Zoom
+                <div className="relative w-full h-full cursor-crosshair bg-stone-100">
+                  <Image
+                    src={currentActiveImage}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                    priority
+                  />
 
-              {/* Optical Loupe Lens Overlay */}
-              {isZooming && (
-                <div
-                  className="absolute inset-0 pointer-events-none hidden md:block bg-no-repeat rounded-3xl transition-transform duration-75"
-                  style={{
-                    backgroundImage: `url(${currentActiveImage})`,
-                    backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
-                    backgroundSize: '250%',
-                  }}
-                />
+                  {/* Optical Loupe Lens Overlay */}
+                  {isZooming && (
+                    <div
+                      className="absolute inset-0 pointer-events-none hidden md:block bg-no-repeat rounded-3xl transition-transform duration-75"
+                      style={{
+                        backgroundImage: `url(${currentActiveImage})`,
+                        backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
+                        backgroundSize: '250%',
+                      }}
+                    />
+                  )}
+
+                  {/* Hover Badge */}
+                  <div className="absolute bottom-3 right-3 bg-stone-900/70 backdrop-blur-xs text-white text-[10px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 opacity-80 group-hover:opacity-100 transition">
+                    <Eye className="w-3 h-3 text-amber-400" />
+                    <span>Büyütmek için üzerine gelin</span>
+                  </div>
+                </div>
+              ) : (
+                // No Media Placeholder
+                <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-stone-100 text-stone-400">
+                  <Sparkles className="w-12 h-12 text-stone-300 mb-2" />
+                  <span className="text-xs font-semibold text-stone-500">{product.name}</span>
+                  <span className="text-[11px] text-stone-400 mt-1">Görsel yakında eklenecektir</span>
+                </div>
               )}
-
-              {/* Hover Badge */}
-              <div className="absolute bottom-3 right-3 bg-stone-900/70 backdrop-blur-xs text-white text-[10px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 opacity-80 group-hover:opacity-100 transition">
-                <Eye className="w-3 h-3 text-amber-400" />
-                <span>Büyütmek için üzerine gelin</span>
-              </div>
             </div>
           </div>
-
-          {/* Promotional Video Embed (if provided) */}
-          {product.video_url && (
-            <div className="mt-6 p-4 rounded-2xl bg-stone-900 text-white">
-              <div className="flex items-center gap-2 mb-3 text-xs font-bold text-amber-400">
-                <Play className="w-4 h-4 fill-amber-400" />
-                <span>Ürün Tanıtım & İnceleme Videosu</span>
-              </div>
-              <div className="relative aspect-video rounded-xl overflow-hidden bg-black">
-                <iframe
-                  src={product.video_url}
-                  title={`${product.name} Video`}
-                  className="w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Right Column: Buying Box & Specifications (5 Cols) */}

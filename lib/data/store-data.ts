@@ -267,7 +267,7 @@ export const DataService = {
         rating: 5.0,
         review_count: 0,
         video_url: productData.video_url || null,
-        images: productData.images && productData.images.length > 0 ? productData.images : [{ image_url: '/images/logo.webp', is_cover: true, display_order: 1 }],
+        images: productData.images && productData.images.length > 0 ? productData.images : [],
         variants: formattedVariants,
         specifications: productData.specifications || [],
         created_at: new Date().toISOString(),

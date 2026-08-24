@@ -52,15 +52,15 @@ export default function HomePage() {
       <section className="relative bg-gradient-to-br from-stone-900 via-amber-950 to-stone-950 text-white overflow-hidden">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:32px_32px]" />
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-28 flex flex-col lg:flex-row items-center justify-between gap-12">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-20 lg:py-24 min-h-[calc(100dvh-5rem)] flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-8 lg:gap-12">
           {/* Left Hero Text */}
-          <div className="flex-1 space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 text-xs font-bold uppercase tracking-wider">
+          <div className="flex-1 space-y-5 sm:space-y-6 text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 text-[11px] sm:text-xs font-bold uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Eminönü Tahtakale Doğrudan İthalat & Üretim</span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-black tracking-tight leading-[1.15] text-white">
+            <h1 className="text-2xl sm:text-5xl lg:text-6xl font-serif font-black tracking-tight leading-[1.2] text-white">
               Otantik Zanaat, <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500">
                 Modern Tasarımla
@@ -68,39 +68,39 @@ export default function HomePage() {
               Buluştu.
             </h1>
 
-            <p className="text-sm sm:text-base text-stone-300 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
+            <p className="text-xs sm:text-base text-stone-300 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
               Hediyelik Eşyalar toptan ve perakende satış
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-1 sm:pt-2">
               <Link
                 href="/kategori/tum-urunler"
-                className="w-full sm:w-auto px-8 py-4 bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm rounded-xl shadow-xl hover:shadow-amber-600/30 transition flex items-center justify-center gap-2 group"
+                className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xl hover:shadow-amber-600/30 transition flex items-center justify-center gap-2 group"
               >
                 <span>Koleksiyonu Keşfet</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
               </Link>
               <Link
                 href="/toptan-satis"
-                className="w-full sm:w-auto px-8 py-4 bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-sm rounded-xl backdrop-blur-xs transition text-center"
+                className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs sm:text-sm rounded-xl backdrop-blur-xs transition text-center"
               >
                 Tahtakale Toptan & B2B
               </Link>
             </div>
 
             {/* Micro Trust Stats */}
-            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-white/10 text-center lg:text-left">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-5 sm:pt-6 border-t border-white/10 text-center lg:text-left">
               <div>
-                <div className="text-xl sm:text-2xl font-black text-amber-400">316L</div>
-                <div className="text-[11px] text-stone-400">Kararmaz Medikal Çelik</div>
+                <div className="text-base sm:text-2xl font-black text-amber-400">316L</div>
+                <div className="text-[10px] sm:text-xs text-stone-300 leading-tight">Kararmaz Medikal Çelik</div>
               </div>
               <div>
-                <div className="text-xl sm:text-2xl font-black text-amber-400">Aynı Gün</div>
-                <div className="text-[11px] text-stone-400">Tahtakale Sevkiyatı</div>
+                <div className="text-base sm:text-2xl font-black text-amber-400">Aynı Gün</div>
+                <div className="text-[10px] sm:text-xs text-stone-300 leading-tight">Tahtakale Sevkiyatı</div>
               </div>
               <div>
-                <div className="text-xl sm:text-2xl font-black text-amber-400">%100 Net</div>
-                <div className="text-[11px] text-stone-400">Şeffaf Fiyat Politikası</div>
+                <div className="text-base sm:text-2xl font-black text-amber-400">%100 Net</div>
+                <div className="text-[10px] sm:text-xs text-stone-300 leading-tight">Şeffaf Fiyat Politikası</div>
               </div>
             </div>
           </div>
