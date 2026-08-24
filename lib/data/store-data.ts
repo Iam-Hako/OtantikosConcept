@@ -639,6 +639,43 @@ export const DataService = {
             total: item.total,
           }))
         );
+
+        // Deduct stock in Supabase database for both products and variants
+        for (const item of newOrder.items) {
+          if (item.product_id && !item.product_id.startsWith('prod-')) {
+            // 1. Deduct main product stock
+            const { data: pData } = await supabase
+              .from('products')
+              .select('stock')
+              .eq('id', item.product_id)
+              .single();
+
+            if (pData && typeof pData.stock === 'number') {
+              const newStock = Math.max(0, pData.stock - item.quantity);
+              await supabase
+                .from('products')
+                .update({ stock: newStock, updated_at: new Date().toISOString() })
+                .eq('id', item.product_id);
+            }
+
+            // 2. Deduct variant stock if applicable
+            if (item.variant_id && !item.variant_id.startsWith('var-')) {
+              const { data: vData } = await supabase
+                .from('product_variants')
+                .select('stock')
+                .eq('id', item.variant_id)
+                .single();
+
+              if (vData && typeof vData.stock === 'number') {
+                const newVarStock = Math.max(0, vData.stock - item.quantity);
+                await supabase
+                  .from('product_variants')
+                  .update({ stock: newVarStock })
+                  .eq('id', item.variant_id);
+              }
+            }
+          }
+        }
       }
     } catch {
       // Local fallback

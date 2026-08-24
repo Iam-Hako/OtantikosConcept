@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { DataService } from '@/lib/data/store-data';
 import { generateOrderNumber } from '@/lib/utils/format';
 
@@ -102,6 +103,21 @@ export async function POST(request: Request) {
       items: verifiedItems,
       payment_status: 'paid',
     });
+
+    try {
+      revalidatePath('/');
+      revalidatePath('/kategori/[slug]', 'page');
+      revalidatePath('/admin/urunler');
+      revalidatePath('/admin/hizli-stok');
+      for (const item of verifiedItems) {
+        const prod = allProducts.find(p => p.id === item.product_id);
+        if (prod) {
+          revalidatePath(`/urun/${prod.slug}`);
+        }
+      }
+    } catch {
+      // Revalidation error ignored
+    }
 
     return NextResponse.json({
       success: true,
