@@ -184,6 +184,19 @@ export async function actionUpdateQuickStock(productId: string, stock: number, p
     return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
   }
 
+  try {
+    const supabaseAdmin = createAdminClient();
+    let dbId = productId;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId);
+    if (!isUuid) {
+      const { data: prod } = await supabaseAdmin.from('products').select('id').eq('slug', productId).maybeSingle();
+      if (prod?.id) dbId = prod.id;
+    }
+    await supabaseAdmin.from('products').update({ stock, price, updated_at: new Date().toISOString() }).eq('id', dbId);
+  } catch (err) {
+    console.error('Supabase admin quick stock update error:', err);
+  }
+
   const ok = await DataService.updateQuickStockAndPrice(productId, stock, price);
   revalidatePath('/');
   revalidatePath('/kategori/[slug]', 'page');
@@ -199,9 +212,35 @@ export async function actionSaveCategory(catData: Partial<Category>) {
   }
 
   const saved = await DataService.saveCategory(catData);
+
+  try {
+    const supabaseAdmin = createAdminClient();
+    const isCustomId = saved.id.startsWith('cat-');
+    const { data, error } = await supabaseAdmin
+      .from('categories')
+      .upsert({
+        id: isCustomId ? undefined : saved.id,
+        name: saved.name,
+        slug: saved.slug,
+        description: saved.description || '',
+        image_url: saved.image_url || '',
+        display_order: saved.display_order,
+        is_active: saved.is_active,
+      }, { onConflict: 'slug' })
+      .select()
+      .single();
+
+    if (!error && data?.id) {
+      saved.id = data.id;
+    }
+  } catch (err) {
+    console.error('Supabase admin save category error:', err);
+  }
+
   revalidatePath('/');
   revalidatePath('/kategori/[slug]', 'page');
   revalidatePath('/admin/kategoriler');
+  revalidatePath('/admin/urunler');
   return { success: true, category: saved };
 }
 
@@ -211,11 +250,33 @@ export async function actionDeleteCategory(categoryId: string) {
     return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
   }
 
+  try {
+    const supabaseAdmin = createAdminClient();
+    let dbId = categoryId;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(categoryId);
+    if (!isUuid) {
+      const { data: cat } = await supabaseAdmin.from('categories').select('id').eq('slug', categoryId).maybeSingle();
+      if (cat?.id) dbId = cat.id;
+    }
+
+    // 1. Unlink products that were assigned to this category
+    await supabaseAdmin.from('products').update({ category_id: null }).eq('category_id', dbId);
+
+    // 2. Delete from categories
+    await supabaseAdmin.from('categories').delete().eq('id', dbId);
+    if (!isUuid) {
+      await supabaseAdmin.from('categories').delete().eq('slug', categoryId);
+    }
+  } catch (err) {
+    console.error('Supabase admin delete category error:', err);
+  }
+
   const ok = await DataService.deleteCategory(categoryId);
   revalidatePath('/');
   revalidatePath('/kategori/[slug]', 'page');
   revalidatePath('/admin/kategoriler');
-  return { success: ok };
+  revalidatePath('/admin/urunler');
+  return { success: true };
 }
 
 export async function actionUpdateOrderStatus(
@@ -228,6 +289,23 @@ export async function actionUpdateOrderStatus(
   const isAdmin = await verifyAdmin();
   if (!isAdmin) {
     return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+  }
+
+  try {
+    const supabaseAdmin = createAdminClient();
+    const updateData: any = { status, updated_at: new Date().toISOString() };
+    if (trackingNumber !== undefined) updateData.tracking_number = trackingNumber;
+    if (trackingCarrier !== undefined) updateData.tracking_carrier = trackingCarrier;
+    if (adminNotes !== undefined) updateData.admin_notes = adminNotes;
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
+    if (isUuid) {
+      await supabaseAdmin.from('orders').update(updateData).eq('id', orderId);
+    } else {
+      await supabaseAdmin.from('orders').update(updateData).eq('order_number', orderId);
+    }
+  } catch (err) {
+    console.error('Supabase admin update order error:', err);
   }
 
   const ok = await DataService.updateOrderStatus(orderId, status, trackingNumber, trackingCarrier, adminNotes);
@@ -244,8 +322,46 @@ export async function actionUpdateReturnStatus(returnId: string, status: ReturnR
     return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
   }
 
+  try {
+    const supabaseAdmin = createAdminClient();
+    const updatePayload: any = { status, updated_at: new Date().toISOString() };
+    if (adminResponse !== undefined) updatePayload.admin_response = adminResponse;
+
+    await supabaseAdmin.from('returns').update(updatePayload).eq('id', returnId);
+  } catch (err) {
+    console.error('Supabase admin update return error:', err);
+  }
+
   const ok = await DataService.updateReturnStatus(returnId, status, adminResponse);
   revalidatePath('/admin/iadeler');
   revalidatePath('/hesabim');
   return { success: ok };
+}
+
+export async function actionDeleteOrder(orderId: string) {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) {
+    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+  }
+
+  try {
+    const supabaseAdmin = createAdminClient();
+    let dbId = orderId;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
+    if (!isUuid) {
+      const { data: ord } = await supabaseAdmin.from('orders').select('id').eq('order_number', orderId).maybeSingle();
+      if (ord?.id) dbId = ord.id;
+    }
+
+    await supabaseAdmin.from('order_items').delete().eq('order_id', dbId);
+    await supabaseAdmin.from('orders').delete().eq('id', dbId);
+    if (!isUuid) {
+      await supabaseAdmin.from('orders').delete().eq('order_number', orderId);
+    }
+  } catch (err) {
+    console.error('Supabase admin delete order error:', err);
+  }
+
+  revalidatePath('/admin/siparisler');
+  return { success: true };
 }

@@ -482,15 +482,13 @@ export const DataService = {
 
   async deleteCategory(categoryId: string): Promise<boolean> {
     let list = runtimeCategories;
-    list = list.filter(c => c.id !== categoryId);
+    list = list.filter(c => c.id !== categoryId && c.slug !== categoryId);
     runtimeCategories = list;
-    
 
     try {
       const supabase = createClient();
-      if (!categoryId.startsWith('cat-')) {
-        await supabase.from('categories').delete().eq('id', categoryId);
-      }
+      await supabase.from('products').update({ category_id: null }).eq('category_id', categoryId);
+      await supabase.from('categories').delete().or(`id.eq.${categoryId},slug.eq.${categoryId}`);
     } catch {
       // Ignore
     }

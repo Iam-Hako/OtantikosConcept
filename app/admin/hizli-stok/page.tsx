@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Zap, Save, Check, Search, RefreshCw, ArrowLeft, Play, Sparkles } from 'lucide-react';
 import { Product } from '@/lib/types/ecommerce';
 import { DataService, normalizeTurkish } from '@/lib/data/store-data';
+import { actionUpdateQuickStock } from '@/app/actions/ecommerce-actions';
 import { formatPrice } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
@@ -53,14 +54,14 @@ export default function QuickStockPage() {
     if (!current) return;
 
     setIsSaving((prev) => ({ ...prev, [product.id]: true }));
-    const ok = await DataService.updateQuickStockAndPrice(
+    const res = await actionUpdateQuickStock(
       product.id,
       current.stock,
       current.price
     );
     setIsSaving((prev) => ({ ...prev, [product.id]: false }));
 
-    if (ok) {
+    if (res.success) {
       toast.success(`"${product.name}" güncellendi!`, {
         description: `Yeni Stok: ${current.stock} Adet | Yeni Fiyat: ${formatPrice(current.price)}`,
       });
@@ -68,7 +69,7 @@ export default function QuickStockPage() {
         prev.map((p) => (p.id === product.id ? { ...p, stock: current.stock, price: current.price } : p))
       );
     } else {
-      toast.error('Güncelleme kaydedilemedi.');
+      toast.error(res.error || 'Güncelleme kaydedilemedi.');
     }
   };
 
@@ -87,8 +88,8 @@ export default function QuickStockPage() {
     for (const p of changedProducts) {
       const current = editedValues[p.id];
       if (current) {
-        const ok = await DataService.updateQuickStockAndPrice(p.id, current.stock, current.price);
-        if (ok) successCount++;
+        const res = await actionUpdateQuickStock(p.id, current.stock, current.price);
+        if (res.success) successCount++;
       }
     }
 

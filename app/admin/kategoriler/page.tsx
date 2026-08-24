@@ -74,8 +74,9 @@ export default function AdminCategoriesPage() {
     if (confirm(`"${catName}" kategorisini silmek istediğinize emin misiniz?`)) {
       const res = await actionDeleteCategory(id);
       if (res.success) {
-        setCategories((prev) => prev.filter((c) => c.id !== id));
+        setCategories((prev) => prev.filter((c) => c.id !== id && c.slug !== id));
         toast.success('Kategori silindi.');
+        await loadCategories();
       } else {
         toast.error(res.error || 'Kategori silinemedi.');
       }

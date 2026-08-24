@@ -31,8 +31,14 @@ export default function AdminProductsPage() {
     if (confirm(`"${name}" ürününü silmek istediğinize emin misiniz?`)) {
       const res = await actionDeleteProduct(id);
       if (res.success) {
-        setProducts((prev) => prev.filter((p) => p.id !== id));
+        setProducts((prev) => prev.filter((p) => p.id !== id && p.slug !== id));
         toast.success('Ürün başarıyla silindi.');
+        try {
+          const list = await DataService.getAllAdminProducts();
+          setProducts(list);
+        } catch {
+          // Ignore
+        }
       } else {
         toast.error(res.error || 'Ürün silinemedi.');
       }
