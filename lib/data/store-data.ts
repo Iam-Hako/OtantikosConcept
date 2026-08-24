@@ -34,53 +34,9 @@ export function normalizeTurkish(text: string): string {
     .trim();
 }
 
-// Initial core category definitions for Tahtakale Concept
-const DEFAULT_CATEGORIES: Category[] = [
-  {
-    id: "cat-jewelry",
-    name: "Tasarım Çelik Takı & Bijüteri",
-    slug: "tasarim-celik-taki-bijuteri",
-    description: "316L medikal kararmaz çelik kolyeler, İtalyan ezme zincirler, bileklikler ve yüzükler.",
-    image_url: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&auto=format&fit=crop&q=80",
-    display_order: 1,
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "cat-lamps",
-    name: "Otantik Mozaik & Lambalar",
-    slug: "otantik-mozaik-lambalar",
-    description: "Tahtakale zanaatkarlarının el işçiliği cam mozaik masa ve tavan lambaları.",
-    image_url: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=800&auto=format&fit=crop&q=80",
-    display_order: 2,
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "cat-toys",
-    name: "Trend & Mekanik Oyuncaklar",
-    slug: "trend-mekanik-oyuncaklar",
-    description: "Sosyal medyada viral olan uçan küreler, manyetik spinnerlar ve akıllı tasarım oyuncaklar.",
-    image_url: "https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=800&auto=format&fit=crop&q=80",
-    display_order: 3,
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "cat-gifts",
-    name: "Özel Tasarım Hediyelikler",
-    slug: "ozel-tasarim-hediyelikler",
-    description: "Eminönü nostaljik hediyelik eşyalar, müzik kutuları, antika tasarımlar ve koleksiyon objeleri.",
-    image_url: "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=800&auto=format&fit=crop&q=80",
-    display_order: 4,
-    is_active: true,
-    created_at: new Date().toISOString(),
-  }
-];
-
-// In-Memory Runtime Store (Empty until user or Supabase adds real products)
+// In-Memory Runtime Store (Empty until user or Supabase adds real items)
 let runtimeProducts: Product[] = [];
-let runtimeCategories: Category[] = [...DEFAULT_CATEGORIES];
+let runtimeCategories: Category[] = [];
 let runtimeOrders: Order[] = [];
 let runtimeReturns: ReturnRequest[] = [];
 let runtimeQuestions: Question[] = [];
@@ -197,10 +153,19 @@ export const DataService = {
 
     let savedProduct: Product;
 
+    const categories = await this.getCategories();
+    const resolvedCat = categories.find(c => c.id === productData.category_id) || null;
+    const formattedVariants = (productData.variants || []).map((v, i) => ({
+      ...v,
+      id: v.id || `var-${Date.now()}-${i}-${Math.floor(Math.random() * 1000)}`,
+    }));
+
     if (existingIdx > -1) {
       savedProduct = {
         ...localList[existingIdx],
         ...productData,
+        category: productData.category_id !== undefined ? resolvedCat : localList[existingIdx].category,
+        variants: productData.variants !== undefined ? formattedVariants : localList[existingIdx].variants,
         updated_at: new Date().toISOString(),
       } as Product;
       localList[existingIdx] = savedProduct;
@@ -215,7 +180,7 @@ export const DataService = {
         stock: Number(productData.stock || 0),
         sku: productData.sku || `SKU-${Date.now()}`,
         category_id: productData.category_id || null,
-        category: (await this.getCategories()).find(c => c.id === productData.category_id) || null,
+        category: resolvedCat,
         is_featured: productData.is_featured ?? false,
         is_new: productData.is_new ?? true,
         is_active: productData.is_active ?? true,
@@ -223,7 +188,7 @@ export const DataService = {
         review_count: 0,
         video_url: productData.video_url || null,
         images: productData.images && productData.images.length > 0 ? productData.images : [{ image_url: '/images/logo.webp', is_cover: true, display_order: 1 }],
-        variants: productData.variants || [],
+        variants: formattedVariants,
         specifications: productData.specifications || [],
         created_at: new Date().toISOString(),
       };

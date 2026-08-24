@@ -40,7 +40,7 @@ export async function updateSession(request: NextRequest) {
     }
 
     const isOwnerEmail = user.email === 'chessvip11@gmail.com' || user.email === 'admin@otantikosconcept.com';
-    const hasAdminMeta = user.app_metadata?.role === 'admin' || user.user_metadata?.role === 'admin';
+    const hasAdminMeta = user.app_metadata?.role === 'admin';
 
     // Check profiles table if exists
     let isProfileAdmin = false;

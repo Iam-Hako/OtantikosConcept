@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, X, Send, Volume2, VolumeX, Sparkles, User, Minimize2 } from 'lucide-react';
 import { LiveChatMessage } from '@/lib/types/ecommerce';
-import { DataService } from '@/lib/data/store-data';
+import { DataService, normalizeTurkish } from '@/lib/data/store-data';
 import { sounds } from '@/lib/utils/sound';
 import { useAuth } from '@/lib/store/auth-context';
 
@@ -118,12 +118,12 @@ export default function LiveChatWidget() {
       setIsTyping(false);
       let replyText = "Mesajınız Eminönü Tahtakale müşteri temsilcimize iletildi. En kısa sürede yanıtlayacağız.";
       
-      const lower = userMsg.toLowerCase();
-      if (lower.includes('kargo') || lower.includes('teslimat')) {
+      const lower = normalizeTurkish(userMsg);
+      if (lower.includes('kargo') || lower.includes('teslimat') || lower.includes('gonderim')) {
         replyText = "Siparişleriniz aynı gün Eminönü depomuzdan anlaşmalı kargo ile sevk edilir. Dilerseniz Tahtakale mağazamızdan elden teslim alabilirsiniz.";
-      } else if (lower.includes('kararma') || lower.includes('çelik') || lower.includes('taki')) {
+      } else if (lower.includes('kararma') || lower.includes('celik') || lower.includes('taki')) {
         replyText = "Tüm çelik takı koleksiyonumuz 316L medikal paslanmaz çeliktir. Suya ve parfüme dayanıklıdır; kararmazlık garantilidir.";
-      } else if (lower.includes('toptan') || lower.includes('b2b')) {
+      } else if (lower.includes('toptan') || lower.includes('b2b') || lower.includes('bayi')) {
         replyText = "Toptan alımlarınız için sitemizdeki 'Toptan & B2B' formunu doldurabilir ya da Tahtakale toptan birimimizle iletişime geçebilirsiniz.";
       }
 

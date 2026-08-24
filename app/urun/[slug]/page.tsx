@@ -378,7 +378,10 @@ export default function ProductDetailPage() {
               </label>
               <div className="flex flex-wrap gap-2.5">
                 {product.variants.map((variant) => {
-                  const isSelected = selectedVariant?.id === variant.id;
+                  const isSelected = selectedVariant && (
+                    (selectedVariant.id && variant.id && selectedVariant.id === variant.id) ||
+                    (selectedVariant.value === variant.value && selectedVariant.name === variant.name)
+                  );
                   const isVarOut = variant.stock <= 0;
 
                   return (

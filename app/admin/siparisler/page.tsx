@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ShoppingBag, Search, Printer, Truck, Check, Eye } from 'lucide-react';
 import { Order } from '@/lib/types/ecommerce';
-import { DataService } from '@/lib/data/store-data';
+import { DataService, normalizeTurkish } from '@/lib/data/store-data';
 import { formatPrice, formatDate } from '@/lib/utils/format';
 
 export default function AdminOrdersPage() {
@@ -18,11 +18,13 @@ export default function AdminOrdersPage() {
 
   const filtered = orders.filter((o) => {
     const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
-    const matchesQuery =
-      o.order_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.shipping_address.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (o.guest_email && o.guest_email.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesStatus && matchesQuery;
+    if (!matchesStatus) return false;
+    if (!searchQuery.trim()) return true;
+    const q = normalizeTurkish(searchQuery);
+    const numMatch = normalizeTurkish(o.order_number).includes(q);
+    const nameMatch = normalizeTurkish(o.shipping_address?.full_name || '').includes(q);
+    const emailMatch = normalizeTurkish(o.guest_email || '').includes(q);
+    return numMatch || nameMatch || emailMatch;
   });
 
   return (

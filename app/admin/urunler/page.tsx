@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Package, Plus, Search, Edit3, Trash2, ExternalLink, Sparkles } from 'lucide-react';
 import { Product } from '@/lib/types/ecommerce';
-import { DataService } from '@/lib/data/store-data';
+import { DataService, normalizeTurkish } from '@/lib/data/store-data';
 import { formatPrice } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
@@ -34,10 +34,11 @@ export default function AdminProductsPage() {
     }
   };
 
-  const filtered = products.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.sku.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filtered = products.filter((p) => {
+    if (!searchQuery.trim()) return true;
+    const q = normalizeTurkish(searchQuery);
+    return normalizeTurkish(p.name).includes(q) || normalizeTurkish(p.sku).includes(q);
+  });
 
   return (
     <div className="space-y-6">

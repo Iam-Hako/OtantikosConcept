@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Zap, Save, Check, Search, RefreshCw, ArrowLeft } from 'lucide-react';
 import { Product } from '@/lib/types/ecommerce';
-import { DataService } from '@/lib/data/store-data';
+import { DataService, normalizeTurkish } from '@/lib/data/store-data';
 import { formatPrice } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
@@ -54,6 +54,12 @@ export default function QuickStockPage() {
 
     setIsSaving((prev) => ({ ...prev, [product.id]: true }));
     await DataService.updateQuickStockAndPrice(product.id, current.stock, current.price);
+    
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === product.id ? { ...p, stock: current.stock, price: current.price } : p
+      )
+    );
     setIsSaving((prev) => ({ ...prev, [product.id]: false }));
 
     toast.success(`"${product.name}" güncellendi!`, {
@@ -68,13 +74,20 @@ export default function QuickStockPage() {
         await DataService.updateQuickStockAndPrice(p.id, current.stock, current.price);
       }
     }
+    setProducts((prev) =>
+      prev.map((p) => {
+        const current = editedValues[p.id];
+        return current ? { ...p, stock: current.stock, price: current.price } : p;
+      })
+    );
     toast.success('Tüm ürün stok ve fiyat değişiklikleri canlıya kaydedildi!');
   };
 
-  const filtered = products.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.sku.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filtered = products.filter((p) => {
+    if (!searchQuery.trim()) return true;
+    const q = normalizeTurkish(searchQuery);
+    return normalizeTurkish(p.name).includes(q) || normalizeTurkish(p.sku).includes(q);
+  });
 
   return (
     <div className="space-y-6">
