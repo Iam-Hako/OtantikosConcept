@@ -56,11 +56,6 @@ export default function HomePage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-20 lg:py-24 min-h-[calc(100dvh-5rem)] flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-8 lg:gap-12">
           {/* Left Hero Text */}
           <div className="flex-1 space-y-5 sm:space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 text-[11px] sm:text-xs font-bold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Eminönü Tahtakale Doğrudan İthalat & Üretim</span>
-            </div>
-
             <h1 className="text-2xl sm:text-5xl lg:text-6xl font-serif font-black tracking-tight leading-[1.2] text-white">
               Otantik Zanaat, <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500">
