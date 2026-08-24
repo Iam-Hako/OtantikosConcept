@@ -39,10 +39,6 @@ export default function Navbar() {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  if (pathname?.startsWith('/admin')) {
-    return null;
-  }
-
   useEffect(() => {
     DataService.getCategories().then(setCategories);
   }, []);
@@ -80,6 +76,10 @@ export default function Navbar() {
       router.push(`/kategori/tum-urunler?ara=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
+
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white border-b border-stone-200 shadow-2xs">
