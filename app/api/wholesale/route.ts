@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
 import { WholesaleRequest } from '@/lib/types/ecommerce';
 
 const DATA_DIR = path.join(process.cwd(), '.data');
@@ -44,6 +45,12 @@ function saveStoredRequests(list: WholesaleRequest[]) {
 }
 
 export async function GET() {
+  // Admin Authentication Required to view customer wholesale leads
+  const auth = await verifyAdminAuth();
+  if (!auth.isAuthorized) {
+    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+  }
+
   try {
     const supabase = createAdminClient();
     const { data, error } = await supabase
@@ -71,15 +78,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Eksik zorunlu alanlar' }, { status: 400 });
     }
 
+    const cleanCompany = String(company_name).trim().slice(0, 100);
+    const cleanContact = String(contact_name).trim().slice(0, 80);
+    const cleanEmail = String(email).trim().slice(0, 100);
+    const cleanPhone = String(phone).trim().slice(0, 30);
+    const cleanCity = String(city).trim().slice(0, 50);
+    const cleanVolume = estimated_volume ? String(estimated_volume).trim().slice(0, 50) : '100 - 500 Adet';
+    const cleanNotes = notes ? String(notes).trim().slice(0, 2000) : '';
+
     const newReq: WholesaleRequest = {
       id: `ws-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      company_name,
-      contact_name,
-      email,
-      phone,
-      city,
-      estimated_volume: estimated_volume || '100 - 500 Adet',
-      notes: notes || '',
+      company_name: cleanCompany,
+      contact_name: cleanContact,
+      email: cleanEmail,
+      phone: cleanPhone,
+      city: cleanCity,
+      estimated_volume: cleanVolume,
+      notes: cleanNotes,
       status: 'beklemede',
       created_at: new Date().toISOString(),
     };
@@ -95,13 +110,13 @@ export async function POST(request: Request) {
       const { data, error } = await supabase
         .from('wholesale_requests')
         .insert({
-          company_name,
-          contact_name,
-          email,
-          phone,
-          city,
-          estimated_volume: newReq.estimated_volume,
-          notes: newReq.notes,
+          company_name: cleanCompany,
+          contact_name: cleanContact,
+          email: cleanEmail,
+          phone: cleanPhone,
+          city: cleanCity,
+          estimated_volume: cleanVolume,
+          notes: cleanNotes,
           status: 'beklemede',
         })
         .select('id')
@@ -122,6 +137,12 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  // Admin Authentication Required
+  const auth = await verifyAdminAuth();
+  if (!auth.isAuthorized) {
+    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { id, status } = body;
@@ -154,6 +175,12 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  // Admin Authentication Required
+  const auth = await verifyAdminAuth();
+  if (!auth.isAuthorized) {
+    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

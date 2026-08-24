@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
 import { Review } from '@/lib/types/ecommerce';
 
 const DATA_DIR = path.join(process.cwd(), '.data');
@@ -47,11 +48,19 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const productId = searchParams.get('product_id');
 
+  // If requesting all reviews without product_id, must be authenticated Admin
+  if (!productId) {
+    const auth = await verifyAdminAuth();
+    if (!auth.isAuthorized) {
+      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+    }
+  }
+
   try {
     const supabase = createAdminClient();
     let query = supabase.from('reviews').select('*').order('created_at', { ascending: false });
     if (productId) {
-      query = query.eq('product_id', productId);
+      query = query.eq('product_id', productId).eq('is_approved', true);
     }
     const { data, error } = await query;
     if (!error && data && data.length > 0) {
@@ -63,7 +72,7 @@ export async function GET(request: Request) {
 
   const stored = getStoredReviews();
   if (productId) {
-    return NextResponse.json(stored.filter((r) => r.product_id === productId));
+    return NextResponse.json(stored.filter((r) => r.product_id === productId && r.is_approved));
   }
   return NextResponse.json(stored);
 }
@@ -71,20 +80,24 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { product_id, user_name, user_id, rating, comment, is_approved } = body;
+    const { product_id, user_name, user_id, rating, comment } = body;
 
-    if (!product_id || !user_name || !rating || !comment) {
+    if (!product_id || !user_name || !comment) {
       return NextResponse.json({ error: 'Eksik alanlar' }, { status: 400 });
     }
+
+    const cleanUserName = String(user_name).trim().slice(0, 80);
+    const cleanComment = String(comment).trim().slice(0, 1000);
+    const clampedRating = Math.min(5, Math.max(1, Math.round(Number(rating) || 5)));
 
     const newRev: Review = {
       id: `rev-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       product_id,
       user_id: user_id || null,
-      user_name,
-      rating: Number(rating) || 5,
-      comment,
-      is_approved: is_approved !== undefined ? Boolean(is_approved) : true,
+      user_name: cleanUserName,
+      rating: clampedRating,
+      comment: cleanComment,
+      is_approved: true,
       created_at: new Date().toISOString(),
     };
 
@@ -97,10 +110,10 @@ export async function POST(request: Request) {
       await supabase.from('reviews').insert({
         product_id,
         user_id: newRev.user_id,
-        user_name,
-        rating: newRev.rating,
-        comment,
-        is_approved: newRev.is_approved,
+        user_name: cleanUserName,
+        rating: clampedRating,
+        comment: cleanComment,
+        is_approved: true,
       });
     } catch {
       // Fallback
@@ -113,6 +126,12 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  // Admin Authentication Required
+  const auth = await verifyAdminAuth();
+  if (!auth.isAuthorized) {
+    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { id, is_approved } = body;
@@ -130,7 +149,7 @@ export async function PATCH(request: Request) {
 
     try {
       const supabase = createAdminClient();
-      await supabase.from('reviews').update({ is_approved }).eq('id', id);
+      await supabase.from('reviews').update({ is_approved: Boolean(is_approved) }).eq('id', id);
     } catch {
       // Fallback
     }
@@ -142,6 +161,12 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  // Admin Authentication Required
+  const auth = await verifyAdminAuth();
+  if (!auth.isAuthorized) {
+    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

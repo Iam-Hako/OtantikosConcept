@@ -3,10 +3,18 @@ import { DataService } from '@/lib/data/store-data';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { order_number, status, payment_id, signature } = body;
+    const configuredSecret = process.env.PAYMENT_WEBHOOK_SECRET;
+    if (configuredSecret) {
+      const incomingSecret = request.headers.get('x-webhook-secret') || request.headers.get('x-payment-secret');
+      if (incomingSecret !== configuredSecret) {
+        return NextResponse.json({ error: 'Geçersiz webhook kimlik doğrulaması' }, { status: 401 });
+      }
+    }
 
-    if (!order_number) {
+    const body = await request.json();
+    const { order_number, status } = body;
+
+    if (!order_number || !status) {
       return NextResponse.json({ error: 'Geçersiz webhook verisi' }, { status: 400 });
     }
 

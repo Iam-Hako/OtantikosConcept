@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
+import { deduplicateLiveChatMessages } from '@/lib/data/store-data';
 import { LiveChatMessage, LiveChatSession } from '@/lib/types/ecommerce';
 
 // Server-side persistent live chat store (Shared across all devices, browsers, and tabs)
@@ -46,34 +48,18 @@ function saveStoredSessions(sessions: LiveChatSession[]) {
   }
 }
 
-function deduplicateMessages(messages: LiveChatMessage[]): LiveChatMessage[] {
-  if (!Array.isArray(messages)) return [];
-  const seenIds = new Set<string>();
-  const result: LiveChatMessage[] = [];
-
-  for (const m of messages) {
-    if (!m) continue;
-    if (m.id && seenIds.has(m.id)) continue;
-
-    const isDuplicate = result.some(
-      (existing) =>
-        existing.sender_type === m.sender_type &&
-        existing.message_text.trim() === m.message_text.trim() &&
-        Math.abs(new Date(existing.created_at).getTime() - new Date(m.created_at).getTime()) < 3000
-    );
-
-    if (!isDuplicate) {
-      if (m.id) seenIds.add(m.id);
-      result.push(m);
-    }
-  }
-  return result;
-}
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get('session_id');
   const customerEmail = searchParams.get('customer_email');
+
+  // If requesting all sessions (no filter), require admin authentication
+  if (!sessionId && !customerEmail) {
+    const auth = await verifyAdminAuth();
+    if (!auth.isAuthorized) {
+      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+    }
+  }
 
   // Try Supabase first if tables exist
   try {
@@ -88,7 +74,7 @@ export async function GET(request: Request) {
       if (!error && data) {
         if (data.messages && Array.isArray(data.messages)) {
           data.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-          data.messages = deduplicateMessages(data.messages);
+          data.messages = deduplicateLiveChatMessages(data.messages);
           data.last_message = data.messages[data.messages.length - 1] || null;
         }
         return NextResponse.json(data);
@@ -105,7 +91,7 @@ export async function GET(request: Request) {
       if (!error && data) {
         if (data.messages && Array.isArray(data.messages)) {
           data.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-          data.messages = deduplicateMessages(data.messages);
+          data.messages = deduplicateLiveChatMessages(data.messages);
           data.last_message = data.messages[data.messages.length - 1] || null;
         }
         return NextResponse.json(data);
@@ -120,7 +106,7 @@ export async function GET(request: Request) {
         data.forEach((s: any) => {
           if (s.messages && Array.isArray(s.messages)) {
             s.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-            s.messages = deduplicateMessages(s.messages);
+            s.messages = deduplicateLiveChatMessages(s.messages);
             s.last_message = s.messages[s.messages.length - 1] || null;
           }
         });
@@ -136,20 +122,20 @@ export async function GET(request: Request) {
   if (sessionId) {
     const session = sessions.find((s) => s.session_id === sessionId) || null;
     if (session && session.messages) {
-      session.messages = deduplicateMessages(session.messages);
+      session.messages = deduplicateLiveChatMessages(session.messages);
     }
     return NextResponse.json(session);
   }
   if (customerEmail) {
     const session = sessions.find((s) => s.customer_email === customerEmail) || null;
     if (session && session.messages) {
-      session.messages = deduplicateMessages(session.messages);
+      session.messages = deduplicateLiveChatMessages(session.messages);
     }
     return NextResponse.json(session);
   }
 
   sessions.forEach(s => {
-    if (s.messages) s.messages = deduplicateMessages(s.messages);
+    if (s.messages) s.messages = deduplicateLiveChatMessages(s.messages);
   });
   return NextResponse.json(sessions);
 }
@@ -163,11 +149,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Eksik parametre' }, { status: 400 });
     }
 
+    const cleanMessageText = String(message_text).trim().slice(0, 2000);
+    const cleanCustomerName = customer_name ? String(customer_name).trim().slice(0, 80) : undefined;
+    const cleanCustomerEmail = customer_email ? String(customer_email).trim().slice(0, 100) : undefined;
+
     const newMsg: LiveChatMessage = {
       id: `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       session_id,
       sender_type,
-      message_text,
+      message_text: cleanMessageText,
       created_at: new Date().toISOString(),
     };
 
@@ -179,8 +169,8 @@ export async function POST(request: Request) {
       session = {
         id: `chat-${session_id}`,
         session_id,
-        customer_name: customer_name || 'Ziyaretçi',
-        customer_email: customer_email || null,
+        customer_name: cleanCustomerName || 'Ziyaretçi',
+        customer_email: cleanCustomerEmail || null,
         status: 'active',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -191,13 +181,14 @@ export async function POST(request: Request) {
     } else {
       session.messages = session.messages || [];
       session.messages.push(newMsg);
+      session.messages = deduplicateLiveChatMessages(session.messages);
       session.last_message = newMsg;
       session.updated_at = new Date().toISOString();
-      if (customer_name && session.customer_name === 'Ziyaretçi') {
-        session.customer_name = customer_name;
+      if (cleanCustomerName && session.customer_name === 'Ziyaretçi') {
+        session.customer_name = cleanCustomerName;
       }
-      if (customer_email && !session.customer_email) {
-        session.customer_email = customer_email;
+      if (cleanCustomerEmail && !session.customer_email) {
+        session.customer_email = cleanCustomerEmail;
       }
     }
 
@@ -221,7 +212,7 @@ export async function POST(request: Request) {
         .insert({
           session_id,
           sender_type,
-          message_text,
+          message_text: cleanMessageText,
         });
     } catch {
       // Supabase table may not be initialized yet
@@ -234,6 +225,12 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  // Admin Authentication Required
+  const auth = await verifyAdminAuth();
+  if (!auth.isAuthorized) {
+    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { session_id, status } = body;
@@ -267,6 +264,12 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  // Admin Authentication Required
+  const auth = await verifyAdminAuth();
+  if (!auth.isAuthorized) {
+    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('session_id');

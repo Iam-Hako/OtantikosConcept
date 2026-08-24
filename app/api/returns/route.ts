@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
 import { ReturnRequest } from '@/lib/types/ecommerce';
 
 const DATA_DIR = path.join(process.cwd(), '.data');
@@ -47,6 +48,14 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('user_id');
 
+  // If requesting all returns without user_id, must be authenticated Admin
+  if (!userId) {
+    const auth = await verifyAdminAuth();
+    if (!auth.isAuthorized) {
+      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+    }
+  }
+
   try {
     const supabase = createAdminClient();
     let query = supabase.from('returns').select('*').order('created_at', { ascending: false });
@@ -77,13 +86,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Eksik alanlar' }, { status: 400 });
     }
 
+    const cleanReason = String(reason).trim().slice(0, 100);
+    const cleanDetails = details ? String(details).trim().slice(0, 1000) : '';
+
     const newRet: ReturnRequest = {
       id: `ret-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       order_id,
       order_item_id: order_item_id || null,
       user_id: user_id || null,
-      reason,
-      details: details || '',
+      reason: cleanReason,
+      details: cleanDetails,
       status: 'talep_alindi',
       admin_response: null,
       created_at: new Date().toISOString(),
@@ -100,8 +112,8 @@ export async function POST(request: Request) {
         order_id,
         order_item_id: newRet.order_item_id,
         user_id: newRet.user_id,
-        reason,
-        details: newRet.details,
+        reason: cleanReason,
+        details: cleanDetails,
         status: 'talep_alindi',
       });
     } catch {
@@ -115,6 +127,12 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  // Admin Authentication Required
+  const auth = await verifyAdminAuth();
+  if (!auth.isAuthorized) {
+    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { id, status, admin_response } = body;
@@ -123,11 +141,16 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Eksik id veya status' }, { status: 400 });
     }
 
+    const validStatuses = new Set(['talep_alindi', 'onaylandi', 'kargo_bekleniyor', 'inceleniyor', 'tamamlandi', 'reddedildi']);
+    if (!validStatuses.has(status)) {
+      return NextResponse.json({ error: 'Geçersiz iade durumu' }, { status: 400 });
+    }
+
     const list = getStoredReturns();
     const item = list.find((r) => r.id === id);
     if (item) {
       item.status = status;
-      if (admin_response !== undefined) item.admin_response = admin_response;
+      if (admin_response !== undefined) item.admin_response = String(admin_response).trim().slice(0, 1000);
       item.updated_at = new Date().toISOString();
       saveStoredReturns(list);
     }
@@ -136,7 +159,7 @@ export async function PATCH(request: Request) {
       const supabase = createAdminClient();
       await supabase.from('returns').update({
         status,
-        admin_response,
+        admin_response: admin_response !== undefined ? String(admin_response).trim().slice(0, 1000) : undefined,
         updated_at: new Date().toISOString(),
       }).eq('id', id);
     } catch {

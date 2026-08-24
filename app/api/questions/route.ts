@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
 import { Question } from '@/lib/types/ecommerce';
 
 const DATA_DIR = path.join(process.cwd(), '.data');
@@ -47,14 +48,26 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const productId = searchParams.get('product_id');
 
+  // If requesting all questions without product_id, must be authenticated Admin
+  if (!productId) {
+    const auth = await verifyAdminAuth();
+    if (!auth.isAuthorized) {
+      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+    }
+  }
+
   try {
     const supabase = createAdminClient();
     let query = supabase.from('questions').select('*').order('created_at', { ascending: false });
     if (productId) {
-      query = query.eq('product_id', productId);
+      query = query.eq('product_id', productId).eq('is_approved', true);
     }
     const { data, error } = await query;
     if (!error && data && data.length > 0) {
+      // Redact email for public visitors
+      if (productId) {
+        return NextResponse.json(data.map((q) => ({ ...q, user_email: null })));
+      }
       return NextResponse.json(data);
     }
   } catch {
@@ -63,7 +76,11 @@ export async function GET(request: Request) {
 
   const stored = getStoredQuestions();
   if (productId) {
-    return NextResponse.json(stored.filter((q) => q.product_id === productId));
+    return NextResponse.json(
+      stored
+        .filter((q) => q.product_id === productId && q.is_approved)
+        .map((q) => ({ ...q, user_email: null }))
+    );
   }
   return NextResponse.json(stored);
 }
@@ -77,15 +94,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Eksik alanlar' }, { status: 400 });
     }
 
+    const cleanUserName = String(user_name).trim().slice(0, 80);
+    const cleanQuestionText = String(question_text).trim().slice(0, 1000);
+    const cleanEmail = user_email ? String(user_email).trim().slice(0, 100) : null;
+
     const newQ: Question = {
       id: `q-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       product_id,
       user_id: user_id || null,
-      user_name,
-      user_email: user_email || null,
-      question_text,
+      user_name: cleanUserName,
+      user_email: cleanEmail,
+      question_text: cleanQuestionText,
       answer_text: null,
-      is_approved: false,
+      is_approved: false, // Always requires admin approval
       created_at: new Date().toISOString(),
       answered_at: null,
     };
@@ -99,9 +120,9 @@ export async function POST(request: Request) {
       await supabase.from('questions').insert({
         product_id,
         user_id: newQ.user_id,
-        user_name,
-        user_email: newQ.user_email,
-        question_text,
+        user_name: cleanUserName,
+        user_email: cleanEmail,
+        question_text: cleanQuestionText,
         is_approved: false,
       });
     } catch {
@@ -115,6 +136,12 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  // Admin Authentication Required
+  const auth = await verifyAdminAuth();
+  if (!auth.isAuthorized) {
+    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { id, answer_text, is_approved } = body;
@@ -127,7 +154,7 @@ export async function PATCH(request: Request) {
     const item = list.find((q) => q.id === id);
     if (item) {
       if (answer_text !== undefined) {
-        item.answer_text = answer_text;
+        item.answer_text = String(answer_text).trim().slice(0, 2000);
         item.answered_at = new Date().toISOString();
       }
       if (is_approved !== undefined) {
@@ -140,7 +167,7 @@ export async function PATCH(request: Request) {
       const supabase = createAdminClient();
       const updates: any = {};
       if (answer_text !== undefined) {
-        updates.answer_text = answer_text;
+        updates.answer_text = String(answer_text).trim().slice(0, 2000);
         updates.answered_at = new Date().toISOString();
       }
       if (is_approved !== undefined) {
@@ -158,6 +185,12 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  // Admin Authentication Required
+  const auth = await verifyAdminAuth();
+  if (!auth.isAuthorized) {
+    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
