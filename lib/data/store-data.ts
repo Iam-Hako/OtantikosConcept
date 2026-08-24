@@ -646,17 +646,34 @@ export const DataService = {
   },
 
   // ==========================================
-  // 4. RMA (RETURNS & EXCHANGES)
+  // 4. RETURNS (RMA)
   // ==========================================
   async getReturns(userId?: string): Promise<ReturnRequest[]> {
+    if (typeof window !== 'undefined') {
+      try {
+        const url = userId ? `/api/returns?user_id=${encodeURIComponent(userId)}` : '/api/returns';
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            runtimeReturns = data;
+            return data;
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
     try {
       const supabase = createClient();
-      let query = supabase.from('returns').select('*, order:orders(*)').order('created_at', { ascending: false });
-      if (userId) query = query.eq('user_id', userId);
+      let query = supabase.from('returns').select('*').order('created_at', { ascending: false });
+      if (userId) {
+        query = query.eq('user_id', userId);
+      }
       const { data, error } = await query;
       if (!error && data) {
         runtimeReturns = data as ReturnRequest[];
-        
         return runtimeReturns;
       }
     } catch {
@@ -673,6 +690,7 @@ export const DataService = {
     const newReturn: ReturnRequest = {
       id: `ret-${Date.now()}`,
       order_id: req.order_id!,
+      order_item_id: req.order_item_id || null,
       user_id: req.user_id || null,
       reason: req.reason || 'Diğer',
       details: req.details || '',
@@ -684,7 +702,28 @@ export const DataService = {
     const returns = runtimeReturns;
     returns.unshift(newReturn);
     runtimeReturns = returns;
-    
+
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch('/api/returns', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            order_id: req.order_id,
+            order_item_id: req.order_item_id,
+            user_id: req.user_id,
+            reason: req.reason,
+            details: req.details,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.return_request) return data.return_request;
+        }
+      } catch {
+        // Fallback
+      }
+    }
 
     try {
       const supabase = createClient();
@@ -698,7 +737,6 @@ export const DataService = {
 
       if (data) {
         newReturn.id = data.id;
-        
       }
     } catch {
       // Fallback
@@ -714,7 +752,19 @@ export const DataService = {
       ret.status = status;
       if (adminResponse !== undefined) ret.admin_response = adminResponse;
       ret.updated_at = new Date().toISOString();
-      
+    }
+    runtimeReturns = returns;
+
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch('/api/returns', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: returnId, status, admin_response: adminResponse }),
+        });
+      } catch {
+        // Fallback
+      }
     }
 
     try {
@@ -723,6 +773,7 @@ export const DataService = {
         await supabase.from('returns').update({
           status,
           admin_response: adminResponse,
+          updated_at: new Date().toISOString(),
         }).eq('id', returnId);
       }
     } catch {
@@ -736,6 +787,22 @@ export const DataService = {
   // 5. Q&A (QUESTIONS & ANSWERS)
   // ==========================================
   async getQuestions(productId?: string): Promise<Question[]> {
+    if (typeof window !== 'undefined') {
+      try {
+        const url = productId ? `/api/questions?product_id=${encodeURIComponent(productId)}` : '/api/questions';
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            runtimeQuestions = data;
+            return data;
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
     try {
       const supabase = createClient();
       let query = supabase.from('questions').select('*').order('created_at', { ascending: false });
@@ -745,7 +812,6 @@ export const DataService = {
       const { data, error } = await query;
       if (!error && data) {
         runtimeQuestions = data as Question[];
-        
         return runtimeQuestions;
       }
     } catch {
@@ -771,7 +837,27 @@ export const DataService = {
     const questions = runtimeQuestions;
     questions.unshift(newQ);
     runtimeQuestions = questions;
-    
+
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch('/api/questions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            product_id: productId,
+            user_name: userName,
+            user_email: userEmail,
+            question_text: questionText,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.question) return data.question;
+        }
+      } catch {
+        // Fallback
+      }
+    }
 
     try {
       const supabase = createClient();
@@ -785,7 +871,6 @@ export const DataService = {
 
       if (data) {
         newQ.id = data.id;
-        
       }
     } catch {
       // Fallback
@@ -801,7 +886,19 @@ export const DataService = {
       q.answer_text = answerText;
       q.is_approved = isApproved;
       q.answered_at = new Date().toISOString();
-      
+    }
+    runtimeQuestions = questions;
+
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch('/api/questions', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: questionId, answer_text: answerText, is_approved: isApproved }),
+        });
+      } catch {
+        // Fallback
+      }
     }
 
     try {
@@ -824,6 +921,22 @@ export const DataService = {
   // 6. REVIEWS
   // ==========================================
   async getReviews(productId?: string): Promise<Review[]> {
+    if (typeof window !== 'undefined') {
+      try {
+        const url = productId ? `/api/reviews?product_id=${encodeURIComponent(productId)}` : '/api/reviews';
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            runtimeReviews = data;
+            return data;
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
     try {
       const supabase = createClient();
       let query = supabase.from('reviews').select('*').order('created_at', { ascending: false });
@@ -833,7 +946,6 @@ export const DataService = {
       const { data, error } = await query;
       if (!error && data) {
         runtimeReviews = data as Review[];
-        
         return runtimeReviews;
       }
     } catch {
@@ -859,7 +971,28 @@ export const DataService = {
     const reviews = runtimeReviews;
     reviews.unshift(newRev);
     runtimeReviews = reviews;
-    
+
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch('/api/reviews', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            product_id: productId,
+            user_name: userName,
+            rating,
+            comment,
+            is_approved: true,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.review) return data.review;
+        }
+      } catch {
+        // Fallback
+      }
+    }
 
     try {
       const supabase = createClient();
@@ -873,7 +1006,6 @@ export const DataService = {
 
       if (data) {
         newRev.id = data.id;
-        
       }
     } catch {
       // Fallback
@@ -887,7 +1019,19 @@ export const DataService = {
     const r = reviews.find(item => item.id === reviewId);
     if (r) {
       r.is_approved = isApproved;
-      
+    }
+    runtimeReviews = reviews;
+
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch('/api/reviews', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: reviewId, is_approved: isApproved }),
+        });
+      } catch {
+        // Fallback
+      }
     }
 
     try {
@@ -1215,6 +1359,21 @@ export const DataService = {
   // 8. WHOLESALE B2B
   // ==========================================
   async getWholesaleRequests(): Promise<WholesaleRequest[]> {
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch('/api/wholesale');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            runtimeWholesale = data;
+            return data;
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -1224,7 +1383,6 @@ export const DataService = {
 
       if (!error && data) {
         runtimeWholesale = data as WholesaleRequest[];
-        
         return runtimeWholesale;
       }
     } catch {
@@ -1245,7 +1403,24 @@ export const DataService = {
     const list = runtimeWholesale;
     list.unshift(newReq);
     runtimeWholesale = list;
-    
+
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch('/api/wholesale', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(req),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.request) {
+            return data.request;
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
 
     try {
       const supabase = createClient();
@@ -1262,12 +1437,64 @@ export const DataService = {
 
       if (data) {
         newReq.id = data.id;
-        
       }
     } catch {
       // Fallback
     }
 
     return newReq;
+  },
+
+  async updateWholesaleStatus(id: string, status: WholesaleRequest['status']): Promise<boolean> {
+    const list = runtimeWholesale;
+    const item = list.find(r => r.id === id);
+    if (item) {
+      item.status = status;
+    }
+    runtimeWholesale = list;
+
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch('/api/wholesale', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, status }),
+        });
+      } catch {
+        // Fallback
+      }
+    }
+
+    try {
+      const supabase = createClient();
+      await supabase.from('wholesale_requests').update({ status }).eq('id', id);
+    } catch {
+      // Fallback
+    }
+
+    return true;
+  },
+
+  async deleteWholesaleRequest(id: string): Promise<boolean> {
+    runtimeWholesale = runtimeWholesale.filter(r => r.id !== id);
+
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch(`/api/wholesale?id=${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+        });
+      } catch {
+        // Fallback
+      }
+    }
+
+    try {
+      const supabase = createClient();
+      await supabase.from('wholesale_requests').delete().eq('id', id);
+    } catch {
+      // Fallback
+    }
+
+    return true;
   }
 };

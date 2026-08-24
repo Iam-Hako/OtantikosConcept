@@ -1,0 +1,168 @@
+import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { Review } from '@/lib/types/ecommerce';
+
+const DATA_DIR = path.join(process.cwd(), '.data');
+const FILE_PATH = path.join(DATA_DIR, 'reviews.json');
+
+declare global {
+  var __otantikos_reviews: Review[] | undefined;
+}
+
+function getStoredReviews(): Review[] {
+  if (globalThis.__otantikos_reviews && Array.isArray(globalThis.__otantikos_reviews)) {
+    return globalThis.__otantikos_reviews;
+  }
+  try {
+    if (fs.existsSync(FILE_PATH)) {
+      const data = fs.readFileSync(FILE_PATH, 'utf8');
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) {
+        globalThis.__otantikos_reviews = parsed;
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.error('Error reading reviews file:', err);
+  }
+  globalThis.__otantikos_reviews = [];
+  return [];
+}
+
+function saveStoredReviews(list: Review[]) {
+  globalThis.__otantikos_reviews = list;
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(FILE_PATH, JSON.stringify(list, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Error writing reviews file:', err);
+  }
+}
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const productId = searchParams.get('product_id');
+
+  try {
+    const supabase = createAdminClient();
+    let query = supabase.from('reviews').select('*').order('created_at', { ascending: false });
+    if (productId) {
+      query = query.eq('product_id', productId);
+    }
+    const { data, error } = await query;
+    if (!error && data && data.length > 0) {
+      return NextResponse.json(data);
+    }
+  } catch {
+    // Fallback
+  }
+
+  const stored = getStoredReviews();
+  if (productId) {
+    return NextResponse.json(stored.filter((r) => r.product_id === productId));
+  }
+  return NextResponse.json(stored);
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { product_id, user_name, user_id, rating, comment, is_approved } = body;
+
+    if (!product_id || !user_name || !rating || !comment) {
+      return NextResponse.json({ error: 'Eksik alanlar' }, { status: 400 });
+    }
+
+    const newRev: Review = {
+      id: `rev-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      product_id,
+      user_id: user_id || null,
+      user_name,
+      rating: Number(rating) || 5,
+      comment,
+      is_approved: is_approved !== undefined ? Boolean(is_approved) : true,
+      created_at: new Date().toISOString(),
+    };
+
+    const list = getStoredReviews();
+    list.unshift(newRev);
+    saveStoredReviews(list);
+
+    try {
+      const supabase = createAdminClient();
+      await supabase.from('reviews').insert({
+        product_id,
+        user_id: newRev.user_id,
+        user_name,
+        rating: newRev.rating,
+        comment,
+        is_approved: newRev.is_approved,
+      });
+    } catch {
+      // Fallback
+    }
+
+    return NextResponse.json({ success: true, review: newRev });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, is_approved } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Eksik id' }, { status: 400 });
+    }
+
+    const list = getStoredReviews();
+    const item = list.find((r) => r.id === id);
+    if (item) {
+      item.is_approved = Boolean(is_approved);
+      saveStoredReviews(list);
+    }
+
+    try {
+      const supabase = createAdminClient();
+      await supabase.from('reviews').update({ is_approved }).eq('id', id);
+    } catch {
+      // Fallback
+    }
+
+    return NextResponse.json({ success: true, review: item });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Eksik id' }, { status: 400 });
+    }
+
+    let list = getStoredReviews();
+    list = list.filter((r) => r.id !== id);
+    saveStoredReviews(list);
+
+    try {
+      const supabase = createAdminClient();
+      await supabase.from('reviews').delete().eq('id', id);
+    } catch {
+      // Fallback
+    }
+
+    return NextResponse.json({ success: true, message: 'Yorum silindi' });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
