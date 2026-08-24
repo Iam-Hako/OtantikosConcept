@@ -8,34 +8,38 @@ import { Sparkles } from 'lucide-react';
 export default function NavigationLoader() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [showPill, setShowPill] = useState(false);
-  
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const pillTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const finishTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const safetyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // When pathname or searchParams change, route navigation has completed!
+  // When pathname or searchParams change, route transition has arrived
   useEffect(() => {
-    // Finish progress bar smoothly
+    if (!isVisible && !isFadingOut) return;
+
+    // Fast finish to 100%
     setProgress(100);
-    
-    const timeout = setTimeout(() => {
-      setIsLoading(false);
-      setShowPill(false);
+
+    // Smooth fade out
+    setIsFadingOut(true);
+    finishTimerRef.current = setTimeout(() => {
+      setIsVisible(false);
+      setIsFadingOut(false);
       setProgress(0);
-    }, 280);
+    }, 320);
 
     return () => {
-      clearTimeout(timeout);
+      if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
     };
   }, [pathname, searchParams]);
 
-  // Intercept internal link clicks to trigger instant visual feedback
+  // Intercept all internal navigation link clicks
   useEffect(() => {
     const handleDocumentClick = (e: MouseEvent) => {
-      // Find nearest <a> tag
       const target = (e.target as HTMLElement)?.closest('a');
       if (!target) return;
 
@@ -43,7 +47,7 @@ export default function NavigationLoader() {
       const targetAttr = target.getAttribute('target');
       const download = target.getAttribute('download');
 
-      // Ignore external, download, new tab, hash anchors, or javascript links
+      // Ignore external, tel, mailto, anchor, download, or modifier keys
       if (
         !href ||
         href.startsWith('http://') ||
@@ -61,107 +65,132 @@ export default function NavigationLoader() {
         return;
       }
 
-      // Check if navigating to the exact same URL
-      const currentUrl = window.location.pathname + window.location.search;
-      if (href === currentUrl) return;
+      // Check if clicking current active route
+      const currentPath = window.location.pathname + window.location.search;
+      if (href === currentPath) return;
 
-      // Start the loading animation!
-      if (timerRef.current) clearTimeout(timerRef.current);
-      if (pillTimerRef.current) clearTimeout(pillTimerRef.current);
+      // Start full-screen loading overlay
+      if (startTimerRef.current) clearTimeout(startTimerRef.current);
+      if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
 
-      setIsLoading(true);
-      setProgress(15);
+      setIsFadingOut(false);
+      setIsVisible(true);
+      setProgress(20);
 
-      // Smooth simulated progress trickle
+      // Smooth progress animation
       progressIntervalRef.current = setInterval(() => {
         setProgress((prev) => {
-          if (prev >= 88) {
+          if (prev >= 90) {
             if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
             return prev;
           }
-          const step = Math.max(1, (90 - prev) * 0.12);
-          return Math.min(88, prev + step);
+          const step = Math.max(1, (92 - prev) * 0.15);
+          return Math.min(90, prev + step);
         });
-      }, 100);
+      }, 80);
 
-      // Show floating branded badge if navigation takes > 120ms
-      pillTimerRef.current = setTimeout(() => {
-        setShowPill(true);
-      }, 120);
+      // Safety timeout: Automatically dismiss after 4 seconds to never trap the user
+      safetyTimerRef.current = setTimeout(() => {
+        setIsFadingOut(true);
+        setTimeout(() => {
+          setIsVisible(false);
+          setIsFadingOut(false);
+          setProgress(0);
+        }, 300);
+      }, 4000);
     };
 
     document.addEventListener('click', handleDocumentClick, { capture: true });
 
     return () => {
       document.removeEventListener('click', handleDocumentClick, { capture: true });
-      if (timerRef.current) clearTimeout(timerRef.current);
-      if (pillTimerRef.current) clearTimeout(pillTimerRef.current);
+      if (startTimerRef.current) clearTimeout(startTimerRef.current);
+      if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     };
   }, []);
 
-  if (!isLoading && progress === 0) return null;
+  if (!isVisible) return null;
 
   return (
-    <>
-      {/* 1. Top Sleek Golden Shimmer Progress Bar */}
-      <div 
-        className="fixed top-0 left-0 right-0 z-[99999] pointer-events-none h-[3.5px] bg-transparent overflow-hidden"
-        aria-hidden="true"
-      >
+    <div
+      className={`fixed inset-0 z-[999999] flex flex-col items-center justify-center bg-stone-950/80 backdrop-blur-md transition-opacity duration-300 ${
+        isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      }`}
+      style={{ willChange: 'opacity' }}
+      aria-label="Yükleniyor"
+      role="status"
+    >
+      {/* 1. Top Glowing Golden Progress Bar */}
+      <div className="fixed top-0 left-0 right-0 h-[4px] bg-stone-900/50 overflow-hidden z-50">
         <div
-          className="h-full bg-gradient-to-r from-amber-600 via-amber-400 to-amber-300 transition-all ease-out duration-200 relative"
+          className="h-full bg-gradient-to-r from-amber-600 via-amber-400 to-amber-300 transition-all ease-out duration-150 relative"
           style={{
             width: `${progress}%`,
-            opacity: progress === 100 ? 0 : 1,
-            boxShadow: '0 0 16px 2px rgba(245, 158, 11, 0.9), 0 0 8px 1px rgba(251, 191, 36, 0.8)',
+            boxShadow: '0 0 20px 3px rgba(245, 158, 11, 0.95), 0 0 10px 1px rgba(251, 191, 36, 0.9)',
           }}
         >
-          {/* Animated Glowing Head Particle */}
-          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-r from-transparent to-white/90 blur-[1px]" />
+          <div className="absolute right-0 top-0 bottom-0 w-28 bg-gradient-to-r from-transparent to-white/95 blur-[1px]" />
         </div>
       </div>
 
-      {/* 2. Floating Branded Animated Loading Badge (Smooth Fade In/Out) */}
-      <div
-        className={`fixed bottom-6 sm:bottom-8 right-6 z-[99998] pointer-events-none transition-all duration-300 transform ${
-          showPill && isLoading
-            ? 'opacity-100 translate-y-0 scale-100'
-            : 'opacity-0 translate-y-3 scale-95'
-        }`}
-        aria-hidden="true"
-      >
-        <div className="bg-stone-900/90 text-white backdrop-blur-md px-4 py-2.5 rounded-2xl border border-amber-500/40 shadow-2xl shadow-amber-950/40 flex items-center gap-3">
+      {/* 2. Centered Luxury Otantikos Animated Emblem & Typography */}
+      <div className="flex flex-col items-center space-y-6 px-6 text-center animate-in fade-in zoom-in-95 duration-200">
+        
+        {/* Animated Emblem Container */}
+        <div className="relative flex items-center justify-center">
+          {/* Ambient Golden Glow Halo */}
+          <div className="absolute -inset-8 rounded-full bg-amber-500/25 blur-2xl animate-pulse" />
           
-          {/* Pulsing Logo Emblem */}
-          <div className="relative w-7 h-7 rounded-xl bg-stone-800 border border-amber-500/40 p-1 flex items-center justify-center shrink-0">
-            <Image 
-              src="/images/logo.webp" 
-              alt="Otantikos" 
-              width={20} 
-              height={20} 
-              className="object-contain animate-pulse" 
-            />
-            {/* Spinning Ring */}
-            <div className="absolute -inset-1 rounded-xl border border-amber-400/50 border-t-transparent animate-spin" />
-          </div>
+          {/* Outer Spinning Golden Ring */}
+          <div 
+            className="absolute -inset-3 sm:-inset-4 rounded-3xl border-2 border-amber-500/30 border-t-amber-400 border-r-amber-300 animate-spin" 
+            style={{ animationDuration: '1.6s' }} 
+          />
 
-          {/* Shimmering Text */}
-          <div className="flex flex-col pr-1">
-            <div className="flex items-center gap-1">
-              <span className="font-serif font-black text-xs text-amber-300 tracking-wide">
-                Otantikos Concept
-              </span>
-              <Sparkles className="w-3 h-3 text-amber-400 animate-spin" style={{ animationDuration: '3s' }} />
-            </div>
-            <span className="text-[10px] text-stone-300 font-medium">
-              Sayfa hazırlanıyor...
+          {/* Inner Counter-Rotating Golden Ring */}
+          <div 
+            className="absolute -inset-1 rounded-2xl border border-amber-400/40 border-b-amber-300 border-l-transparent animate-spin" 
+            style={{ animationDuration: '2.4s', animationDirection: 'reverse' }} 
+          />
+
+          {/* Core Logo Card */}
+          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-stone-900/95 border border-amber-500/60 p-3 flex items-center justify-center shadow-2xl shadow-amber-950/80">
+            <Image
+              src="/images/logo.webp"
+              alt="Otantikos Concept"
+              width={64}
+              height={64}
+              className="object-contain animate-pulse"
+              priority
+            />
+          </div>
+        </div>
+
+        {/* Brand Text & Status */}
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-950/60 border border-amber-500/40 shadow-lg">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin" style={{ animationDuration: '3s' }} />
+            <span className="text-xs sm:text-sm font-serif font-black tracking-widest text-amber-300">
+              OTANTİKOS CONCEPT
             </span>
           </div>
 
+          <div className="flex items-center justify-center gap-1.5 text-xs text-stone-300 font-medium">
+            <span>Yükleniyor</span>
+            <span className="inline-flex gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+            </span>
+          </div>
         </div>
+
       </div>
-    </>
+
+    </div>
   );
 }
