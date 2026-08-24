@@ -1146,6 +1146,71 @@ export const DataService = {
     return newMsg;
   },
 
+  async updateChatSessionStatus(sessionId: string, status: 'active' | 'closed'): Promise<boolean> {
+    const sessions = runtimeChatSessions;
+    const session = sessions.find(s => s.session_id === sessionId);
+    if (session) {
+      session.status = status;
+      session.updated_at = new Date().toISOString();
+    }
+    runtimeChatSessions = sessions;
+
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch('/api/live-chat', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId, status }),
+        });
+      } catch {
+        // Fallback
+      }
+    }
+
+    try {
+      const supabase = createClient();
+      await supabase
+        .from('live_chat_sessions')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('session_id', sessionId);
+    } catch {
+      // Fallback
+    }
+
+    return true;
+  },
+
+  async deleteChatSession(sessionId: string): Promise<boolean> {
+    runtimeChatSessions = runtimeChatSessions.filter(s => s.session_id !== sessionId);
+
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch(`/api/live-chat?session_id=${encodeURIComponent(sessionId)}`, {
+          method: 'DELETE',
+        });
+      } catch {
+        // Fallback
+      }
+    }
+
+    try {
+      const supabase = createClient();
+      await supabase
+        .from('live_chat_messages')
+        .delete()
+        .eq('session_id', sessionId);
+
+      await supabase
+        .from('live_chat_sessions')
+        .delete()
+        .eq('session_id', sessionId);
+    } catch {
+      // Fallback
+    }
+
+    return true;
+  },
+
   // ==========================================
   // 8. WHOLESALE B2B
   // ==========================================

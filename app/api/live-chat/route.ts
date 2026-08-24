@@ -196,3 +196,70 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { session_id, status } = body;
+
+    if (!session_id || !status) {
+      return NextResponse.json({ error: 'Eksik parametre' }, { status: 400 });
+    }
+
+    const sessions = getStoredSessions();
+    const session = sessions.find((s) => s.session_id === session_id);
+    if (session) {
+      session.status = status;
+      session.updated_at = new Date().toISOString();
+      saveStoredSessions(sessions);
+    }
+
+    try {
+      const supabase = createAdminClient();
+      await supabase
+        .from('live_chat_sessions')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('session_id', session_id);
+    } catch {
+      // Fallback
+    }
+
+    return NextResponse.json({ success: true, session });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const sessionId = searchParams.get('session_id');
+
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Eksik session_id parametresi' }, { status: 400 });
+    }
+
+    let sessions = getStoredSessions();
+    sessions = sessions.filter((s) => s.session_id !== sessionId);
+    saveStoredSessions(sessions);
+
+    try {
+      const supabase = createAdminClient();
+      await supabase
+        .from('live_chat_messages')
+        .delete()
+        .eq('session_id', sessionId);
+
+      await supabase
+        .from('live_chat_sessions')
+        .delete()
+        .eq('session_id', sessionId);
+    } catch {
+      // Fallback
+    }
+
+    return NextResponse.json({ success: true, message: 'Görüşme silindi' });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
