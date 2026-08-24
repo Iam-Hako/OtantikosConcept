@@ -40,7 +40,7 @@ function CategoryContent() {
   const [searchQuery, setSearchQuery] = useState(urlSearch);
   const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'rating' | 'newest'>('featured');
   const [onlyInStock, setOnlyInStock] = useState(false);
-  const [maxPrice, setMaxPrice] = useState<number>(1000);
+  const [maxPrice, setMaxPrice] = useState<number>(50000);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   useEffect(() => {
@@ -59,8 +59,13 @@ function CategoryContent() {
         setAllProducts(prodList);
         setCategories(catList);
 
+        if (prodList.length > 0) {
+          const highestPrice = Math.max(...prodList.map((p) => Number(p.price) || 0), 1000);
+          setMaxPrice(highestPrice);
+        }
+
         if (slug && slug !== 'tum-urunler') {
-          const found = catList.find((c) => c.slug === slug);
+          const found = catList.find((c) => c.slug === slug || normalizeTurkish(c.name) === normalizeTurkish(slug));
           setCurrentCategory(found || null);
         } else {
           setCurrentCategory(null);
@@ -78,7 +83,11 @@ function CategoryContent() {
 
     // Category filter
     if (slug && slug !== 'tum-urunler') {
-      list = list.filter((p) => p.category?.slug === slug || p.category_id === currentCategory?.id);
+      list = list.filter((p) => 
+        p.category?.slug === slug || 
+        p.category_id === currentCategory?.id ||
+        (p.category?.name && currentCategory?.name && normalizeTurkish(p.category.name) === normalizeTurkish(currentCategory.name))
+      );
     }
 
     // Search query filter

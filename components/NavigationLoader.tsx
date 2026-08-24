@@ -12,32 +12,30 @@ export default function NavigationLoader() {
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  const startTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const prevPathRef = useRef(pathname + (searchParams?.toString() || ''));
   const finishTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const safetyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // When pathname or searchParams change, route transition has arrived
+  // When pathname or searchParams change, route transition is finished
   useEffect(() => {
-    if (!isVisible && !isFadingOut) return;
+    const currentPath = pathname + (searchParams?.toString() || '');
+    if (prevPathRef.current !== currentPath) {
+      prevPathRef.current = currentPath;
 
-    // Fast finish to 100%
-    setProgress(100);
+      // Complete progress smoothly
+      setProgress(100);
+      setIsFadingOut(true);
 
-    // Smooth fade out
-    setIsFadingOut(true);
-    finishTimerRef.current = setTimeout(() => {
-      setIsVisible(false);
-      setIsFadingOut(false);
-      setProgress(0);
-    }, 320);
-
-    return () => {
       if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
-    };
+      finishTimerRef.current = setTimeout(() => {
+        setIsVisible(false);
+        setIsFadingOut(false);
+        setProgress(0);
+      }, 200);
+    }
   }, [pathname, searchParams]);
 
-  // Intercept all internal navigation link clicks
+  // Listen to navigation link clicks safely (non-blocking)
   useEffect(() => {
     const handleDocumentClick = (e: MouseEvent) => {
       const target = (e.target as HTMLElement)?.closest('a');
@@ -69,15 +67,12 @@ export default function NavigationLoader() {
       const currentPath = window.location.pathname + window.location.search;
       if (href === currentPath) return;
 
-      // Start full-screen loading overlay
-      if (startTimerRef.current) clearTimeout(startTimerRef.current);
       if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
-      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
 
       setIsFadingOut(false);
       setIsVisible(true);
-      setProgress(20);
+      setProgress(30);
 
       // Smooth progress animation
       progressIntervalRef.current = setInterval(() => {
@@ -86,84 +81,67 @@ export default function NavigationLoader() {
             if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
             return prev;
           }
-          const step = Math.max(1, (92 - prev) * 0.15);
+          const step = Math.max(2, (92 - prev) * 0.2);
           return Math.min(90, prev + step);
         });
-      }, 80);
-
-      // Safety timeout: Automatically dismiss after 4 seconds to never trap the user
-      safetyTimerRef.current = setTimeout(() => {
-        setIsFadingOut(true);
-        setTimeout(() => {
-          setIsVisible(false);
-          setIsFadingOut(false);
-          setProgress(0);
-        }, 300);
-      }, 4000);
+      }, 60);
     };
 
-    document.addEventListener('click', handleDocumentClick, { capture: true });
+    document.addEventListener('click', handleDocumentClick);
 
     return () => {
-      document.removeEventListener('click', handleDocumentClick, { capture: true });
-      if (startTimerRef.current) clearTimeout(startTimerRef.current);
+      document.removeEventListener('click', handleDocumentClick);
       if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
-      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     };
   }, []);
 
-  if (!isVisible) return null;
+  if (!isVisible && progress === 0) return null;
 
   return (
     <div
-      className={`fixed inset-0 z-[999999] flex flex-col items-center justify-center bg-stone-950/80 backdrop-blur-md transition-opacity duration-300 ${
-        isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      className={`fixed inset-0 z-[999999] pointer-events-none flex flex-col items-center justify-center transition-opacity duration-200 ${
+        isFadingOut ? 'opacity-0' : 'opacity-100'
       }`}
-      style={{ willChange: 'opacity' }}
-      aria-label="Yükleniyor"
-      role="status"
+      aria-hidden="true"
     >
-      {/* 1. Top Glowing Golden Progress Bar */}
-      <div className="fixed top-0 left-0 right-0 h-[4px] bg-stone-900/50 overflow-hidden z-50">
+      {/* 1. Backdrop Glow */}
+      <div className="absolute inset-0 bg-stone-950/60 backdrop-blur-sm transition-opacity duration-200" />
+
+      {/* 2. Top Glowing Golden Progress Bar */}
+      <div className="absolute top-0 left-0 right-0 h-[4px] bg-stone-900/40 overflow-hidden z-50">
         <div
           className="h-full bg-gradient-to-r from-amber-600 via-amber-400 to-amber-300 transition-all ease-out duration-150 relative"
           style={{
             width: `${progress}%`,
-            boxShadow: '0 0 20px 3px rgba(245, 158, 11, 0.95), 0 0 10px 1px rgba(251, 191, 36, 0.9)',
+            boxShadow: '0 0 16px 3px rgba(245, 158, 11, 0.9), 0 0 8px 1px rgba(251, 191, 36, 0.8)',
           }}
         >
-          <div className="absolute right-0 top-0 bottom-0 w-28 bg-gradient-to-r from-transparent to-white/95 blur-[1px]" />
+          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-r from-transparent to-white/90 blur-[1px]" />
         </div>
       </div>
 
-      {/* 2. Centered Luxury Otantikos Animated Emblem & Typography */}
-      <div className="flex flex-col items-center space-y-6 px-6 text-center animate-in fade-in zoom-in-95 duration-200">
+      {/* 3. Centered Luxury Otantikos Animated Emblem & Typography */}
+      <div className="relative z-10 flex flex-col items-center space-y-5 px-6 text-center">
         
         {/* Animated Emblem Container */}
         <div className="relative flex items-center justify-center">
           {/* Ambient Golden Glow Halo */}
-          <div className="absolute -inset-8 rounded-full bg-amber-500/25 blur-2xl animate-pulse" />
+          <div className="absolute -inset-6 rounded-full bg-amber-500/25 blur-2xl animate-pulse" />
           
           {/* Outer Spinning Golden Ring */}
           <div 
-            className="absolute -inset-3 sm:-inset-4 rounded-3xl border-2 border-amber-500/30 border-t-amber-400 border-r-amber-300 animate-spin" 
-            style={{ animationDuration: '1.6s' }} 
-          />
-
-          {/* Inner Counter-Rotating Golden Ring */}
-          <div 
-            className="absolute -inset-1 rounded-2xl border border-amber-400/40 border-b-amber-300 border-l-transparent animate-spin" 
-            style={{ animationDuration: '2.4s', animationDirection: 'reverse' }} 
+            className="absolute -inset-3 rounded-2xl border-2 border-amber-500/30 border-t-amber-400 border-r-amber-300 animate-spin" 
+            style={{ animationDuration: '1.4s' }} 
           />
 
           {/* Core Logo Card */}
-          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-stone-900/95 border border-amber-500/60 p-3 flex items-center justify-center shadow-2xl shadow-amber-950/80">
+          <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-stone-900/95 border border-amber-500/60 p-2.5 flex items-center justify-center shadow-2xl shadow-amber-950/80">
             <Image
               src="/images/logo.webp"
               alt="Otantikos Concept"
-              width={64}
-              height={64}
+              width={54}
+              height={54}
               className="object-contain animate-pulse"
               priority
             />
@@ -171,17 +149,17 @@ export default function NavigationLoader() {
         </div>
 
         {/* Brand Text & Status */}
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-950/60 border border-amber-500/40 shadow-lg">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-stone-900/90 border border-amber-500/40 shadow-lg">
             <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin" style={{ animationDuration: '3s' }} />
-            <span className="text-xs sm:text-sm font-serif font-black tracking-widest text-amber-300">
+            <span className="text-xs font-serif font-black tracking-widest text-amber-300">
               OTANTİKOS CONCEPT
             </span>
           </div>
 
-          <div className="flex items-center justify-center gap-1.5 text-xs text-stone-300 font-medium">
+          <div className="flex items-center justify-center gap-1 text-[11px] text-stone-300 font-medium">
             <span>Yükleniyor</span>
-            <span className="inline-flex gap-1">
+            <span className="inline-flex gap-1 ml-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '0ms' }} />
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '150ms' }} />
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '300ms' }} />
