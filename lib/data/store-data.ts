@@ -386,15 +386,18 @@ export const DataService = {
 
   async deleteProduct(productId: string): Promise<boolean> {
     let localList = runtimeProducts;
-    localList = localList.filter(p => p.id !== productId);
+    localList = localList.filter(p => p.id !== productId && p.slug !== productId);
     runtimeProducts = localList;
-    
 
     try {
       const supabase = createClient();
-      if (!productId.startsWith('prod-')) {
-        await supabase.from('products').delete().eq('id', productId);
-      }
+      await supabase.from('product_images').delete().eq('product_id', productId);
+      await supabase.from('product_variants').delete().eq('product_id', productId);
+      await supabase.from('product_specifications').delete().eq('product_id', productId);
+      await supabase.from('reviews').delete().eq('product_id', productId);
+      await supabase.from('questions').delete().eq('product_id', productId);
+      await supabase.from('in_stock_alerts').delete().eq('product_id', productId);
+      await supabase.from('products').delete().or(`id.eq.${productId},slug.eq.${productId}`);
     } catch {
       // Ignore
     }
