@@ -67,9 +67,47 @@ let runtimeReviews: Review[] = [];
 let runtimeChatSessions: LiveChatSession[] = [];
 let runtimeWholesale: WholesaleRequest[] = [];
 
+export function deduplicateLiveChatMessages(messages: LiveChatMessage[]): LiveChatMessage[] {
+  if (!Array.isArray(messages)) return [];
+  const result: LiveChatMessage[] = [];
+
+  for (const m of messages) {
+    if (!m || !m.message_text) continue;
+
+    const existingIndex = result.findIndex((existing) => {
+      if (existing.id && m.id && existing.id === m.id) return true;
+
+      if (existing.sender_type === m.sender_type && existing.message_text.trim() === m.message_text.trim()) {
+        const time1 = new Date(existing.created_at).getTime();
+        const time2 = new Date(m.created_at).getTime();
+        const timeDiff = Math.abs(time1 - time2);
+
+        if (isNaN(timeDiff) || timeDiff < 60000) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (existingIndex >= 0) {
+      const existing = result[existingIndex];
+      const isExistingTemp = !existing.id || existing.id.startsWith('msg-') || existing.id.startsWith('temp-');
+      const isIncomingReal = m.id && !m.id.startsWith('msg-') && !m.id.startsWith('temp-');
+
+      if (isExistingTemp && isIncomingReal) {
+        result[existingIndex] = m;
+      }
+    } else {
+      result.push(m);
+    }
+  }
+
+  return result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+}
+
 export const DataService = {
   // ==========================================
-  // 1. PRODUCTS
+  // 1. PRODUCTS & CATALOG
   // ==========================================
   async getProducts(): Promise<Product[]> {
     try {

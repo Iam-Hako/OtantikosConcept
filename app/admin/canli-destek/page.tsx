@@ -23,35 +23,11 @@ import {
   FileText
 } from 'lucide-react';
 import { LiveChatSession, LiveChatMessage } from '@/lib/types/ecommerce';
-import { DataService, normalizeTurkish } from '@/lib/data/store-data';
+import { DataService, normalizeTurkish, deduplicateLiveChatMessages } from '@/lib/data/store-data';
 import { sounds } from '@/lib/utils/sound';
 import { formatDate } from '@/lib/utils/format';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-
-function deduplicateMessages(messages: LiveChatMessage[]): LiveChatMessage[] {
-  if (!Array.isArray(messages)) return [];
-  const seenIds = new Set<string>();
-  const result: LiveChatMessage[] = [];
-
-  for (const m of messages) {
-    if (!m) continue;
-    if (m.id && seenIds.has(m.id)) continue;
-
-    const isDuplicate = result.some(
-      (existing) =>
-        existing.sender_type === m.sender_type &&
-        existing.message_text.trim() === m.message_text.trim() &&
-        Math.abs(new Date(existing.created_at).getTime() - new Date(m.created_at).getTime()) < 3000
-    );
-
-    if (!isDuplicate) {
-      if (m.id) seenIds.add(m.id);
-      result.push(m);
-    }
-  }
-  return result;
-}
 
 export default function AdminLiveChatPage() {
   const [sessions, setSessions] = useState<LiveChatSession[]>([]);
@@ -74,7 +50,7 @@ export default function AdminLiveChatPage() {
       const rawList = await DataService.getChatSessions();
       const list = rawList.map((s) => ({
         ...s,
-        messages: s.messages ? deduplicateMessages(s.messages) : [],
+        messages: s.messages ? deduplicateLiveChatMessages(s.messages) : [],
       }));
       setSessions(list);
 

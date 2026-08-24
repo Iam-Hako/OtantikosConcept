@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { MessageCircle, X, Send, Volume2, VolumeX, Sparkles, User, Minimize2, RotateCcw } from 'lucide-react';
 import { LiveChatMessage, LiveChatSession } from '@/lib/types/ecommerce';
-import { DataService } from '@/lib/data/store-data';
+import { DataService, deduplicateLiveChatMessages } from '@/lib/data/store-data';
 import { sounds } from '@/lib/utils/sound';
 import { useAuth } from '@/lib/store/auth-context';
 import { createClient } from '@/lib/supabase/client';
@@ -26,30 +26,6 @@ function setChatCookie(sessionId: string) {
 function removeChatCookie() {
   if (typeof document === 'undefined') return;
   document.cookie = `${CHAT_COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
-}
-
-export function deduplicateMessages(messages: LiveChatMessage[]): LiveChatMessage[] {
-  if (!Array.isArray(messages)) return [];
-  const seenIds = new Set<string>();
-  const result: LiveChatMessage[] = [];
-
-  for (const m of messages) {
-    if (!m) continue;
-    if (m.id && seenIds.has(m.id)) continue;
-
-    const isDuplicate = result.some(
-      (existing) =>
-        existing.sender_type === m.sender_type &&
-        existing.message_text.trim() === m.message_text.trim() &&
-        Math.abs(new Date(existing.created_at).getTime() - new Date(m.created_at).getTime()) < 3000
-    );
-
-    if (!isDuplicate) {
-      if (m.id) seenIds.add(m.id);
-      result.push(m);
-    }
-  }
-  return result;
 }
 
 export default function LiveChatWidget() {
@@ -100,7 +76,7 @@ export default function LiveChatWidget() {
           setCustomerName(existingSession.customer_name || user?.full_name || '');
           setCustomerEmail(existingSession.customer_email || user?.email || '');
           if (existingSession.messages && existingSession.messages.length > 0) {
-            setMessages(deduplicateMessages(existingSession.messages));
+            setMessages(deduplicateLiveChatMessages(existingSession.messages));
             setHasStarted(true);
           }
           setChatCookie(existingSession.session_id);
@@ -141,7 +117,7 @@ export default function LiveChatWidget() {
     if (hasStarted) {
       DataService.getChatSession(sessionId).then((session) => {
         if (session?.messages && session.messages.length > 0) {
-          setMessages(deduplicateMessages(session.messages));
+          setMessages(deduplicateLiveChatMessages(session.messages));
         }
       });
     }
@@ -155,7 +131,7 @@ export default function LiveChatWidget() {
           if (event.data?.sessionId === sessionId && event.data?.message) {
             const newM = event.data.message as LiveChatMessage;
             setMessages((prev) => {
-              const updated = deduplicateMessages([...prev, newM]);
+              const updated = deduplicateLiveChatMessages([...prev, newM]);
               if (newM.sender_type === 'admin') {
                 if (soundEnabledRef.current) sounds.playChatNotification();
                 if (!isOpenRef.current) setUnreadCount((c) => c + 1);
@@ -186,7 +162,7 @@ export default function LiveChatWidget() {
           (payload) => {
             const newM = payload.new as LiveChatMessage;
             setMessages((prev) => {
-              const updated = deduplicateMessages([...prev, newM]);
+              const updated = deduplicateLiveChatMessages([...prev, newM]);
               if (newM.sender_type === 'admin') {
                 if (soundEnabledRef.current) sounds.playChatNotification();
                 if (!isOpenRef.current) setUnreadCount((c) => c + 1);
@@ -205,17 +181,17 @@ export default function LiveChatWidget() {
       if (!hasStarted) return;
       const sess = await DataService.getChatSession(sessionId);
       if (sess && sess.messages) {
-        const fetchedMessages = deduplicateMessages(sess.messages);
+        const fetchedMessages = deduplicateLiveChatMessages(sess.messages);
         setMessages((prev) => {
-          if (fetchedMessages.length > prev.length) {
-            const lastMsg = fetchedMessages[fetchedMessages.length - 1];
+          const merged = deduplicateLiveChatMessages([...prev, ...fetchedMessages]);
+          if (merged.length > prev.length) {
+            const lastMsg = merged[merged.length - 1];
             if (lastMsg.sender_type === 'admin') {
               if (soundEnabledRef.current) sounds.playChatNotification();
-              if (!isOpenRef.current) setUnreadCount((c) => c + (fetchedMessages.length - prev.length));
+              if (!isOpenRef.current) setUnreadCount((c) => c + (merged.length - prev.length));
             }
-            return fetchedMessages;
           }
-          return prev;
+          return merged;
         });
       }
     }, 3000);
@@ -281,6 +257,18 @@ export default function LiveChatWidget() {
     setInputMessage('');
     setChatCookie(sessionId);
 
+    const tempId = `temp-${Date.now()}`;
+    const tempMsg: LiveChatMessage = {
+      id: tempId,
+      session_id: sessionId,
+      sender_type: 'customer',
+      message_text: userMsg,
+      created_at: new Date().toISOString(),
+    };
+
+    // Optimistic single bubble
+    setMessages((prev) => deduplicateLiveChatMessages([...prev, tempMsg]));
+
     const msg = await DataService.sendMessage(
       sessionId,
       'customer',
@@ -289,10 +277,12 @@ export default function LiveChatWidget() {
       customerEmail
     );
 
-    setMessages((prev) => {
-      if (prev.some((m) => m.id === msg.id)) return prev;
-      return [...prev, msg];
-    });
+    // Replace optimistic bubble in-place with real server message
+    setMessages((prev) =>
+      deduplicateLiveChatMessages(
+        prev.map((m) => (m.id === tempId || (m.sender_type === 'customer' && m.message_text === userMsg && m.id?.startsWith('temp-')) ? msg : m))
+      )
+    );
   };
 
   const handleResetChat = () => {
