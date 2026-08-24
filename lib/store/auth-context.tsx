@@ -13,7 +13,6 @@ interface AuthContextType {
   loginWithEmail: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   signUpWithEmail: (email: string, pass: string, fullName: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  toggleDemoAdminRole: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,12 +23,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
 
   useEffect(() => {
-    // Check initial session
     async function loadUser() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          // Check role from profiles
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
@@ -43,16 +40,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               id: session.user.id,
               email: session.user.email || '',
               full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
-              role: session.user.email === 'admin@otantikosconcept.com' ? 'admin' : 'customer',
+              role: 'customer',
               created_at: session.user.created_at,
             });
           }
         } else {
-          // Check if demo bypass is saved in localStorage
-          const savedDemo = localStorage.getItem('otantikos_demo_user');
-          if (savedDemo) {
-            setUser(JSON.parse(savedDemo));
-          }
+          setUser(null);
         }
       } catch (err) {
         console.error('Auth load error:', err);
@@ -63,7 +56,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     loadUser();
 
-    // Listen for auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         const { data: profile } = await supabase
@@ -79,15 +71,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             id: session.user.id,
             email: session.user.email || '',
             full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
-            role: session.user.email === 'admin@otantikosconcept.com' ? 'admin' : 'customer',
+            role: 'customer',
             created_at: session.user.created_at,
           });
         }
       } else {
-        const savedDemo = localStorage.getItem('otantikos_demo_user');
-        if (!savedDemo) {
-          setUser(null);
-        }
+        setUser(null);
       }
     });
 
@@ -121,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         return { success: false, error: error.message };
       }
-      toast.success('Giriş başarılı! Hoş geldiniz.');
+      toast.success('Giriş başarılı!');
       return { success: true };
     } catch {
       return { success: false, error: 'Bir hata oluştu.' };
@@ -151,29 +140,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem('otantikos_demo_user');
     setUser(null);
     toast.info('Oturum kapatıldı.');
-  };
-
-  const toggleDemoAdminRole = () => {
-    if (user?.role === 'admin') {
-      const newU: UserProfile = { ...user, role: 'customer' };
-      setUser(newU);
-      localStorage.setItem('otantikos_demo_user', JSON.stringify(newU));
-      toast.info('Rol: Müşteri moduna geçildi.');
-    } else {
-      const newU: UserProfile = {
-        id: user?.id || 'demo-admin-id',
-        email: user?.email || 'admin@otantikosconcept.com',
-        full_name: user?.full_name || 'Tahtakale Yönetici',
-        role: 'admin',
-        created_at: new Date().toISOString(),
-      };
-      setUser(newU);
-      localStorage.setItem('otantikos_demo_user', JSON.stringify(newU));
-      toast.success('Yönetici (Admin) moduna geçildi! /admin paneline erişebilirsiniz.');
-    }
   };
 
   const isAdmin = user?.role === 'admin';
@@ -188,7 +156,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loginWithEmail,
         signUpWithEmail,
         logout,
-        toggleDemoAdminRole,
       }}
     >
       {children}

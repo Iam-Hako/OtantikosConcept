@@ -30,11 +30,10 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = 'otantikos_cart_v1';
-const GIFT_OPTIONS_KEY = 'otantikos_gift_v1';
+const CART_STORAGE_KEY = 'otantikos_cart_v2';
+const GIFT_OPTIONS_KEY = 'otantikos_gift_v2';
 const GIFT_WRAP_PRICE = 50.00;
-const SHIPPING_PRICE = 39.90;
-const FREE_SHIPPING_THRESHOLD = 750.00;
+const STANDARD_SHIPPING_PRICE = 49.00;
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -110,9 +109,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
 
     const variantText = variant ? ` (${variant.value})` : '';
-    toast.success(`${product.name}${variantText} sepete eklendi!`, {
-      description: 'Sağdaki sepet çekmecesinden siparişinizi tamamlayabilirsiniz.',
-    });
+    toast.success(`${product.name}${variantText} sepete eklendi!`);
     setIsDrawerOpen(true);
   };
 
@@ -165,16 +162,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return sum + itemPrice * item.quantity;
   }, 0);
 
-  // Free shipping over threshold OR Store Pickup (Click & Collect)
+  // Standard shipping (₺49.00) or Tahtakale Store Pick-up (₺0.00)
   const shippingFee =
-    deliveryType === 'magaza_teslim' || subtotal >= FREE_SHIPPING_THRESHOLD || items.length === 0
+    deliveryType === 'magaza_teslim' || items.length === 0
       ? 0
-      : SHIPPING_PRICE;
+      : STANDARD_SHIPPING_PRICE;
 
   const giftWrapFee = hasGiftWrap && items.length > 0 ? GIFT_WRAP_PRICE : 0;
   const total = subtotal + shippingFee + giftWrapFee;
 
-  // %20 KDV dahil dökümü: KDV = Toplam - (Toplam / 1.20)
+  // %20 KDV dahil dökümü
   const kdvAmount = subtotal > 0 ? subtotal - subtotal / 1.2 : 0;
 
   return (

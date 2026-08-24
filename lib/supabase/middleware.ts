@@ -33,13 +33,23 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (pathname.startsWith('/admin')) {
     if (!user) {
-      const demoAdmin = request.cookies.get('otantikos_admin_bypass')?.value;
-      if (!demoAdmin) {
-        const url = request.nextUrl.clone();
-        url.pathname = '/giris';
-        url.searchParams.set('redirect', pathname);
-        return NextResponse.redirect(url);
-      }
+      const url = request.nextUrl.clone();
+      url.pathname = '/giris';
+      url.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(url);
+    }
+
+    // Verify role in profiles table
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'admin') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      return NextResponse.redirect(url);
     }
   }
 

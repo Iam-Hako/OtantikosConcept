@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -11,17 +11,23 @@ import {
   Truck, 
   RotateCcw, 
   Lock, 
-  CreditCard,
   Sparkles
 } from 'lucide-react';
-import { INITIAL_CATEGORIES } from '@/lib/data/initial-seed';
+import { DataService } from '@/lib/data/store-data';
+import { Category } from '@/lib/types/ecommerce';
 
 export default function Footer() {
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    DataService.getCategories().then(setCategories);
+  }, []);
+
   return (
     <footer className="bg-stone-950 text-stone-300 pt-16 pb-24 lg:pb-12 border-t border-stone-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* 1. VALUE PROPOSITIONS & TRUST BADGES */}
+        {/* VALUE PROPOSITIONS & TRUST BADGES */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pb-12 border-b border-stone-800 text-xs">
           <div className="flex items-center gap-3 p-4 rounded-xl bg-stone-900/60 border border-stone-800/80">
             <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
@@ -64,13 +70,13 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* 2. MAIN FOOTER LINKS */}
+        {/* MAIN FOOTER LINKS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 py-12 border-b border-stone-800">
           
           {/* Column 1: Brand Info */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="relative w-10 h-10 rounded-lg bg-stone-900 border border-stone-800 p-1 flex items-center justify-center">
+              <div className="relative w-10 h-10 rounded-xl bg-stone-900 border border-stone-800 p-1 flex items-center justify-center">
                 <Image
                   src="/images/logo.webp"
                   alt="Otantikos Logo"
@@ -120,7 +126,7 @@ export default function Footer() {
                   Tüm Koleksiyon
                 </Link>
               </li>
-              {INITIAL_CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <li key={c.id}>
                   <Link href={`/kategori/${c.slug}`} className="hover:text-amber-400 transition">
                     {c.name}
@@ -206,7 +212,7 @@ export default function Footer() {
 
         </div>
 
-        {/* 3. LEGAL IMPRINT & COPYRIGHT */}
+        {/* LEGAL IMPRINT & COPYRIGHT */}
         <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-stone-500">
           <div>
             <p>
@@ -217,7 +223,6 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Payment Badges */}
           <div className="flex items-center gap-3 text-stone-400">
             <span className="text-[10px] uppercase tracking-wider font-semibold">Güvenli Ödeme:</span>
             <div className="px-2 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-bold text-stone-300">

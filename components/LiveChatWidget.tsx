@@ -104,7 +104,7 @@ export default function LiveChatWidget() {
       
       const lower = userMsg.toLowerCase();
       if (lower.includes('kargo') || lower.includes('teslimat')) {
-        replyText = "Siparişleriniz aynı gün Eminönü depomuzdan kargolanır. 750 TL üzeri siparişlerde kargo ücretsizdir. Dilerseniz Tahtakale mağazamızdan ücretsiz elden teslim alabilirsiniz!";
+        replyText = "Siparişleriniz aynı gün Eminönü depomuzdan anlaşmalı kargo ile sevk edilir. Dilerseniz Tahtakale mağazamızdan ücretsiz elden teslim alabilirsiniz!";
       } else if (lower.includes('kararma') || lower.includes('çelik') || lower.includes('taki')) {
         replyText = "Tüm çelik takı koleksiyonumuz 316L medikal paslanmaz çeliktir. Suya, parfüme ve tere dayanıklıdır; kararmazlık garantilidir.";
       } else if (lower.includes('toptan') || lower.includes('b2b')) {

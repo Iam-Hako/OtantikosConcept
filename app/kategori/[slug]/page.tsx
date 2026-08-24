@@ -16,11 +16,10 @@ import {
   X
 } from 'lucide-react';
 import { Product, Category } from '@/lib/types/ecommerce';
-import { DataService } from '@/lib/data/store-data';
+import { DataService, normalizeTurkish } from '@/lib/data/store-data';
 import { useCart } from '@/lib/store/cart-store';
 import { useWishlist } from '@/lib/store/wishlist-store';
 import { formatPrice } from '@/lib/utils/format';
-import { searchProducts } from '@/lib/data/initial-seed';
 
 function CategoryContent() {
   const params = useParams();
@@ -83,7 +82,12 @@ function CategoryContent() {
 
     // Search query filter
     if (searchQuery.trim()) {
-      list = searchProducts(searchQuery, list);
+      const q = normalizeTurkish(searchQuery);
+      list = list.filter((p) => 
+        normalizeTurkish(p.name).includes(q) || 
+        normalizeTurkish(p.sku).includes(q) ||
+        (p.category?.name && normalizeTurkish(p.category.name).includes(q))
+      );
     }
 
     // In-stock filter

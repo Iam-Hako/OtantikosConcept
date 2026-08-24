@@ -4,7 +4,7 @@ import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Lock, Mail, ArrowRight, ShieldCheck, Sparkles, UserCheck } from 'lucide-react';
+import { Lock, Mail } from 'lucide-react';
 import { useAuth } from '@/lib/store/auth-context';
 import { toast } from 'sonner';
 
@@ -13,7 +13,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams?.get('redirect') || '/';
 
-  const { loginWithEmail, loginWithGoogle, toggleDemoAdminRole } = useAuth();
+  const { loginWithEmail, loginWithGoogle } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,12 +31,6 @@ function LoginForm() {
     }
   };
 
-  const handleQuickAdminLogin = () => {
-    toggleDemoAdminRole();
-    toast.success('Yönetici yetkisiyle oturum açıldı!');
-    router.push('/admin');
-  };
-
   return (
     <div className="max-w-md mx-auto px-4 py-16 space-y-6">
       <div className="text-center space-y-2">
@@ -47,7 +41,7 @@ function LoginForm() {
           Otantikos Hesabınıza Giriş Yapın
         </h1>
         <p className="text-xs text-stone-500">
-          Siparişlerinizi, favorilerinizi ve canlı destek geçmişinizi yönetin.
+          Siparişlerinizi ve hesap bilgilerinizi güvenle yönetin.
         </p>
       </div>
 
@@ -110,16 +104,6 @@ function LoginForm() {
             {isLoading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
           </button>
         </form>
-
-        <div className="pt-2 border-t border-stone-100 text-center">
-          <button
-            onClick={handleQuickAdminLogin}
-            className="text-[11px] font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 py-2 px-3 rounded-lg border border-amber-200 transition inline-flex items-center gap-1.5"
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>Admin Olarak Tek Tıkla Giriş Yap (Test)</span>
-          </button>
-        </div>
 
         <div className="text-center text-xs text-stone-500 space-y-1">
           <div>

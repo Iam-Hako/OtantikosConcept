@@ -193,7 +193,7 @@ export default function CartPage() {
                     <span>Anlaşmalı Standart Kargo</span>
                   </div>
                   <p className="text-[11px] text-stone-500 mt-1">
-                    Adresinize güvenli teslimat. 750 TL ve üzerine kargo ücretsiz!
+                    Adresinize güvenli ve sigortalı teslimat.
                   </p>
                 </div>
               </label>

@@ -21,7 +21,7 @@ export default function ReturnsAndDeliveryPage() {
             <span>Teslimat Süreci ve Kargo Seçenekleri</span>
           </h3>
           <p className="mt-2">
-            Otantikos Concept'ten verilen tüm siparişler, Eminönü Tahtakale depomuzdan hafta içi saat 16:00'ya kadar aynı gün özenle paketlenerek anlaşmalı kargo firmasına teslim edilir. 750 TL ve üzeri siparişlerinizde kargo tamamen ücretsizdir.
+            Otantikos Concept'ten verilen tüm siparişler, Eminönü Tahtakale depomuzdan hafta içi saat 16:00'ya kadar aynı gün özenle paketlenerek anlaşmalı kargo firmasına teslim edilir. Şeffaf ve sabit kargo tarifemiz ile tüm Türkiye'ye sigortalı gönderim sağlanmaktadır.
           </p>
         </div>
 
