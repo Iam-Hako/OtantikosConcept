@@ -37,7 +37,7 @@ export default function KvkkPage() {
 
         <h3 className="font-bold text-stone-900 text-base">5. İletişim ve Başvuru</h3>
         <p>
-          KVKK kapsamındaki haklarınızı kullanmak için <strong>destek@otantikosconcept.com</strong> e-posta adresi veya <strong>Tahtakale Mah. Marpuççular Cad. No:18 Eminönü / Fatih / İSTANBUL</strong> açık adresimiz üzerinden şirketimize yazılı olarak başvurabilirsiniz.
+          KVKK kapsamındaki haklarınızı kullanmak için <strong>Tahtakale Tanburacı Han Eminönü / Fatih / İSTANBUL</strong> açık adresimiz veya <strong>+90 (507) 773 77 77</strong> telefon ve WhatsApp hattımız üzerinden şirketimize başvurabilirsiniz.
         </p>
       </div>
     </div>

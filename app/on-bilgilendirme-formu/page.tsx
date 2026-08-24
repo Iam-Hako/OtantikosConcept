@@ -18,8 +18,8 @@ export default function PreInfoPage() {
         <h3 className="font-bold text-stone-900 text-base">1. SATICI BİLGİLERİ</h3>
         <p>
           <strong>Firma:</strong> Otantikos Concept<br />
-          <strong>Adres:</strong> Tahtakale Mah. Marpuççular Cad. No:18 Eminönü / Fatih / İSTANBUL<br />
-          <strong>E-Posta:</strong> destek@otantikosconcept.com | <strong>Tel:</strong> +90 (212) 522 34 56
+          <strong>Adres:</strong> Tahtakale Tanburacı Han Eminönü / Fatih / İSTANBUL<br />
+          <strong>Tel:</strong> +90 (507) 773 77 77
         </p>
 
         <h3 className="font-bold text-stone-900 text-base">2. SÖZLEŞME KONUSU ÜRÜN VE BEDELİ</h3>

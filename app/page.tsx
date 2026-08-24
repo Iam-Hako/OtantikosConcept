@@ -68,8 +68,8 @@ export default function HomePage() {
               Buluştu.
             </h1>
 
-            <p className="text-sm sm:text-base text-stone-300 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              316L kararmaz çelik takılardan el işçiliği mozaik lambalara, trend mekanik oyuncaklardan özel koleksiyonlara. Yapay indirim oyunları yok; doğrudan net ve dürüst fiyatlar.
+            <p className="text-sm sm:text-base text-stone-300 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
+              Hediyelik Eşyalar toptan ve perakende satış
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">

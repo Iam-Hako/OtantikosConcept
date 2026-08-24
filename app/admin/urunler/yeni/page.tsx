@@ -32,14 +32,14 @@ export default function NewProductPage() {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [price, setPrice] = useState<number>(299);
-  const [stock, setStock] = useState<number>(25);
-  const [sku, setSku] = useState(`OTN-SKU-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [price, setPrice] = useState<number | string>('');
+  const [stock, setStock] = useState<number | string>('');
+  const [sku, setSku] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [description, setDescription] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
-  const [isNew, setIsNew] = useState(true);
+  const [isNew, setIsNew] = useState(false);
 
   // Upload States & Refs
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -47,26 +47,14 @@ export default function NewProductPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
-  // Dynamic Specifications Builder
-  const [specs, setSpecs] = useState<ProductSpecification[]>([
-    { spec_key: 'Maden / Malzeme Türü', spec_value: '316L Medikal Paslanmaz Çelik', display_order: 1 },
-    { spec_key: 'Kararmazlık Durumu', spec_value: 'Garantili (Suya ve Parfüme Dayanıklı)', display_order: 2 },
-  ]);
+  // Specifications Builder (Starts completely empty)
+  const [specs, setSpecs] = useState<ProductSpecification[]>([]);
 
-  // Variants Builder
-  const [variants, setVariants] = useState<ProductVariant[]>([
-    { name: 'Seçenek', value: 'Standart', stock: 25, is_active: true }
-  ]);
+  // Variants Builder (Starts completely empty)
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
 
-  // Images
-  const [images, setImages] = useState<ProductImage[]>([
-    {
-      image_url: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=1000&auto=format&fit=crop&q=80',
-      is_cover: true,
-      display_order: 1,
-      alt_text: 'Ana Kapak Görseli'
-    }
-  ]);
+  // Images (Starts completely empty)
+  const [images, setImages] = useState<ProductImage[]>([]);
   const [newImageUrl, setNewImageUrl] = useState('');
 
   useEffect(() => {
@@ -334,16 +322,16 @@ export default function NewProductPage() {
             </div>
           </div>
 
-          {/* 2. DYNAMIC SPEC BUILDER (Dinamik Özellik Oluşturucu) */}
+          {/* 2. SPEC BUILDER */}
           <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <div>
                 <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-amber-600" />
-                  <span>Dinamik Teknik Özellik Oluşturucu (Dynamic Spec Builder)</span>
+                  <span>Ürün Özellik Tablosu (Opsiyonel)</span>
                 </h2>
                 <p className="text-[11px] text-stone-500 mt-0.5">
-                  İstediğiniz başlığı ve değeri serbestçe tanımlayın, ürün sayfasındaki tabloda otomatik gösterilsin.
+                  Ürün sayfasındaki bilgi tablosuna özellik ekleyin (Örn: Malzeme, Ölçü, Garanti). İstemiyorsanız boş bırakabilirsiniz.
                 </p>
               </div>
 
@@ -357,20 +345,26 @@ export default function NewProductPage() {
               </button>
             </div>
 
+            {specs.length === 0 && (
+              <div className="p-4 rounded-xl bg-stone-50 border border-dashed border-stone-200 text-center text-xs text-stone-400">
+                Henüz özel bir teknik özellik eklenmedi. Gerekirse yukarıdaki butondan ekleyebilirsiniz.
+              </div>
+            )}
+
             {/* Specs Rows */}
             <div className="space-y-2.5">
               {specs.map((spec, index) => (
                 <div key={index} className="flex items-center gap-3 bg-stone-50 p-2.5 rounded-xl border border-stone-200">
                   <input
                     type="text"
-                    placeholder="Örn: Maden Türü / Yaş Grubu"
+                    placeholder="Örn: Malzeme / Boyut"
                     value={spec.spec_key}
                     onChange={(e) => updateSpecRow(index, e.target.value, spec.spec_value)}
                     className="flex-1 text-xs p-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-amber-600 font-semibold"
                   />
                   <input
                     type="text"
-                    placeholder="Örn: 316L Çelik / 6+ Yaş"
+                    placeholder="Örn: 316L Çelik / 45 cm"
                     value={spec.spec_value}
                     onChange={(e) => updateSpecRow(index, spec.spec_key, e.target.value)}
                     className="flex-1 text-xs p-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-amber-600"
@@ -388,16 +382,16 @@ export default function NewProductPage() {
             </div>
           </div>
 
-          {/* 3. DYNAMIC VARIANTS BUILDER */}
+          {/* 3. VARIANTS BUILDER */}
           <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <div>
                 <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
                   <Layers className="w-4 h-4 text-amber-600" />
-                  <span>Dinamik Varyant & Stok Yöneticisi</span>
+                  <span>Renk / Beden / Model Seçenekleri (Opsiyonel)</span>
                 </h2>
                 <p className="text-[11px] text-stone-500 mt-0.5">
-                  Renk, Model veya Beden seçenekleri ve bağımsız stok miktarları.
+                  Farklı renk veya beden seçenekleri varsa ekleyin. Tek model ürünler için boş bırakabilirsiniz.
                 </p>
               </div>
 
@@ -407,9 +401,15 @@ export default function NewProductPage() {
                 className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-lg border border-amber-300 transition flex items-center gap-1"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>+ Varyant Ekle</span>
+                <span>+ Seçenek Ekle</span>
               </button>
             </div>
+
+            {variants.length === 0 && (
+              <div className="p-4 rounded-xl bg-stone-50 border border-dashed border-stone-200 text-center text-xs text-stone-400">
+                Ayrı renk/beden seçeneği tanımlanmadı. Ürün tek model olarak satışa sunulacaktır.
+              </div>
+            )}
 
             <div className="space-y-3">
               {variants.map((variant, index) => (

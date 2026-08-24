@@ -212,10 +212,10 @@ export default function OrderDetailPage() {
           {/* Sender */}
           <div className="space-y-1">
             <span className="text-[10px] uppercase font-bold text-stone-400 block">Gönderici Firma</span>
-            <div className="font-bold text-stone-900">Otantikos Concept Ltd. Şti.</div>
-            <div className="text-stone-600">Tahtakale Mah. Marpuççular Cad. No:18</div>
+            <div className="font-bold text-stone-900">Otantikos Concept</div>
+            <div className="text-stone-600">Tahtakale Tanburacı Han</div>
             <div className="text-stone-600">Eminönü / Fatih / İSTANBUL</div>
-            <div className="text-stone-500">Tel: +90 (212) 522 34 56</div>
+            <div className="text-stone-500">Tel: +90 (507) 773 77 77</div>
           </div>
 
           {/* Recipient */}

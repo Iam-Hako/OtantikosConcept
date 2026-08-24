@@ -44,11 +44,11 @@ export default function ContactPage() {
               </div>
               <div>
                 <h4 className="font-bold text-stone-900 text-sm">Açık Adresimiz</h4>
-                <p className="text-stone-600 mt-1 leading-relaxed">
-                  Tahtakale Mah. Marpuççular Cad. No:18 Eminönü / Fatih / İSTANBUL
+                <p className="text-stone-600 mt-1 leading-relaxed font-medium">
+                  Tahtakale Tanburacı Han
                 </p>
                 <span className="text-[11px] text-amber-700 font-semibold mt-1 block">
-                  (Mısır Çarşısı ve Rüstem Paşa Camii Yanı)
+                  Eminönü / Fatih / İSTANBUL
                 </span>
               </div>
             </div>
@@ -57,43 +57,24 @@ export default function ContactPage() {
               <div className="p-2.5 rounded-xl bg-amber-100 text-amber-800 shrink-0">
                 <Phone className="w-5 h-5" />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <h4 className="font-bold text-stone-900 text-sm">Telefon & WhatsApp</h4>
                 <div>
-                  <a href="tel:+902125223456" className="text-stone-600 hover:text-amber-700 font-medium block py-0.5">
-                    +90 (212) 522 34 56 (Santral)
+                  <a href="tel:+905077737777" className="text-stone-700 hover:text-amber-700 font-bold block py-0.5 text-sm">
+                    +90 (507) 773 77 77
                   </a>
                 </div>
                 <div>
                   <a
-                    href="https://wa.me/905325550012?text=Merhaba,%20Otantikos%20Concept%20hakkında%20bilgi%20almak%20istiyorum."
+                    href="https://wa.me/905077737777?text=Merhaba,%20Otantikos%20Concept%20hakkında%20bilgi%20almak%20istiyorum."
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg hover:bg-emerald-100 transition mt-1"
                   >
                     <MessageCircle className="w-3.5 h-3.5" />
-                    <span>+90 (532) 555 00 12 (WhatsApp Destek)</span>
+                    <span>WhatsApp İle İletişime Geç</span>
                   </a>
                 </div>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 border-t border-stone-100 pt-4">
-              <div className="p-2.5 rounded-xl bg-amber-100 text-amber-800 shrink-0">
-                <Mail className="w-5 h-5" />
-              </div>
-              <div className="space-y-0.5">
-                <h4 className="font-bold text-stone-900 text-sm">E-Posta</h4>
-                <p>
-                  <a href="mailto:destek@otantikosconcept.com" className="text-stone-600 hover:text-amber-700 font-medium">
-                    destek@otantikosconcept.com
-                  </a>
-                </p>
-                <p>
-                  <a href="mailto:toptan@otantikosconcept.com" className="text-stone-600 hover:text-amber-700 font-medium">
-                    toptan@otantikosconcept.com
-                  </a>
-                </p>
               </div>
             </div>
 
@@ -102,20 +83,12 @@ export default function ContactPage() {
                 <Clock className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-stone-900 text-sm">Çalışma Saatlerimiz</h4>
-                <p className="text-stone-600 mt-1">Hafta İçi: 09:00 - 18:30</p>
-                <p className="text-stone-600">Cumartesi: 09:30 - 17:00 | Pazar: Kapalı</p>
+                <h4 className="font-bold text-stone-900 text-sm">Online İşlem Saatlerimiz</h4>
+                <p className="text-stone-600 mt-1 font-semibold">10:00 - 17:00</p>
+                <p className="text-stone-500 text-[11px] mt-0.5">Hafta içi tüm online işlemler ve siparişler bu saatler arasında işleme alınır.</p>
               </div>
             </div>
 
-          </div>
-
-          {/* Legal Tax Imprint */}
-          <div className="p-5 bg-stone-900 text-white rounded-3xl text-xs space-y-1 shadow-2xs">
-            <h4 className="font-bold text-amber-400">Resmi Şirket Künyesi</h4>
-            <div className="text-stone-300">Otantikos Concept Hediyelik ve Takı San. Tic. Ltd. Şti.</div>
-            <div className="text-stone-400 text-[11px]">Fatih Vergi Dairesi - VKN: 6490382910</div>
-            <div className="text-stone-400 text-[11px]">Mersis No: 0649038291000001</div>
           </div>
         </div>
 

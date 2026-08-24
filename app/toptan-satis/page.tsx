@@ -48,7 +48,7 @@ export default function WholesalePage() {
         {/* Quick WhatsApp Quote Pill */}
         <div className="pt-2">
           <a
-            href="https://wa.me/905325550012?text=Merhaba,%20Otantikos%20Concept%20toptan%20b2b%20fiyat%20listesi%20ve%20ürün%20kataloğu%20almak%20istiyorum."
+            href="https://wa.me/905077737777?text=Merhaba,%20Otantikos%20Concept%20toptan%20b2b%20fiyat%20listesi%20ve%20ürün%20kataloğu%20almak%20istiyorum."
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-full shadow-sm transition min-h-[44px]"

@@ -99,25 +99,15 @@ export default function Footer() {
               </div>
             </div>
 
-            <p className="text-xs text-stone-400 leading-relaxed pr-4">
-              İstanbul Eminönü Tahtakale'nin köklü ticaret ve zanaat kültürünü modern tasarımlarla buluşturuyoruz. 316L kararmaz çelik takılar, el yapımı mozaik lambalar, trend mekanik oyuncaklar ve özel hediyelik koleksiyonlarımızı net ve dürüst fiyatlarla sunuyoruz.
-            </p>
-
             <div className="space-y-2 text-xs text-stone-400">
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                <span>Tahtakale Mah. Marpuççular Cad. No:18 Eminönü / Fatih / İSTANBUL</span>
+                <span>Tahtakale Tanburacı Han</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-amber-500 shrink-0" />
-                <a href="tel:+902125223456" className="hover:text-amber-400 transition">
-                  +90 (212) 522 34 56 (Hafta İçi 09:00 - 18:30)
-                </a>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-amber-500 shrink-0" />
-                <a href="mailto:destek@otantikosconcept.com" className="hover:text-amber-400 transition">
-                  destek@otantikosconcept.com
+                <a href="tel:+905077737777" className="hover:text-amber-400 transition font-medium">
+                  +90 (507) 773 77 77 (10:00 - 17:00)
                 </a>
               </div>
             </div>
@@ -225,9 +215,6 @@ export default function Footer() {
           <div>
             <p>
               © 2026 Otantikos Concept. Tüm hakları saklıdır. Tahtakale / Eminönü / İstanbul.
-            </p>
-            <p className="mt-0.5 text-stone-600">
-              Fatih Vergi Dairesi - VKN: 6490382910 | Mersis No: 0649038291000001
             </p>
           </div>
 

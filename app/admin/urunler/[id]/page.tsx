@@ -336,14 +336,17 @@ export default function EditProductPage() {
             </div>
           </div>
 
-          {/* Dynamic Spec Builder */}
+          {/* Spec Builder */}
           <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <div>
                 <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-amber-600" />
-                  <span>Dinamik Teknik Özellikler (Spec Builder)</span>
+                  <span>Ürün Özellik Tablosu (Opsiyonel)</span>
                 </h2>
+                <p className="text-[11px] text-stone-500 mt-0.5">
+                  Ürün sayfasındaki bilgi tablosuna özellik ekleyin (Örn: Malzeme, Ölçü, Garanti). İstemiyorsanız boş bırakabilirsiniz.
+                </p>
               </div>
               <button
                 type="button"
@@ -355,12 +358,18 @@ export default function EditProductPage() {
               </button>
             </div>
 
+            {specs.length === 0 && (
+              <div className="p-4 rounded-xl bg-stone-50 border border-dashed border-stone-200 text-center text-xs text-stone-400">
+                Özel teknik özellik eklenmemiş. Gerekirse yukarıdaki butondan ekleyebilirsiniz.
+              </div>
+            )}
+
             <div className="space-y-2.5">
               {specs.map((spec, index) => (
                 <div key={index} className="flex items-center gap-3 bg-stone-50 p-2.5 rounded-xl border border-stone-200">
                   <input
                     type="text"
-                    placeholder="Özellik Başlığı (Örn: Maden Türü)"
+                    placeholder="Özellik Başlığı (Örn: Malzeme)"
                     value={spec.spec_key}
                     onChange={(e) => updateSpecRow(index, e.target.value, spec.spec_value)}
                     className="flex-1 text-xs p-2 bg-white border border-stone-300 rounded-lg font-semibold"
@@ -384,22 +393,33 @@ export default function EditProductPage() {
             </div>
           </div>
 
-          {/* Dynamic Variants */}
+          {/* Variants */}
           <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
-                <Layers className="w-4 h-4 text-amber-600" />
-                <span>Varyantlar & Stok</span>
-              </h2>
+              <div>
+                <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-amber-600" />
+                  <span>Renk / Beden / Model Seçenekleri (Opsiyonel)</span>
+                </h2>
+                <p className="text-[11px] text-stone-500 mt-0.5">
+                  Farklı renk veya beden seçenekleri varsa ekleyin. Tek model ürünler için boş bırakabilirsiniz.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={addVariantRow}
                 className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-lg border border-amber-300 transition flex items-center gap-1"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>+ Varyant Ekle</span>
+                <span>+ Seçenek Ekle</span>
               </button>
             </div>
+
+            {variants.length === 0 && (
+              <div className="p-4 rounded-xl bg-stone-50 border border-dashed border-stone-200 text-center text-xs text-stone-400">
+                Ayrı renk/beden seçeneği bulunmuyor. Ürün tek model olarak satışta.
+              </div>
+            )}
 
             <div className="space-y-3">
               {variants.map((variant, index) => (

@@ -18,10 +18,9 @@ export default function DistanceSellingPage() {
         <h3 className="font-bold text-stone-900 text-base">MADDE 1 - TARAFLAR</h3>
         <p>
           <strong>SATICI:</strong> Otantikos Concept<br />
-          <strong>Adres:</strong> Tahtakale Mah. Marpuççular Cad. No:18 Eminönü / Fatih / İSTANBUL<br />
-          <strong>Telefon:</strong> +90 (212) 522 34 56<br />
-          <strong>E-Posta:</strong> destek@otantikosconcept.com<br />
-          <strong>ALICI:</strong> www.otantikosconcept.com sitesinden sipariş veren gerçek veya tüzel kişi ("Tüketici").
+          <strong>Adres:</strong> Tahtakale Tanburacı Han Eminönü / Fatih / İSTANBUL<br />
+          <strong>Telefon:</strong> +90 (507) 773 77 77<br />
+          <strong>ALICI:</strong> www.otantikosconcept.com sitesinden sipariş veren gerçek veya tüzel kişi (&quot;Tüketici&quot;).
         </p>
 
         <h3 className="font-bold text-stone-900 text-base">MADDE 2 - SÖZLEŞMENİN KONUSU</h3>

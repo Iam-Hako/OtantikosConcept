@@ -24,7 +24,7 @@ export default function AboutPage() {
 
       <div className="bg-white p-5 sm:p-10 rounded-3xl border border-stone-200 shadow-2xs shadow-xs space-y-6 text-xs sm:text-sm text-stone-700 leading-relaxed">
         <p>
-          <strong>Otantikos Concept</strong>, İstanbul'un ticaret kalbi olan Eminönü Tahtakale Marpuççular Caddesi'nde doğdu. Yılların zanaat mirasını, el işçiliği mozaik cam lambaları, 316L medikal çelik takıları ve dünyadaki en son trend mekanik oyuncakları tek bir çatı altında topluyoruz.
+          <strong>Otantikos Concept</strong>, İstanbul'un ticaret kalbi olan Eminönü Tahtakale Tanburacı Han&apos;da faaliyet göstermektedir. Hediyelik eşyalar, takı ve trend koleksiyonlarda toptan ve perakende satış sunuyoruz.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">

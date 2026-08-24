@@ -31,7 +31,7 @@ export default function ReturnsAndDeliveryPage() {
             <span>Tahtakale Mağazadan Teslim Al (Click & Collect)</span>
           </h3>
           <p className="mt-2">
-            İstanbul içi müşterilerimiz, sepet adımında "Tahtakale Mağazadan Teslim" seçeneğini seçerek hiçbir kargo ücreti ödemeden siparişlerini Eminönü Marpuççular Caddesi'ndeki mağazamızdan aynı gün elden teslim alabilirler.
+            İstanbul içi müşterilerimiz, sepet adımında &quot;Tahtakale Mağazadan Teslim&quot; seçeneğini seçerek hiçbir kargo ücreti ödemeden siparişlerini Eminönü Tahtakale Tanburacı Han&apos;daki mağazamızdan aynı gün elden teslim alabilirler.
           </p>
         </div>
 
