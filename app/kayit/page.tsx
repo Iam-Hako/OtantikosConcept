@@ -52,7 +52,7 @@ export default function RegisterPage() {
       <div className="bg-white p-8 rounded-3xl border border-stone-200 shadow-sm space-y-6">
         
         <button
-          onClick={loginWithGoogle}
+          onClick={() => loginWithGoogle()}
           className="w-full py-3 px-4 bg-white border border-stone-300 hover:bg-stone-50 text-stone-700 text-xs font-bold rounded-xl shadow-2xs transition flex items-center justify-center gap-3"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">

@@ -65,7 +65,6 @@ function setLocal<T>(key: string, data: T): void {
 }
 
 export const DataService = {
-  
   // ==========================================
   // 1. PRODUCTS
   // ==========================================
@@ -84,7 +83,7 @@ export const DataService = {
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         runtimeProducts = data as Product[];
         setLocal('products', runtimeProducts);
         return runtimeProducts;
@@ -111,7 +110,7 @@ export const DataService = {
         `)
         .order('created_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         runtimeProducts = data as Product[];
         setLocal('products', runtimeProducts);
         return runtimeProducts;
@@ -124,11 +123,51 @@ export const DataService = {
   },
 
   async getProductBySlug(slug: string): Promise<Product | null> {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          category:categories(*),
+          images:product_images(*),
+          variants:product_variants(*),
+          specifications:product_specifications(*)
+        `)
+        .eq('slug', slug)
+        .maybeSingle();
+
+      if (!error && data) {
+        return data as Product;
+      }
+    } catch {
+      // Fallback
+    }
     const products = await this.getProducts();
     return products.find(p => p.slug === slug) || null;
   },
 
   async getProductById(id: string): Promise<Product | null> {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          category:categories(*),
+          images:product_images(*),
+          variants:product_variants(*),
+          specifications:product_specifications(*)
+        `)
+        .eq('id', id)
+        .maybeSingle();
+
+      if (!error && data) {
+        return data as Product;
+      }
+    } catch {
+      // Fallback
+    }
     const products = await this.getAllAdminProducts();
     return products.find(p => p.id === id) || null;
   },
@@ -198,26 +237,79 @@ export const DataService = {
     runtimeProducts = localList;
     setLocal('products', localList);
 
-    // Attempt background persistence to Supabase
+    // Persist parent product and sub-tables to Supabase
     try {
       const supabase = createClient();
-      await supabase.from('products').upsert({
-        id: savedProduct.id.startsWith('prod-') ? undefined : savedProduct.id,
-        name: savedProduct.name,
-        slug: savedProduct.slug,
-        description: savedProduct.description,
-        short_description: savedProduct.short_description,
-        price: savedProduct.price,
-        stock: savedProduct.stock,
-        sku: savedProduct.sku,
-        category_id: savedProduct.category_id,
-        is_featured: savedProduct.is_featured,
-        is_new: savedProduct.is_new,
-        is_active: savedProduct.is_active,
-        video_url: savedProduct.video_url,
-      });
+      const isCustomId = savedProduct.id.startsWith('prod-');
+      
+      const { data: upsertedProduct, error: prodErr } = await supabase
+        .from('products')
+        .upsert({
+          id: isCustomId ? undefined : savedProduct.id,
+          name: savedProduct.name,
+          slug: savedProduct.slug,
+          description: savedProduct.description,
+          short_description: savedProduct.short_description,
+          price: savedProduct.price,
+          stock: savedProduct.stock,
+          sku: savedProduct.sku,
+          category_id: savedProduct.category_id && !savedProduct.category_id.startsWith('cat-') ? savedProduct.category_id : null,
+          is_featured: savedProduct.is_featured,
+          is_new: savedProduct.is_new,
+          is_active: savedProduct.is_active,
+          video_url: savedProduct.video_url,
+        }, { onConflict: 'slug' })
+        .select()
+        .single();
+
+      if (!prodErr && upsertedProduct) {
+        const prodDbId = upsertedProduct.id;
+        savedProduct.id = prodDbId;
+        setLocal('products', localList);
+
+        // Sync Images
+        if (savedProduct.images && savedProduct.images.length > 0) {
+          await supabase.from('product_images').delete().eq('product_id', prodDbId);
+          await supabase.from('product_images').insert(
+            savedProduct.images.map((img, i) => ({
+              product_id: prodDbId,
+              image_url: img.image_url,
+              is_cover: img.is_cover || i === 0,
+              display_order: img.display_order || i + 1,
+            }))
+          );
+        }
+
+        // Sync Variants
+        if (savedProduct.variants && savedProduct.variants.length > 0) {
+          await supabase.from('product_variants').delete().eq('product_id', prodDbId);
+          await supabase.from('product_variants').insert(
+            savedProduct.variants.map((v) => ({
+              product_id: prodDbId,
+              name: v.name,
+              value: v.value,
+              stock: v.stock,
+              price_override: v.price_override || null,
+              is_active: v.is_active ?? true,
+            }))
+          );
+        }
+
+        // Sync Specifications
+        if (savedProduct.specifications && savedProduct.specifications.length > 0) {
+          await supabase.from('product_specifications').delete().eq('product_id', prodDbId);
+          await supabase.from('product_specifications').insert(
+            savedProduct.specifications.map((s, i) => ({
+              product_id: prodDbId,
+              spec_key: s.spec_key,
+              spec_value: s.spec_value,
+              display_order: s.display_order || i + 1,
+            }))
+          );
+        }
+      }
     } catch {
-      // Ignore
+      // Fallback to local
     }
 
     return savedProduct;
@@ -236,7 +328,9 @@ export const DataService = {
 
     try {
       const supabase = createClient();
-      await supabase.from('products').update({ stock: newStock, price: newPrice }).eq('id', productId);
+      if (!productId.startsWith('prod-')) {
+        await supabase.from('products').update({ stock: newStock, price: newPrice }).eq('id', productId);
+      }
     } catch {
       // Ignore
     }
@@ -251,7 +345,9 @@ export const DataService = {
 
     try {
       const supabase = createClient();
-      await supabase.from('products').delete().eq('id', productId);
+      if (!productId.startsWith('prod-')) {
+        await supabase.from('products').delete().eq('id', productId);
+      }
     } catch {
       // Ignore
     }
@@ -267,10 +363,9 @@ export const DataService = {
       const { data, error } = await supabase
         .from('categories')
         .select('*')
-        .eq('is_active', true)
         .order('display_order', { ascending: true });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         runtimeCategories = data as Category[];
         setLocal('categories', runtimeCategories);
         return runtimeCategories;
@@ -306,6 +401,32 @@ export const DataService = {
 
     runtimeCategories = list;
     setLocal('categories', list);
+
+    try {
+      const supabase = createClient();
+      const isCustomId = savedCat.id.startsWith('cat-');
+      const { data, error } = await supabase
+        .from('categories')
+        .upsert({
+          id: isCustomId ? undefined : savedCat.id,
+          name: savedCat.name,
+          slug: savedCat.slug,
+          description: savedCat.description,
+          image_url: savedCat.image_url,
+          display_order: savedCat.display_order,
+          is_active: savedCat.is_active,
+        }, { onConflict: 'slug' })
+        .select()
+        .single();
+
+      if (!error && data) {
+        savedCat.id = data.id;
+        setLocal('categories', list);
+      }
+    } catch {
+      // Local fallback
+    }
+
     return savedCat;
   },
 
@@ -314,6 +435,15 @@ export const DataService = {
     list = list.filter(c => c.id !== categoryId);
     runtimeCategories = list;
     setLocal('categories', list);
+
+    try {
+      const supabase = createClient();
+      if (!categoryId.startsWith('cat-')) {
+        await supabase.from('categories').delete().eq('id', categoryId);
+      }
+    } catch {
+      // Ignore
+    }
     return true;
   },
 
@@ -323,13 +453,20 @@ export const DataService = {
   async getOrders(userId?: string): Promise<Order[]> {
     try {
       const supabase = createClient();
-      let query = supabase.from('orders').select('*, items:order_items(*)').order('created_at', { ascending: false });
+      let query = supabase
+        .from('orders')
+        .select('*, items:order_items(*)')
+        .order('created_at', { ascending: false });
+      
       if (userId) query = query.eq('user_id', userId);
       const { data, error } = await query;
-      if (!error && data && data.length > 0) {
-        runtimeOrders = data as Order[];
-        setLocal('orders', runtimeOrders);
-        return runtimeOrders;
+      
+      if (!error && data) {
+        if (!userId) {
+          runtimeOrders = data as Order[];
+          setLocal('orders', runtimeOrders);
+        }
+        return data as Order[];
       }
     } catch {
       // Fallback
@@ -341,6 +478,28 @@ export const DataService = {
   },
 
   async getOrderByNumber(orderNumber: string, emailOrName?: string): Promise<Order | null> {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, items:order_items(*)')
+        .eq('order_number', orderNumber.trim().toUpperCase())
+        .maybeSingle();
+
+      if (!error && data) {
+        const found = data as Order;
+        if (emailOrName && emailOrName.trim()) {
+          const q = emailOrName.trim().toLowerCase();
+          const guestEmail = (found.guest_email || '').toLowerCase();
+          const name = (found.shipping_address?.full_name || '').toLowerCase();
+          if (!guestEmail.includes(q) && !name.includes(q)) return null;
+        }
+        return found;
+      }
+    } catch {
+      // Fallback
+    }
+
     const orders = await this.getOrders();
     const cleanNumber = orderNumber.trim().toUpperCase();
     const found = orders.find(o => o.order_number.toUpperCase() === cleanNumber);
@@ -392,32 +551,56 @@ export const DataService = {
       const p = prods.find(pr => pr.id === item.product_id || pr.name === item.product_name);
       if (p) {
         p.stock = Math.max(0, p.stock - item.quantity);
+        if (item.variant_id && p.variants) {
+          const v = p.variants.find(vr => vr.id === item.variant_id);
+          if (v) v.stock = Math.max(0, v.stock - item.quantity);
+        }
       }
     });
     setLocal('products', prods);
 
+    // Persist Order and Order Items in Supabase
     try {
       const supabase = createClient();
-      await supabase.from('orders').insert({
-        order_number: newOrder.order_number,
-        user_id: newOrder.user_id,
-        guest_email: newOrder.guest_email,
-        guest_name: newOrder.guest_name,
-        guest_phone: newOrder.guest_phone,
-        status: newOrder.status,
-        total_amount: newOrder.total_amount,
-        shipping_fee: newOrder.shipping_fee,
-        gift_wrap_fee: newOrder.gift_wrap_fee,
-        has_gift_wrap: newOrder.has_gift_wrap,
-        gift_note: newOrder.gift_note,
-        delivery_type: newOrder.delivery_type,
-        shipping_address: newOrder.shipping_address,
-        billing_address: newOrder.billing_address,
-        payment_status: newOrder.payment_status,
-        payment_method: newOrder.payment_method,
-      });
+      const { data: orderRow, error: orderErr } = await supabase
+        .from('orders')
+        .insert({
+          order_number: newOrder.order_number,
+          user_id: newOrder.user_id,
+          guest_email: newOrder.guest_email,
+          guest_name: newOrder.guest_name,
+          guest_phone: newOrder.guest_phone,
+          status: newOrder.status,
+          total_amount: newOrder.total_amount,
+          shipping_fee: newOrder.shipping_fee,
+          gift_wrap_fee: newOrder.gift_wrap_fee,
+          has_gift_wrap: newOrder.has_gift_wrap,
+          gift_note: newOrder.gift_note,
+          delivery_type: newOrder.delivery_type,
+          shipping_address: newOrder.shipping_address,
+          billing_address: newOrder.billing_address,
+          payment_status: newOrder.payment_status,
+          payment_method: newOrder.payment_method,
+        })
+        .select('id')
+        .single();
+
+      if (!orderErr && orderRow && newOrder.items && newOrder.items.length > 0) {
+        newOrder.id = orderRow.id;
+        await supabase.from('order_items').insert(
+          newOrder.items.map((item) => ({
+            order_id: orderRow.id,
+            product_id: item.product_id && !item.product_id.startsWith('prod-') ? item.product_id : null,
+            product_name: item.product_name,
+            variant_name: item.variant_name || null,
+            price: item.price,
+            quantity: item.quantity,
+            total: item.total,
+          }))
+        );
+      }
     } catch {
-      // Ignore
+      // Local fallback
     }
 
     return newOrder;
@@ -443,12 +626,16 @@ export const DataService = {
 
     try {
       const supabase = createClient();
-      await supabase.from('orders').update({
-        status,
-        tracking_number: trackingNumber,
-        tracking_carrier: trackingCarrier,
-        admin_notes: adminNotes,
-      }).eq('id', orderId);
+      const updateData: any = { status };
+      if (trackingNumber !== undefined) updateData.tracking_number = trackingNumber;
+      if (trackingCarrier !== undefined) updateData.tracking_carrier = trackingCarrier;
+      if (adminNotes !== undefined) updateData.admin_notes = adminNotes;
+
+      if (!orderId.startsWith('ord-')) {
+        await supabase.from('orders').update(updateData).eq('id', orderId);
+      } else if (order?.order_number) {
+        await supabase.from('orders').update(updateData).eq('order_number', order.order_number);
+      }
     } catch {
       // Ignore
     }
@@ -459,6 +646,20 @@ export const DataService = {
   // 4. RMA (RETURNS & EXCHANGES)
   // ==========================================
   async getReturns(userId?: string): Promise<ReturnRequest[]> {
+    try {
+      const supabase = createClient();
+      let query = supabase.from('returns').select('*, order:orders(*)').order('created_at', { ascending: false });
+      if (userId) query = query.eq('user_id', userId);
+      const { data, error } = await query;
+      if (!error && data) {
+        runtimeReturns = data as ReturnRequest[];
+        setLocal('returns', runtimeReturns);
+        return runtimeReturns;
+      }
+    } catch {
+      // Fallback
+    }
+
     const returns = getLocal<ReturnRequest[]>('returns', runtimeReturns);
     if (userId) return returns.filter(r => r.user_id === userId);
     return returns;
@@ -474,13 +675,32 @@ export const DataService = {
       details: req.details || '',
       status: 'talep_alindi',
       created_at: new Date().toISOString(),
-      order: orders.find(o => o.id === req.order_id),
+      order: orders.find(o => o.id === req.order_id || o.order_number === req.order_id),
     };
 
     const returns = getLocal<ReturnRequest[]>('returns', runtimeReturns);
     returns.unshift(newReturn);
     runtimeReturns = returns;
     setLocal('returns', returns);
+
+    try {
+      const supabase = createClient();
+      const { data } = await supabase.from('returns').insert({
+        order_id: newReturn.order?.id && !newReturn.order.id.startsWith('ord-') ? newReturn.order.id : req.order_id,
+        user_id: newReturn.user_id,
+        reason: newReturn.reason,
+        details: newReturn.details,
+        status: newReturn.status,
+      }).select('id').single();
+
+      if (data) {
+        newReturn.id = data.id;
+        setLocal('returns', returns);
+      }
+    } catch {
+      // Fallback
+    }
+
     return newReturn;
   },
 
@@ -492,15 +712,43 @@ export const DataService = {
       if (adminResponse !== undefined) ret.admin_response = adminResponse;
       ret.updated_at = new Date().toISOString();
       setLocal('returns', returns);
-      return true;
     }
-    return false;
+
+    try {
+      const supabase = createClient();
+      if (!returnId.startsWith('ret-')) {
+        await supabase.from('returns').update({
+          status,
+          admin_response: adminResponse,
+        }).eq('id', returnId);
+      }
+    } catch {
+      // Fallback
+    }
+
+    return true;
   },
 
   // ==========================================
   // 5. Q&A (QUESTIONS & ANSWERS)
   // ==========================================
   async getQuestions(productId?: string): Promise<Question[]> {
+    try {
+      const supabase = createClient();
+      let query = supabase.from('questions').select('*').order('created_at', { ascending: false });
+      if (productId && !productId.startsWith('prod-')) {
+        query = query.eq('product_id', productId).eq('is_approved', true);
+      }
+      const { data, error } = await query;
+      if (!error && data) {
+        runtimeQuestions = data as Question[];
+        setLocal('questions', runtimeQuestions);
+        return runtimeQuestions;
+      }
+    } catch {
+      // Fallback
+    }
+
     const questions = getLocal<Question[]>('questions', runtimeQuestions);
     if (productId) return questions.filter(q => q.product_id === productId && q.is_approved);
     return questions;
@@ -521,6 +769,25 @@ export const DataService = {
     questions.unshift(newQ);
     runtimeQuestions = questions;
     setLocal('questions', questions);
+
+    try {
+      const supabase = createClient();
+      const { data } = await supabase.from('questions').insert({
+        product_id: !productId.startsWith('prod-') ? productId : null,
+        user_name: userName,
+        user_email: userEmail,
+        question_text: questionText,
+        is_approved: false,
+      }).select('id').single();
+
+      if (data) {
+        newQ.id = data.id;
+        setLocal('questions', questions);
+      }
+    } catch {
+      // Fallback
+    }
+
     return newQ;
   },
 
@@ -532,15 +799,44 @@ export const DataService = {
       q.is_approved = isApproved;
       q.answered_at = new Date().toISOString();
       setLocal('questions', questions);
-      return true;
     }
-    return false;
+
+    try {
+      const supabase = createClient();
+      if (!questionId.startsWith('q-')) {
+        await supabase.from('questions').update({
+          answer_text: answerText,
+          is_approved: isApproved,
+          answered_at: new Date().toISOString(),
+        }).eq('id', questionId);
+      }
+    } catch {
+      // Fallback
+    }
+
+    return true;
   },
 
   // ==========================================
   // 6. REVIEWS
   // ==========================================
   async getReviews(productId?: string): Promise<Review[]> {
+    try {
+      const supabase = createClient();
+      let query = supabase.from('reviews').select('*').order('created_at', { ascending: false });
+      if (productId && !productId.startsWith('prod-')) {
+        query = query.eq('product_id', productId).eq('is_approved', true);
+      }
+      const { data, error } = await query;
+      if (!error && data) {
+        runtimeReviews = data as Review[];
+        setLocal('reviews', runtimeReviews);
+        return runtimeReviews;
+      }
+    } catch {
+      // Fallback
+    }
+
     const reviews = getLocal<Review[]>('reviews', runtimeReviews);
     if (productId) return reviews.filter(r => r.product_id === productId && r.is_approved);
     return reviews;
@@ -561,6 +857,25 @@ export const DataService = {
     reviews.unshift(newRev);
     runtimeReviews = reviews;
     setLocal('reviews', reviews);
+
+    try {
+      const supabase = createClient();
+      const { data } = await supabase.from('reviews').insert({
+        product_id: !productId.startsWith('prod-') ? productId : null,
+        user_name: userName,
+        rating,
+        comment,
+        is_approved: true,
+      }).select('id').single();
+
+      if (data) {
+        newRev.id = data.id;
+        setLocal('reviews', reviews);
+      }
+    } catch {
+      // Fallback
+    }
+
     return newRev;
   },
 
@@ -570,9 +885,20 @@ export const DataService = {
     if (r) {
       r.is_approved = isApproved;
       setLocal('reviews', reviews);
-      return true;
     }
-    return false;
+
+    try {
+      const supabase = createClient();
+      if (!reviewId.startsWith('rev-')) {
+        await supabase.from('reviews').update({
+          is_approved: isApproved,
+        }).eq('id', reviewId);
+      }
+    } catch {
+      // Fallback
+    }
+
+    return true;
   },
 
   // ==========================================
@@ -684,7 +1010,6 @@ export const DataService = {
     try {
       const supabase = createClient();
       
-      // Upsert parent session first (prevents Foreign Key violation)
       await supabase
         .from('live_chat_sessions')
         .upsert({
@@ -695,7 +1020,6 @@ export const DataService = {
           updated_at: new Date().toISOString(),
         }, { onConflict: 'session_id' });
 
-      // Insert message
       await supabase
         .from('live_chat_messages')
         .insert({
@@ -714,6 +1038,22 @@ export const DataService = {
   // 8. WHOLESALE B2B
   // ==========================================
   async getWholesaleRequests(): Promise<WholesaleRequest[]> {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('wholesale_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        runtimeWholesale = data as WholesaleRequest[];
+        setLocal('wholesale', runtimeWholesale);
+        return runtimeWholesale;
+      }
+    } catch {
+      // Fallback
+    }
+
     return getLocal<WholesaleRequest[]>('wholesale', runtimeWholesale);
   },
 
@@ -729,7 +1069,28 @@ export const DataService = {
     list.unshift(newReq);
     runtimeWholesale = list;
     setLocal('wholesale', list);
+
+    try {
+      const supabase = createClient();
+      const { data } = await supabase.from('wholesale_requests').insert({
+        company_name: req.company_name,
+        contact_name: req.contact_name,
+        email: req.email,
+        phone: req.phone,
+        city: req.city,
+        estimated_volume: req.estimated_volume,
+        notes: req.notes,
+        status: 'beklemede',
+      }).select('id').single();
+
+      if (data) {
+        newReq.id = data.id;
+        setLocal('wholesale', list);
+      }
+    } catch {
+      // Fallback
+    }
+
     return newReq;
   }
-
 };

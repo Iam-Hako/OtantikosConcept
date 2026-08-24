@@ -16,9 +16,13 @@ export async function POST(request: Request) {
     }
 
     if (status === 'success') {
-      await DataService.updateOrderStatus(order.id, 'hazirlaniyor');
+      if (order.status === 'siparis_alindi') {
+        await DataService.updateOrderStatus(order.id, 'hazirlaniyor');
+      }
     } else if (status === 'failed') {
-      await DataService.updateOrderStatus(order.id, 'iptal_edildi');
+      if (order.status === 'siparis_alindi') {
+        await DataService.updateOrderStatus(order.id, 'iptal_edildi');
+      }
     }
 
     return NextResponse.json({ status: 'OK' });

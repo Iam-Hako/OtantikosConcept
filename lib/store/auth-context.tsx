@@ -9,7 +9,7 @@ interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
   isAdmin: boolean;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: (redirectToPath?: string) => Promise<void>;
   loginWithEmail: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   signUpWithEmail: (email: string, pass: string, fullName: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(profile as UserProfile);
           } else {
             const isAdminEmail = session.user.email === 'chessvip11@gmail.com' || session.user.email === 'admin@otantikosconcept.com';
-            const hasAdminMeta = session.user.app_metadata?.role === 'admin' || session.user.user_metadata?.role === 'admin';
+            const hasAdminMeta = session.user.app_metadata?.role === 'admin';
             setUser({
               id: session.user.id,
               email: session.user.email || '',
@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(profile as UserProfile);
         } else {
           const isAdminEmail = session.user.email === 'chessvip11@gmail.com' || session.user.email === 'admin@otantikosconcept.com';
-          const hasAdminMeta = session.user.app_metadata?.role === 'admin' || session.user.user_metadata?.role === 'admin';
+          const hasAdminMeta = session.user.app_metadata?.role === 'admin';
           setUser({
             id: session.user.id,
             email: session.user.email || '',
@@ -89,12 +89,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (redirectToPath?: string) => {
     try {
+      const nextQuery = redirectToPath ? `?next=${encodeURIComponent(redirectToPath)}` : '';
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback${nextQuery}`,
         },
       });
       if (error) {

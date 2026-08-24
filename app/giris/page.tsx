@@ -11,7 +11,12 @@ import { toast } from 'sonner';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams?.get('redirect') || '/';
+  const rawRedirect = searchParams?.get('redirect') || '/';
+  const safeRedirect =
+    rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') && !rawRedirect.startsWith('/\\')
+      ? rawRedirect
+      : '/';
+  const authError = searchParams?.get('error');
 
   const { loginWithEmail, loginWithGoogle } = useAuth();
 
@@ -19,13 +24,23 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  React.useEffect(() => {
+    if (authError) {
+      toast.error(
+        authError === 'auth-failed'
+          ? 'Giriş işlemi tamamlanamadı veya iptal edildi.'
+          : decodeURIComponent(authError)
+      );
+    }
+  }, [authError]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     const res = await loginWithEmail(email, password);
     setIsLoading(false);
     if (res.success) {
-      router.push(redirect);
+      router.push(safeRedirect);
     } else {
       toast.error(res.error || 'Giriş yapılamadı.');
     }
@@ -47,7 +62,7 @@ function LoginForm() {
 
       <div className="bg-white p-8 rounded-3xl border border-stone-200 shadow-sm space-y-6">
         <button
-          onClick={loginWithGoogle}
+          onClick={() => loginWithGoogle(safeRedirect)}
           className="w-full py-3 px-4 bg-white border border-stone-300 hover:bg-stone-50 text-stone-700 text-xs font-bold rounded-xl shadow-2xs transition flex items-center justify-center gap-3"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">

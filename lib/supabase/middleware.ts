@@ -36,7 +36,11 @@ export async function updateSession(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = '/giris';
       url.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(url);
+      const redirectResponse = NextResponse.redirect(url);
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+      });
+      return redirectResponse;
     }
 
     const isOwnerEmail = user.email === 'chessvip11@gmail.com' || user.email === 'admin@otantikosconcept.com';
@@ -60,7 +64,11 @@ export async function updateSession(request: NextRequest) {
     if (!isOwnerEmail && !hasAdminMeta && !isProfileAdmin) {
       const url = request.nextUrl.clone();
       url.pathname = '/';
-      return NextResponse.redirect(url);
+      const redirectResponse = NextResponse.redirect(url);
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+      });
+      return redirectResponse;
     }
   }
 

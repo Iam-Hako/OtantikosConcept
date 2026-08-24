@@ -8,7 +8,7 @@ import confetti from 'canvas-confetti';
 
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
-  const orderNumber = searchParams?.get('order_number') || 'OTN-2026-78412';
+  const orderNumber = searchParams?.get('order_number') || '';
   const email = searchParams?.get('email') || '';
 
   useEffect(() => {

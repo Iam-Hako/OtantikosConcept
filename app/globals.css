@@ -19,6 +19,10 @@ html {
 
 /* Print styles for Admin Koli Fişi (Thermal/A4 printable packing slip) */
 @media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
   body * {
     visibility: hidden;
   }
