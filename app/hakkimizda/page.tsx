@@ -44,7 +44,7 @@ export default function AboutPage() {
         </div>
 
         <p>
-          Gerek perakende gerekse toptan B2B alımlarda dürüstlük, müşteri memnuniyeti ve hızlı servis ilkelerimizden asla taviz vermeden büyümeye devam ediyoruz.
+          Gerek perakende gerekse toptan alımlarda dürüstlük, müşteri memnuniyeti ve hızlı servis ilkelerimizden asla taviz vermeden büyümeye devam ediyoruz.
         </p>
 
         <div className="pt-4 border-t border-stone-200 flex justify-center">

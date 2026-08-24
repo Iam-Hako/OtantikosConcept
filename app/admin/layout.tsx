@@ -41,7 +41,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/soru-cevap', label: 'Soru-Cevap Moderasyonu', icon: HelpCircle },
     { href: '/admin/yorumlar', label: 'Yorum Moderasyonu', icon: Star },
     { href: '/admin/canli-destek', label: 'Canlı Destek Masası', icon: MessageCircle, badge: 'Canlı' },
-    { href: '/admin/toptan-talepler', label: 'Toptan B2B Talepleri', icon: Sparkles },
+    { href: '/admin/toptan-talepler', label: 'Toptan Teklif Talepleri', icon: Sparkles },
   ];
 
   return (

@@ -72,39 +72,37 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { company_name, contact_name, email, phone, city, estimated_volume, notes } = body;
+    const { contact_name, phone, address, notes, company_name, email, city } = body;
 
-    if (!company_name || !contact_name || !email || !phone || !city) {
-      return NextResponse.json({ error: 'Eksik zorunlu alanlar' }, { status: 400 });
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(String(email).trim())) {
-      return NextResponse.json({ error: 'Geçersiz e-posta formatı' }, { status: 400 });
-    }
-
-    const cleanPhone = String(phone).replace(/[^\d+]/g, '').slice(0, 20);
-    if (cleanPhone.length < 10) {
-      return NextResponse.json({ error: 'Geçersiz telefon numarası' }, { status: 400 });
-    }
-
-    const cleanCompany = String(company_name).trim().slice(0, 100);
-    const cleanContact = String(contact_name).trim().slice(0, 80);
-    const cleanEmail = String(email).trim().toLowerCase().slice(0, 100);
-    const cleanCity = String(city).trim().slice(0, 50);
-    const cleanVolume = estimated_volume ? String(estimated_volume).trim().slice(0, 50) : '100 - 500 Adet';
+    const cleanContact = String(contact_name || company_name || '').trim().slice(0, 80);
+    const cleanPhone = String(phone || '').replace(/[^\d+]/g, '').slice(0, 20);
+    const cleanAddress = String(address || city || '').trim().slice(0, 300);
     const cleanNotes = notes ? String(notes).trim().slice(0, 2000) : '';
+    const cleanEmail = email ? String(email).trim().toLowerCase().slice(0, 100) : '';
+
+    if (!cleanContact) {
+      return NextResponse.json({ error: 'Lütfen isim ve soyisim giriniz.' }, { status: 400 });
+    }
+
+    if (cleanPhone.length < 10) {
+      return NextResponse.json({ error: 'Lütfen geçerli bir telefon numarası giriniz (en az 10 hane).' }, { status: 400 });
+    }
+
+    if (!cleanAddress) {
+      return NextResponse.json({ error: 'Lütfen teslimat / şehir adresi giriniz.' }, { status: 400 });
+    }
 
     const newReq: WholesaleRequest = {
       id: `ws-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      company_name: cleanCompany,
       contact_name: cleanContact,
-      email: cleanEmail,
+      company_name: cleanContact,
       phone: cleanPhone,
-      city: cleanCity,
-      estimated_volume: cleanVolume,
+      address: cleanAddress,
+      city: cleanAddress,
+      email: cleanEmail,
       notes: cleanNotes,
       status: 'beklemede',
+      admin_notes: '',
       created_at: new Date().toISOString(),
     };
 
@@ -119,13 +117,12 @@ export async function POST(request: Request) {
       const { data, error } = await supabase
         .from('wholesale_requests')
         .insert({
-          company_name: cleanCompany,
+          company_name: cleanContact,
           contact_name: cleanContact,
-          email: cleanEmail,
+          email: cleanEmail || null,
           phone: cleanPhone,
-          city: cleanCity,
-          estimated_volume: cleanVolume,
-          notes: cleanNotes,
+          city: cleanAddress,
+          notes: cleanNotes ? `[Adres: ${cleanAddress}] ${cleanNotes}` : `Adres: ${cleanAddress}`,
           status: 'beklemede',
         })
         .select('id')
@@ -154,24 +151,28 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json();
-    const { id, status } = body;
+    const { id, status, admin_notes } = body;
 
-    if (!id || !status) {
-      return NextResponse.json({ error: 'Eksik id veya status' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: 'Eksik id' }, { status: 400 });
     }
 
     const list = getStoredRequests();
     const reqItem = list.find((r) => r.id === id);
     if (reqItem) {
-      reqItem.status = status;
+      if (status) reqItem.status = status;
+      if (admin_notes !== undefined) reqItem.admin_notes = admin_notes;
+      reqItem.updated_at = new Date().toISOString();
       saveStoredRequests(list);
     }
 
     try {
       const supabase = createAdminClient();
+      const updateData: any = {};
+      if (status) updateData.status = status;
       await supabase
         .from('wholesale_requests')
-        .update({ status })
+        .update(updateData)
         .eq('id', id);
     } catch {
       // Fallback

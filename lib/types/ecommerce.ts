@@ -213,15 +213,18 @@ export interface InStockAlert {
 
 export interface WholesaleRequest {
   id: string;
-  company_name: string;
   contact_name: string;
-  email: string;
   phone: string;
-  city: string;
+  address: string;
+  notes?: string | null;
+  company_name?: string | null;
+  email?: string | null;
+  city?: string | null;
   estimated_volume?: string | null;
-  notes: string;
   status: string;
+  admin_notes?: string | null;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface CartItem {

@@ -79,7 +79,7 @@ export default function HomePage() {
                 href="/toptan-satis"
                 className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs sm:text-sm rounded-xl backdrop-blur-xs transition text-center"
               >
-                Tahtakale Toptan & B2B
+                Tahtakale Toptan Satış
               </Link>
             </div>
 
@@ -236,7 +236,7 @@ export default function HomePage() {
                 className="px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Tahtakale Toptan & B2B Teklif İste</span>
+                <span>Tahtakale Toptan Teklif İste</span>
               </Link>
               <Link
                 href="/hakkimizda"

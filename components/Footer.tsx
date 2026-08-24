@@ -134,7 +134,7 @@ export default function Footer() {
               <li>
                 <Link href="/toptan-satis" className="text-amber-400 hover:underline transition flex items-center gap-1">
                   <Sparkles className="w-3 h-3" />
-                  <span>Toptan & B2B Sipariş</span>
+                  <span>Toptan Teklif & Satış</span>
                 </Link>
               </li>
             </ul>

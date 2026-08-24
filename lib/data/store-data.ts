@@ -1482,6 +1482,7 @@ export const DataService = {
       ...req,
       id: `ws-${Date.now()}`,
       status: 'beklemede',
+      admin_notes: '',
       created_at: new Date().toISOString(),
     };
 
@@ -1510,13 +1511,12 @@ export const DataService = {
     try {
       const supabase = createClient();
       const { data } = await supabase.from('wholesale_requests').insert({
-        company_name: req.company_name,
+        company_name: req.contact_name || req.company_name,
         contact_name: req.contact_name,
-        email: req.email,
+        email: req.email || null,
         phone: req.phone,
-        city: req.city,
-        estimated_volume: req.estimated_volume,
-        notes: req.notes,
+        city: req.address || req.city,
+        notes: req.notes ? `[Adres: ${req.address || req.city}] ${req.notes}` : `Adres: ${req.address || req.city}`,
         status: 'beklemede',
       }).select('id').single();
 
@@ -1530,11 +1530,13 @@ export const DataService = {
     return newReq;
   },
 
-  async updateWholesaleStatus(id: string, status: WholesaleRequest['status']): Promise<boolean> {
+  async updateWholesaleStatus(id: string, status: WholesaleRequest['status'], adminNotes?: string): Promise<boolean> {
     const list = runtimeWholesale;
     const item = list.find(r => r.id === id);
     if (item) {
       item.status = status;
+      if (adminNotes !== undefined) item.admin_notes = adminNotes;
+      item.updated_at = new Date().toISOString();
     }
     runtimeWholesale = list;
 
@@ -1543,7 +1545,7 @@ export const DataService = {
         await fetch('/api/wholesale', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, status }),
+          body: JSON.stringify({ id, status, admin_notes: adminNotes }),
         });
       } catch {
         // Fallback
@@ -1552,7 +1554,8 @@ export const DataService = {
 
     try {
       const supabase = createClient();
-      await supabase.from('wholesale_requests').update({ status }).eq('id', id);
+      const updatePayload: any = { status };
+      await supabase.from('wholesale_requests').update(updatePayload).eq('id', id);
     } catch {
       // Fallback
     }

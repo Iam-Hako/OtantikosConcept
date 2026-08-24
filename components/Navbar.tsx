@@ -352,7 +352,7 @@ export default function Navbar() {
                 href="/toptan-satis" 
                 className="text-stone-500 hover:text-amber-700 transition py-1"
               >
-                Toptan & B2B
+                Toptan Satış
               </Link>
             </li>
             <li>
@@ -424,7 +424,7 @@ export default function Navbar() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block py-1 text-stone-700"
               >
-                Toptan & B2B Teklif
+                Toptan Satış & Teklif
               </Link>
               <Link
                 href="/hakkimizda"
