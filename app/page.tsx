@@ -57,11 +57,10 @@ export default function HomePage() {
           {/* Left Hero Text */}
           <div className="flex-1 space-y-5 sm:space-y-6 text-center lg:text-left">
             <h1 className="text-2xl sm:text-5xl lg:text-6xl font-serif font-black tracking-tight leading-[1.2] text-white">
-              Otantik Zanaat, <br />
+              Otantikos Concept&apos;e <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500">
-                Modern Tasarımla
-              </span> <br />
-              Buluştu.
+                Hoş Geldiniz.
+              </span>
             </h1>
 
             <p className="text-xs sm:text-base text-stone-300 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
