@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -14,7 +14,9 @@ import {
   Video, 
   Layers, 
   Check,
-  Star
+  Star,
+  UploadCloud,
+  Loader2
 } from 'lucide-react';
 import { Category, ProductSpecification, ProductVariant, ProductImage } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
@@ -37,6 +39,12 @@ export default function NewProductPage() {
   const [videoUrl, setVideoUrl] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
   const [isNew, setIsNew] = useState(true);
+
+  // Upload States & Refs
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   // Dynamic Specifications Builder
   const [specs, setSpecs] = useState<ProductSpecification[]>([
@@ -112,7 +120,7 @@ export default function NewProductPage() {
     setVariants((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Image Gallery Helpers
+  // Image Gallery & Upload Helpers
   const handleAddImage = () => {
     if (!newImageUrl.trim()) return;
     const formatted = convertGoogleDriveUrl(newImageUrl.trim());
@@ -126,6 +134,79 @@ export default function NewProductPage() {
       }
     ]);
     setNewImageUrl('');
+  };
+
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploadingImage(true);
+    let successCount = 0;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) throw new Error('Yükleme başarısız');
+        const data = await res.json();
+
+        if (data.url) {
+          setImages((prev) => [
+            ...prev,
+            {
+              image_url: data.url,
+              is_cover: prev.length === 0,
+              display_order: prev.length + 1,
+              alt_text: name || file.name,
+            },
+          ]);
+          successCount++;
+        }
+      } catch {
+        toast.error(`"${file.name}" yüklenirken hata oluştu.`);
+      }
+    }
+
+    setIsUploadingImage(false);
+    if (e.target) e.target.value = '';
+    if (successCount > 0) {
+      toast.success(`${successCount} fotoğraf başarıyla yüklendi!`);
+    }
+  };
+
+  const handleVideoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingVideo(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Video yükleme başarısız');
+      const data = await res.json();
+      if (data.url) {
+        setVideoUrl(data.url);
+        toast.success('Tanıtım videosu başarıyla yüklendi!');
+      }
+    } catch {
+      toast.error('Video yüklenirken hata oluştu.');
+    } finally {
+      setIsUploadingVideo(false);
+      if (e.target) e.target.value = '';
+    }
   };
 
   const setCoverImage = (index: number) => {
@@ -472,31 +553,68 @@ export default function NewProductPage() {
 
           {/* Media & Multi-Image Gallery */}
           <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 border-b border-stone-100 pb-2 flex items-center gap-1.5">
-              <ImageIcon className="w-4 h-4 text-amber-600" />
-              <span>Görsel Galerisi & Kapak</span>
-            </h2>
+            <div className="flex items-center justify-between border-b border-stone-100 pb-2">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
+                <ImageIcon className="w-4 h-4 text-amber-600" />
+                <span>Görsel Galerisi & Kapak</span>
+              </h2>
+              <span className="text-[11px] text-stone-400 font-semibold">{images.length} Fotoğraf</span>
+            </div>
 
-            {/* Add Image by URL / Upload */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Görsel URL'si yapıştırın..."
-                value={newImageUrl}
-                onChange={(e) => setNewImageUrl(e.target.value)}
-                className="flex-1 text-xs p-2 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={handleAddImage}
-                className="px-3 py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-lg"
-              >
-                Ekle
-              </button>
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageFileUpload}
+              accept="image/*"
+              multiple
+              className="hidden"
+            />
+
+            {/* Direct File Upload Button / Dropzone */}
+            <button
+              type="button"
+              disabled={isUploadingImage}
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full p-4 rounded-2xl border-2 border-dashed border-amber-300 hover:border-amber-500 bg-amber-50/50 hover:bg-amber-50 transition flex flex-col items-center justify-center gap-1.5 text-stone-700 cursor-pointer disabled:opacity-50"
+            >
+              {isUploadingImage ? (
+                <>
+                  <Loader2 className="w-6 h-6 text-amber-600 animate-spin" />
+                  <span className="text-xs font-bold text-amber-900">Fotoğraflar Yükleniyor...</span>
+                </>
+              ) : (
+                <>
+                  <UploadCloud className="w-6 h-6 text-amber-600" />
+                  <span className="text-xs font-bold text-stone-900">Bilgisayardan Fotoğraf Yükle</span>
+                  <span className="text-[10px] text-stone-500">Tıklayın veya fotoğrafları buraya seçin (Çoklu seçim desteklenir)</span>
+                </>
+              )}
+            </button>
+
+            {/* Or Add Image by URL */}
+            <div className="pt-2 border-t border-stone-100">
+              <label className="text-[10px] text-stone-400 font-bold block mb-1">veya Bağlantı / Link ile Ekle</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Görsel bağlantısı yapıştırın..."
+                  value={newImageUrl}
+                  onChange={(e) => setNewImageUrl(e.target.value)}
+                  className="flex-1 text-xs p-2 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddImage}
+                  className="px-3 py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-lg"
+                >
+                  Ekle
+                </button>
+              </div>
             </div>
 
             {/* Gallery list */}
-            <div className="space-y-2">
+            <div className="space-y-2 pt-2">
               {images.map((img, i) => (
                 <div key={i} className="flex items-center gap-3 p-2 rounded-xl bg-stone-50 border border-stone-200">
                   <div className="relative w-12 h-12 rounded-lg bg-stone-200 overflow-hidden shrink-0">
@@ -537,15 +655,47 @@ export default function NewProductPage() {
               <span>Tanıtım Videosu</span>
             </h2>
 
+            {/* Hidden Video File Input */}
             <input
-              type="text"
-              placeholder="YouTube Embed URL veya MP4 linki"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
+              type="file"
+              ref={videoInputRef}
+              onChange={handleVideoFileUpload}
+              accept="video/*"
+              className="hidden"
             />
+
+            {/* Direct Video File Upload Button */}
+            <button
+              type="button"
+              disabled={isUploadingVideo}
+              onClick={() => videoInputRef.current?.click()}
+              className="w-full p-3 rounded-xl border border-stone-300 hover:bg-stone-50 transition flex items-center justify-center gap-2 text-xs font-bold text-stone-700 disabled:opacity-50"
+            >
+              {isUploadingVideo ? (
+                <>
+                  <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />
+                  <span>Video Yükleniyor...</span>
+                </>
+              ) : (
+                <>
+                  <UploadCloud className="w-4 h-4 text-amber-600" />
+                  <span>Bilgisayardan Video Yükle (MP4 / WebM)</span>
+                </>
+              )}
+            </button>
+
+            <div>
+              <label className="text-[10px] text-stone-400 font-bold block mb-1">veya YouTube / Video Linki</label>
+              <input
+                type="text"
+                placeholder="YouTube video linki veya video URL"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
+              />
+            </div>
             <p className="text-[10px] text-stone-400">
-              Ürün sayfasında video oynatıcı olarak görüntülenir.
+              Ürün sayfasında video oynatıcı olarak doğrudan oynatılır.
             </p>
           </div>
 
