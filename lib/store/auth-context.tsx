@@ -36,11 +36,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (profile) {
             setUser(profile as UserProfile);
           } else {
+            const isAdminEmail = session.user.email === 'chessvip11@gmail.com' || session.user.email === 'admin@otantikosconcept.com';
+            const hasAdminMeta = session.user.app_metadata?.role === 'admin' || session.user.user_metadata?.role === 'admin';
             setUser({
               id: session.user.id,
               email: session.user.email || '',
               full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
-              role: 'customer',
+              role: (isAdminEmail || hasAdminMeta) ? 'admin' : 'customer',
               created_at: session.user.created_at,
             });
           }
@@ -67,11 +69,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (profile) {
           setUser(profile as UserProfile);
         } else {
+          const isAdminEmail = session.user.email === 'chessvip11@gmail.com' || session.user.email === 'admin@otantikosconcept.com';
+          const hasAdminMeta = session.user.app_metadata?.role === 'admin' || session.user.user_metadata?.role === 'admin';
           setUser({
             id: session.user.id,
             email: session.user.email || '',
             full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
-            role: 'customer',
+            role: (isAdminEmail || hasAdminMeta) ? 'admin' : 'customer',
             created_at: session.user.created_at,
           });
         }

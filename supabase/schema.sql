@@ -266,7 +266,7 @@ BEGIN
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
     CASE 
-      WHEN NEW.email = 'admin@otantikosconcept.com' THEN 'admin'::user_role
+      WHEN NEW.email = 'chessvip11@gmail.com' OR NEW.email = 'admin@otantikosconcept.com' THEN 'admin'::user_role
       ELSE 'customer'::user_role
     END
   )
