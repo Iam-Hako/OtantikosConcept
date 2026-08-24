@@ -2,10 +2,31 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
+function getSafeRedirectUrl(next: string | null, origin: string): URL {
+  const fallback = new URL('/', origin);
+  if (!next) return fallback;
+
+  // Strict check: must start with single '/', no consecutive slashes, no backslashes
+  const isSafeRelativePath = /^\/(?!\/|\\)[a-zA-Z0-9_\-\/\?&=%#\.]*$/.test(next);
+  if (!isSafeRelativePath) {
+    return fallback;
+  }
+
+  try {
+    const resolvedUrl = new URL(next, origin);
+    if (resolvedUrl.origin !== origin) {
+      return fallback;
+    }
+    return resolvedUrl;
+  } catch {
+    return fallback;
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/';
+  const rawNext = searchParams.get('next');
 
   if (code) {
     const cookieStore = cookies();
@@ -31,18 +52,8 @@ export async function GET(request: Request) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      // Validate redirect destination to prevent open redirects
-      const safeNext = (next && next.startsWith('/') && !next.startsWith('//')) ? next : '/';
-      const forwardedHost = request.headers.get('x-forwarded-host');
-      const isLocalEnv = process.env.NODE_ENV === 'development';
-      
-      if (isLocalEnv) {
-        return NextResponse.redirect(`${origin}${safeNext}`);
-      } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${safeNext}`);
-      } else {
-        return NextResponse.redirect(`${origin}${safeNext}`);
-      }
+      const safeRedirectUrl = getSafeRedirectUrl(rawNext, origin);
+      return NextResponse.redirect(safeRedirectUrl);
     }
   }
 

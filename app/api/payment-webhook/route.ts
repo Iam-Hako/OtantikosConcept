@@ -1,14 +1,22 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { DataService } from '@/lib/data/store-data';
 
 export async function POST(request: Request) {
   try {
     const configuredSecret = process.env.PAYMENT_WEBHOOK_SECRET;
-    if (configuredSecret) {
-      const incomingSecret = request.headers.get('x-webhook-secret') || request.headers.get('x-payment-secret');
-      if (incomingSecret !== configuredSecret) {
-        return NextResponse.json({ error: 'Geçersiz webhook kimlik doğrulaması' }, { status: 401 });
-      }
+    if (!configuredSecret) {
+      console.error('[CRITICAL] PAYMENT_WEBHOOK_SECRET is not configured on server.');
+      return NextResponse.json({ error: 'Webhook servisi yapılandırılmamış' }, { status: 500 });
+    }
+
+    const incomingSecret = request.headers.get('x-webhook-secret') || request.headers.get('x-payment-secret') || '';
+    const isSecretValid =
+      incomingSecret.length === configuredSecret.length &&
+      crypto.timingSafeEqual(Buffer.from(incomingSecret), Buffer.from(configuredSecret));
+
+    if (!isSecretValid) {
+      return NextResponse.json({ error: 'Geçersiz webhook kimlik doğrulaması' }, { status: 401 });
     }
 
     const body = await request.json();

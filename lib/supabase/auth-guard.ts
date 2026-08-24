@@ -33,12 +33,12 @@ export async function verifyAdminAuth(): Promise<{ isAuthorized: boolean; user?:
       return { isAuthorized: false, error: 'Oturum açılmamış. Lütfen giriş yapın.' };
     }
 
-    const isOwnerEmail =
-      user.email === 'chessvip11@gmail.com' ||
-      user.email === 'admin@otantikosconcept.com';
-    const hasAdminMeta = user.app_metadata?.role === 'admin';
+    // 1. Check cryptographically signed JWT app_metadata
+    if (user.app_metadata?.role === 'admin') {
+      return { isAuthorized: true, user };
+    }
 
-    let isProfileAdmin = false;
+    // 2. Check verified database profile role
     try {
       const { data: profile } = await supabase
         .from('profiles')
@@ -47,13 +47,18 @@ export async function verifyAdminAuth(): Promise<{ isAuthorized: boolean; user?:
         .maybeSingle();
 
       if (profile && profile.role === 'admin') {
-        isProfileAdmin = true;
+        return { isAuthorized: true, user };
       }
     } catch {
       // Profile table fallback
     }
 
-    if (isOwnerEmail || hasAdminMeta || isProfileAdmin) {
+    // 3. Fallback to confirmed owner account email
+    const isOwnerEmail =
+      (user.email === 'chessvip11@gmail.com' || user.email === 'admin@otantikosconcept.com') &&
+      Boolean(user.email_confirmed_at);
+
+    if (isOwnerEmail) {
       return { isAuthorized: true, user };
     }
 

@@ -122,68 +122,64 @@ export default function CheckoutPage() {
       }
 
       // 2. Build Order Payload
-      const orderNumber = generateOrderNumber();
-
-      const newOrder = await DataService.createOrder({
-        order_number: orderNumber,
-        user_id: user?.id || null,
-        guest_email: email,
-        guest_name: fullName,
-        guest_phone: phone,
-        status: 'siparis_alindi',
-        total_amount: total,
-        shipping_fee: shippingFee,
-        gift_wrap_fee: giftWrapFee,
-        has_gift_wrap: hasGiftWrap,
-        gift_note: giftNote,
-        delivery_type: deliveryType,
-        payment_status: 'paid',
-        payment_method: 'credit_card',
-        shipping_address: {
-          full_name: fullName,
-          phone,
-          province,
-          district,
-          full_address: deliveryType === 'magaza_teslim' ? 'Tahtakale Eminönü Mağaza Teslim' : fullAddress,
-          postal_code: postalCode,
-          courier_note: courierNote,
-          invoice_type: invoiceType,
-          identity_number: identityNumber,
-          company_title: companyTitle,
-          tax_office: taxOffice,
-          tax_number: taxNumber,
-        },
-        billing_address: {
-          full_name: fullName,
-          phone,
-          province,
-          district,
-          full_address: deliveryType === 'magaza_teslim' ? 'Tahtakale Eminönü Mağaza Teslim' : fullAddress,
-          postal_code: postalCode,
-          invoice_type: invoiceType,
-          identity_number: identityNumber,
-          company_title: companyTitle,
-          tax_office: taxOffice,
-          tax_number: taxNumber,
-        },
-        items: items.map((i) => ({
-          product_id: i.product.id,
-          variant_id: i.variant?.id || null,
-          product_name: i.product.name,
-          variant_name: i.variant?.value || null,
-          price: i.variant?.price_override ?? i.product.price,
-          quantity: i.quantity,
-          total: (i.variant?.price_override ?? i.product.price) * i.quantity,
-        })),
+      // 2. Submit to Server-Side Hardened Checkout API (Enforces Price & Stock Integrity)
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map((i) => ({
+            product_id: i.product.id,
+            variant_id: i.variant?.id || null,
+            quantity: Math.floor(Math.max(1, i.quantity)),
+          })),
+          delivery_type: deliveryType === 'magaza_teslim' ? 'magazadan_teslim' : 'adrese_teslim',
+          has_gift_wrap: hasGiftWrap,
+          gift_note: giftNote ? giftNote.trim().slice(0, 500) : '',
+          shipping_address: {
+            full_name: fullName.trim(),
+            phone: phone.trim(),
+            province,
+            district,
+            full_address: deliveryType === 'magaza_teslim' ? 'Tahtakale Eminönü Mağaza Teslim' : fullAddress.trim(),
+            postal_code: postalCode.trim(),
+            courier_note: courierNote.trim().slice(0, 200),
+            invoice_type: invoiceType,
+            identity_number: identityNumber.trim(),
+            company_title: companyTitle.trim(),
+            tax_office: taxOffice.trim(),
+            tax_number: taxNumber.trim(),
+          },
+          billing_address: {
+            full_name: fullName.trim(),
+            phone: phone.trim(),
+            province,
+            district,
+            full_address: deliveryType === 'magaza_teslim' ? 'Tahtakale Eminönü Mağaza Teslim' : fullAddress.trim(),
+            postal_code: postalCode.trim(),
+            invoice_type: invoiceType,
+            identity_number: identityNumber.trim(),
+            company_title: companyTitle.trim(),
+            tax_office: taxOffice.trim(),
+            tax_number: taxNumber.trim(),
+          },
+          user_id: user?.id || null,
+          guest_email: email.trim().toLowerCase(),
+          guest_name: fullName.trim(),
+          guest_phone: phone.trim(),
+        }),
       });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Sipariş oluşturulamadı.');
+      }
 
       // 3. Clear Cart and Redirect
       clearCart();
       toast.success('Siparişiniz başarıyla alındı!');
-      router.push(`/odeme/basarili?order_number=${orderNumber}&email=${encodeURIComponent(email)}`);
-    } catch (err) {
-      console.error(err);
-      toast.error('Ödeme işlemi sırasında bir hata oluştu.');
+      router.push(`/odeme/basarili?order_number=${result.order_number}&email=${encodeURIComponent(email)}`);
+    } catch (err: any) {
+      toast.error(err.message || 'Ödeme işlemi sırasında bir hata oluştu.');
     } finally {
       setIsSubmitting(false);
     }
@@ -491,13 +487,15 @@ export default function CheckoutPage() {
                 <span className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">4</span>
                 <span>Kredi / Banka Kartı ile Güvenli Ödeme</span>
               </h2>
-              <button
-                type="button"
-                onClick={handleFillDemoCard}
-                className="text-[11px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200"
-              >
-                Test Kartı Bilgilerini Doldur
-              </button>
+              {process.env.NODE_ENV === 'development' && (
+                <button
+                  type="button"
+                  onClick={handleFillDemoCard}
+                  className="text-[11px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200"
+                >
+                  Test Kartı Bilgilerini Doldur
+                </button>
+              )}
             </div>
 
             <div className="p-4 rounded-xl bg-stone-900 text-white space-y-4 max-w-md">
@@ -575,7 +573,7 @@ export default function CheckoutPage() {
                 className="mt-0.5 w-4 h-4 text-amber-600 rounded"
               />
               <span>
-                <Link href="/mesafeli-satis-sozlesmesi" target="_blank" className="text-amber-700 font-bold underline">
+                <Link href="/mesafeli-satis-sozlesmesi" target="_blank" rel="noopener noreferrer" className="text-amber-700 font-bold underline">
                   Mesafeli Satış Sözleşmesi
                 </Link>
                 'ni okudum, içeriğini anladım ve kabul ediyorum.
@@ -591,7 +589,7 @@ export default function CheckoutPage() {
                 className="mt-0.5 w-4 h-4 text-amber-600 rounded"
               />
               <span>
-                <Link href="/on-bilgilendirme-formu" target="_blank" className="text-amber-700 font-bold underline">
+                <Link href="/on-bilgilendirme-formu" target="_blank" rel="noopener noreferrer" className="text-amber-700 font-bold underline">
                   Ön Bilgilendirme Koşulları
                 </Link>
                 'nı okudum ve onaylıyorum.
@@ -607,7 +605,7 @@ export default function CheckoutPage() {
                 className="mt-0.5 w-4 h-4 text-amber-600 rounded"
               />
               <span>
-                <Link href="/kvkk" target="_blank" className="text-amber-700 font-bold underline">
+                <Link href="/kvkk" target="_blank" rel="noopener noreferrer" className="text-amber-700 font-bold underline">
                   KVKK Aydınlatma Metni
                 </Link>{' '}
                 kapsamında kişisel verilerimin siparişimin ifası amacıyla işlenmesine onay veriyorum.

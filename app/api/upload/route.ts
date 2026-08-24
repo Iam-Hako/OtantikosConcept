@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
 
 const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'mp4', 'webm', 'mov']);
@@ -115,8 +116,9 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(bytes);
 
     const timestamp = Date.now();
-    const baseName = parts.join('.').slice(0, 50).toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
-    const filename = `${timestamp}-${baseName || 'file'}.${ext}`;
+    const randomToken = crypto.randomBytes(6).toString('hex');
+    const baseName = parts.join('.').slice(0, 40).toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+    const filename = `${timestamp}-${randomToken}-${baseName || 'file'}.${ext}`;
 
     const res = await fetch(`${supabaseUrl}/storage/v1/object/product-images/${filename}`, {
       method: 'POST',

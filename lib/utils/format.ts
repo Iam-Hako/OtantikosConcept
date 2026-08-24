@@ -37,8 +37,12 @@ export function formatShortDate(dateString: string): string {
 }
 
 export function generateOrderNumber(): string {
-  const randomDigits = Math.floor(10000 + Math.random() * 90000);
-  return `OTN-2026-${randomDigits}`;
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let rand = '';
+  for (let i = 0; i < 7; i++) {
+    rand += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `OTN-${new Date().getFullYear()}-${rand}`;
 }
 
 export function slugify(text: string): string {
@@ -72,11 +76,21 @@ export function convertGoogleDriveUrl(url: string): string {
   return trimmed;
 }
 
+const ALLOWED_VIDEO_HOSTS = new Set([
+  'drive.google.com',
+  'docs.google.com',
+  'www.youtube.com',
+  'youtube.com',
+  'youtu.be',
+  'player.vimeo.com',
+  'vimeo.com',
+]);
+
 /**
  * Converts Google Drive, YouTube, and Vimeo video links to embedded responsive preview URL
  */
 export function convertGoogleDriveVideoUrl(url: string): string {
-  if (!url) return '';
+  if (!url || typeof url !== 'string') return '';
   const trimmed = url.trim();
 
   // 1. Google Drive Video
@@ -107,5 +121,15 @@ export function convertGoogleDriveVideoUrl(url: string): string {
     }
   }
 
-  return trimmed;
+  // 4. Fallback: only permit HTTPS on allowed hosts
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === 'https:' && ALLOWED_VIDEO_HOSTS.has(parsed.hostname)) {
+      return trimmed;
+    }
+  } catch {
+    return '';
+  }
+
+  return '';
 }

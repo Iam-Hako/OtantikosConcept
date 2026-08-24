@@ -33,16 +33,27 @@ export default function AccountPage() {
   const [returnDetails, setReturnDetails] = useState('');
 
   useEffect(() => {
+    const currentUserId = user?.id;
+    if (!currentUserId) {
+      setOrders([]);
+      setReturns([]);
+      return;
+    }
+
     async function loadUserData() {
-      const [orderList, returnList] = await Promise.all([
-        DataService.getOrders(),
-        DataService.getReturns(),
-      ]);
-      setOrders(orderList);
-      setReturns(returnList);
+      try {
+        const [orderList, returnList] = await Promise.all([
+          DataService.getOrders(currentUserId),
+          DataService.getReturns(currentUserId),
+        ]);
+        setOrders(orderList);
+        setReturns(returnList);
+      } catch (err) {
+        // Fallback
+      }
     }
     loadUserData();
-  }, []);
+  }, [user?.id]);
 
   const handleCreateReturn = async (e: React.FormEvent) => {
     e.preventDefault();

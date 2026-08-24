@@ -43,25 +43,30 @@ export async function updateSession(request: NextRequest) {
       return redirectResponse;
     }
 
-    const isOwnerEmail = user.email === 'chessvip11@gmail.com' || user.email === 'admin@otantikosconcept.com';
     const hasAdminMeta = user.app_metadata?.role === 'admin';
 
     // Check profiles table if exists
     let isProfileAdmin = false;
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      if (profile && profile.role === 'admin') {
-        isProfileAdmin = true;
+    if (!hasAdminMeta) {
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        if (profile && profile.role === 'admin') {
+          isProfileAdmin = true;
+        }
+      } catch {
+        // Ignore
       }
-    } catch {
-      // Ignore
     }
 
-    if (!isOwnerEmail && !hasAdminMeta && !isProfileAdmin) {
+    const isOwnerEmail =
+      (user.email === 'chessvip11@gmail.com' || user.email === 'admin@otantikosconcept.com') &&
+      Boolean(user.email_confirmed_at);
+
+    if (!hasAdminMeta && !isProfileAdmin && !isOwnerEmail) {
       const url = request.nextUrl.clone();
       url.pathname = '/';
       const redirectResponse = NextResponse.redirect(url);

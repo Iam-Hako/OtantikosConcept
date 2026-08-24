@@ -232,11 +232,19 @@ function OrderTrackingContent() {
                     Teslimat & Adres Bilgileri
                   </h4>
                   <div className="p-4 rounded-xl bg-stone-50 space-y-1 text-stone-600">
-                    <div className="font-semibold text-stone-900">{order.shipping_address?.full_name}</div>
+                    <div className="font-semibold text-stone-900">
+                      {order.shipping_address?.full_name ? (
+                        order.shipping_address.full_name.split(' ').map(w => w.length > 2 ? w.slice(0, 2) + '***' : w).join(' ')
+                      ) : 'Müşteri'}
+                    </div>
                     <div>{order.shipping_address?.province} / {order.shipping_address?.district}</div>
-                    <div>{order.shipping_address?.full_address}</div>
+                    <div className="text-stone-500">
+                      {order.shipping_address?.full_address ? (
+                        order.shipping_address.full_address.split(' ').map((w, idx) => idx > 1 && w.length > 2 ? w.slice(0, 2) + '***' : w).join(' ')
+                      ) : ''}
+                    </div>
                     {order.shipping_address?.courier_note && (
-                      <div className="text-stone-500 italic mt-1">Kurye Notu: "{order.shipping_address.courier_note}"</div>
+                      <div className="text-stone-500 italic mt-1">Kurye Notu: "{order.shipping_address.courier_note.slice(0, 30)}..."</div>
                     )}
                   </div>
 

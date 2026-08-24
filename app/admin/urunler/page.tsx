@@ -118,6 +118,7 @@ export default function AdminProductsPage() {
                     <Link
                       href={`/urun/${product.slug}`}
                       target="_blank"
+                      rel="noopener noreferrer"
                       className="p-2 text-stone-500 hover:text-stone-800 rounded-lg border border-stone-200 active:scale-95"
                       title="Mağazada Gör"
                     >
@@ -203,6 +204,7 @@ export default function AdminProductsPage() {
                       <Link
                         href={`/urun/${product.slug}`}
                         target="_blank"
+                        rel="noopener noreferrer"
                         className="p-1.5 text-stone-400 hover:text-stone-700 inline-block"
                         title="Mağazada Gör"
                       >

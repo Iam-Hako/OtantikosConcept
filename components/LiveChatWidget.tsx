@@ -20,12 +20,14 @@ function getChatCookie(): string | null {
 function setChatCookie(sessionId: string) {
   if (typeof document === 'undefined') return;
   const expires = new Date(Date.now() + 30 * 864e5).toUTCString();
-  document.cookie = `${CHAT_COOKIE_NAME}=${encodeURIComponent(sessionId)}; expires=${expires}; path=/; SameSite=Lax`;
+  const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:';
+  document.cookie = `${CHAT_COOKIE_NAME}=${encodeURIComponent(sessionId)}; expires=${expires}; path=/; SameSite=Lax${isSecure ? '; Secure' : ''}`;
 }
 
 function removeChatCookie() {
   if (typeof document === 'undefined') return;
-  document.cookie = `${CHAT_COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
+  const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:';
+  document.cookie = `${CHAT_COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax${isSecure ? '; Secure' : ''}`;
 }
 
 export default function LiveChatWidget() {

@@ -5,10 +5,10 @@ export function createAdminClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!serviceRoleKey) {
-    console.warn('[Supabase Admin] SUPABASE_SERVICE_ROLE_KEY is not defined in environment.');
+    throw new Error('[CRITICAL] SUPABASE_SERVICE_ROLE_KEY is required for server-side admin operations.');
   }
 
-  return createClient(supabaseUrl, serviceRoleKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '', {
+  return createClient(supabaseUrl, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

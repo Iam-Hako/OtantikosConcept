@@ -316,6 +316,7 @@ export default function ProductDetailPage() {
                       src={convertGoogleDriveVideoUrl(product.video_url!)}
                       title={`${product.name} Video`}
                       className="w-full h-full border-0"
+                      sandbox="allow-scripts allow-same-origin allow-presentation"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     />

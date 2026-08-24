@@ -451,27 +451,6 @@ CREATE POLICY "Admins can manage reviews"
 ON public.reviews FOR ALL
 USING (public.is_admin());
 
--- Live Chat policies (Hardened)
-CREATE POLICY "Live chat sessions viewable by owner or admin"
-ON public.live_chat_sessions FOR SELECT
-USING (auth.uid() = user_id OR public.is_admin() OR session_id IS NOT NULL);
-
-CREATE POLICY "Live chat sessions insertable"
-ON public.live_chat_sessions FOR INSERT
-WITH CHECK (TRUE);
-
-CREATE POLICY "Live chat sessions updatable by admin or owner"
-ON public.live_chat_sessions FOR UPDATE
-USING (auth.uid() = user_id OR public.is_admin());
-
-CREATE POLICY "Live chat messages viewable by session or admin"
-ON public.live_chat_messages FOR SELECT
-USING (TRUE);
-
-CREATE POLICY "Live chat messages insertable"
-ON public.live_chat_messages FOR INSERT
-WITH CHECK (TRUE);
-
 -- Favorites and Cart
 CREATE POLICY "Users manage their own favorites"
 ON public.favorites FOR ALL
@@ -524,7 +503,35 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON public.live_chat_message
 CREATE INDEX IF NOT EXISTS idx_cart_items_user ON public.cart_items(user_id);
 CREATE INDEX IF NOT EXISTS idx_favorites_user ON public.favorites(user_id);
 
--- 22. SUPABASE STORAGE BUCKET
+-- Live Chat policies (Hardened)
+CREATE POLICY "Live chat sessions viewable by owner or admin"
+ON public.live_chat_sessions FOR SELECT
+USING (auth.uid() = user_id OR public.is_admin());
+
+CREATE POLICY "Live chat sessions insertable"
+ON public.live_chat_sessions FOR INSERT
+WITH CHECK (TRUE);
+
+CREATE POLICY "Live chat sessions updatable by admin or owner"
+ON public.live_chat_sessions FOR UPDATE
+USING (auth.uid() = user_id OR public.is_admin());
+
+CREATE POLICY "Live chat messages viewable by session or admin"
+ON public.live_chat_messages FOR SELECT
+USING (
+  public.is_admin() OR
+  EXISTS (
+    SELECT 1 FROM public.live_chat_sessions
+    WHERE live_chat_sessions.session_id = live_chat_messages.session_id
+    AND live_chat_sessions.user_id = auth.uid()
+  )
+);
+
+CREATE POLICY "Live chat messages insertable"
+ON public.live_chat_messages FOR INSERT
+WITH CHECK (TRUE);
+
+-- 22. STORAGE POLICIES
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('product-images', 'product-images', true)
 ON CONFLICT (id) DO NOTHING;
@@ -533,16 +540,13 @@ CREATE POLICY "Public Access to product-images"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'product-images');
 
-CREATE POLICY "Authenticated or Admins upload to product-images"
+CREATE POLICY "Only Admins upload to product-images"
 ON storage.objects FOR INSERT
-WITH CHECK (bucket_id = 'product-images' AND (auth.role() = 'authenticated' OR public.is_admin()));
+WITH CHECK (bucket_id = 'product-images' AND public.is_admin());
 
--- 23. SUPABASE REALTIME REPLICATION
+-- 23. SUPABASE REALTIME REPLICATION (Exclude sensitive orders table from public replication)
 DO $$ BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.live_chat_sessions;
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.live_chat_messages;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.questions;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.reviews;
 EXCEPTION
