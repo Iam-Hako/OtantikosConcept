@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, MessageCircle } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, MessageCircle, Building2, FileCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ContactPage() {
@@ -54,10 +54,10 @@ export default function ContactPage() {
       
       <div className="text-center space-y-2">
         <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 inline-block">
-          Bize Ulaşın
+          Kurumsal İletişim
         </span>
         <h1 className="text-2xl sm:text-4xl font-serif font-black text-stone-900 leading-tight">
-          İletişim & Eminönü Mağaza Konumu
+          İletişim & Şirket Bilgileri
         </h1>
         <p className="text-xs sm:text-sm text-stone-500 max-w-lg mx-auto">
           Sorularınız, toptan sipariş talepleriniz veya mağazadan teslimat için bize dilediğiniz zaman ulaşabilirsiniz.
@@ -66,8 +66,44 @@ export default function ContactPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
         
-        {/* Left Column: Contact Cards (5 Cols) */}
+        {/* Left Column: Official Corporate Credentials & Contact Cards (5 Cols) */}
         <div className="lg:col-span-5 space-y-4">
+          
+          {/* Official Company Identity Card */}
+          <div className="bg-white p-5 sm:p-6 rounded-3xl border border-stone-200 shadow-2xs space-y-4 text-xs">
+            <div className="flex items-center gap-2 text-stone-900 font-bold border-b border-stone-100 pb-3">
+              <Building2 className="w-4 h-4 text-amber-700" />
+              <span>Resmi Şirket Künyesi</span>
+            </div>
+
+            <div className="space-y-2 text-stone-600">
+              <div>
+                <span className="text-stone-400 block text-[10px] uppercase tracking-wider font-bold">Ticari Unvan</span>
+                <span className="font-semibold text-stone-900 text-xs">Otantikos Hediyelik Eşya Oyuncak Ticaret Limited Şirketi</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div>
+                  <span className="text-stone-400 block text-[10px] uppercase tracking-wider font-bold">Vergi Dairesi</span>
+                  <span className="font-semibold text-stone-900">Hocapaşa V.D.</span>
+                </div>
+                <div>
+                  <span className="text-stone-400 block text-[10px] uppercase tracking-wider font-bold">VKN</span>
+                  <span className="font-semibold text-stone-900 font-mono">6491340351</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-1 border-t border-stone-100">
+                <div>
+                  <span className="text-stone-400 block text-[10px] uppercase tracking-wider font-bold">MERSİS No</span>
+                  <span className="font-semibold text-stone-900 font-mono text-[11px]">0649134035100001</span>
+                </div>
+                <div>
+                  <span className="text-stone-400 block text-[10px] uppercase tracking-wider font-bold">Ticaret Sicil No</span>
+                  <span className="font-semibold text-stone-900 font-mono">1146371</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-white p-5 sm:p-6 rounded-3xl border border-stone-200 shadow-2xs space-y-4 text-xs">
             
             <div className="flex items-start gap-3">
@@ -75,12 +111,12 @@ export default function ContactPage() {
                 <MapPin className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-stone-900 text-sm">Açık Adresimiz</h4>
+                <h4 className="font-bold text-stone-900 text-sm">İş Yeri & Mağaza Adresi</h4>
                 <p className="text-stone-600 mt-1 leading-relaxed font-medium">
-                  Tahtakale Tanburacı Han
+                  Süleymaniye Mah. Uzunçarşı Cad. Tamburacı ve Görenli Han No: 187 / 2G
                 </p>
-                <span className="text-[11px] text-amber-700 font-semibold mt-1 block">
-                  Eminönü / Fatih / İSTANBUL
+                <span className="text-[11px] text-amber-700 font-semibold mt-0.5 block">
+                  Fatih / İSTANBUL
                 </span>
               </div>
             </div>
@@ -112,6 +148,18 @@ export default function ContactPage() {
 
             <div className="flex items-start gap-3 border-t border-stone-100 pt-4">
               <div className="p-2.5 rounded-xl bg-amber-100 text-amber-800 shrink-0">
+                <Mail className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-stone-900 text-sm">E-Posta Adresimiz</h4>
+                <a href="mailto:aylindurmus54@gmail.com" className="text-stone-700 hover:text-amber-700 font-semibold block mt-1 text-xs">
+                  aylindurmus54@gmail.com
+                </a>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 border-t border-stone-100 pt-4">
+              <div className="p-2.5 rounded-xl bg-amber-100 text-amber-800 shrink-0">
                 <Clock className="w-5 h-5" />
               </div>
               <div>
@@ -132,7 +180,7 @@ export default function ContactPage() {
                 <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
                 <h3 className="text-lg font-bold text-stone-900">Mesajınız Bize Ulaştı</h3>
                 <p className="text-xs text-stone-600 max-w-sm mx-auto">
-                  Tahtakale müşteri destek ekibimiz en kısa sürede sizinle iletişime geçecektir.
+                  Müşteri destek ekibimiz en kısa sürede sizinle iletişime geçecektir.
                 </p>
               </div>
             ) : (
@@ -193,24 +241,25 @@ export default function ContactPage() {
 
                 <button
                   type="submit"
+                  disabled={isSubmitting}
                   className="w-full sm:w-auto px-6 py-3.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 min-h-[44px]"
                 >
                   <Send className="w-4 h-4" />
-                  <span>Mesajı Gönder</span>
+                  <span>{isSubmitting ? 'Gönderiliyor...' : 'Mesajı Gönder'}</span>
                 </button>
               </form>
             )}
           </div>
 
-          {/* Embedded Google Maps for Tahtakale */}
+          {/* Embedded Google Maps for Eminönü */}
           <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-2xs">
             <div className="p-4 border-b border-stone-100 flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-bold text-stone-900">
                 <MapPin className="w-4 h-4 text-amber-700" />
-                <span>Eminönü Tahtakale Mağazamızı Haritada Görün</span>
+                <span>Eminönü Mağazamızı Haritada Görün</span>
               </div>
               <a
-                href="https://maps.google.com/?q=Tahtakale+Marpuccular+Caddesi+Fatih+Istanbul"
+                href="https://maps.google.com/?q=Suleymaniye+Uzuncarsi+Caddesi+Fatih+Istanbul"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[11px] text-amber-700 hover:underline font-bold"
@@ -221,7 +270,7 @@ export default function ContactPage() {
             <div className="w-full h-64 bg-stone-100">
               <iframe
                 title="Otantikos Eminönü Konumu"
-                src="https://maps.google.com/maps?q=Tahtakale,Marpu%C3%A7cular%20Cd.%20No:18,Fatih,Istanbul&t=&z=16&ie=UTF8&iwloc=&output=embed"
+                src="https://maps.google.com/maps?q=S%C3%BCleymaniye,Uzun%C3%A7ar%C5%9F%C4%B1%20Cd.%20No:187,Fatih,Istanbul&t=&z=16&ie=UTF8&iwloc=&output=embed"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}

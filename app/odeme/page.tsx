@@ -499,9 +499,16 @@ export default function CheckoutPage() {
             </div>
 
             <div className="p-4 rounded-xl bg-stone-900 text-white space-y-4 max-w-md">
-              <div className="flex justify-between items-center text-xs text-stone-400">
-                <span>SANAL POS • 3D SECURE</span>
-                <CreditCard className="w-5 h-5 text-amber-400" />
+              <div className="flex justify-between items-center text-xs text-stone-400 border-b border-stone-800 pb-2.5">
+                <span className="font-bold text-[11px] text-amber-400 flex items-center gap-1">
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>256-Bit SSL • 3D Secure</span>
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black text-sky-400 bg-stone-800 px-1.5 py-0.5 rounded border border-stone-700">VISA</span>
+                  <span className="text-[10px] font-bold text-red-400 bg-stone-800 px-1.5 py-0.5 rounded border border-stone-700">Mastercard</span>
+                  <span className="text-[10px] font-bold text-teal-400 bg-stone-800 px-1.5 py-0.5 rounded border border-stone-700">Troy</span>
+                </div>
               </div>
 
               <div>
@@ -684,9 +691,20 @@ export default function CheckoutPage() {
             <span>{isSubmitting ? 'Sipariş İşleniyor...' : 'Siparişi Onayla ve Öde'}</span>
           </button>
 
-          <div className="text-[11px] text-stone-500 text-center flex items-center justify-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>Sipariş anında stok kilidi aktif edilir</span>
+          <div className="space-y-2 pt-2 border-t border-stone-100">
+            <div className="text-[11px] text-stone-500 text-center flex items-center justify-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>Sipariş anında stok kilidi aktif edilir</span>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1 text-[10px] text-stone-400">
+              <span className="px-2 py-0.5 rounded bg-stone-100 border border-stone-200 font-bold text-stone-700">256-Bit SSL</span>
+              <span className="px-2 py-0.5 rounded bg-stone-100 border border-stone-200 font-bold text-stone-700">3D Secure</span>
+              <span className="px-2 py-0.5 rounded bg-stone-100 border border-stone-200 font-black text-sky-700">VISA</span>
+              <span className="px-2 py-0.5 rounded bg-stone-100 border border-stone-200 font-bold text-red-700">Mastercard</span>
+              <span className="px-2 py-0.5 rounded bg-stone-100 border border-stone-200 font-bold text-teal-700">Troy</span>
+              <span className="px-2 py-0.5 rounded bg-amber-50 border border-amber-200 font-bold text-amber-800">DHL Kargo</span>
+            </div>
           </div>
         </div>
 

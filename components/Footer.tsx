@@ -12,7 +12,8 @@ import {
   Truck, 
   RotateCcw, 
   Lock, 
-  Sparkles
+  Sparkles,
+  Building2
 } from 'lucide-react';
 import { DataService } from '@/lib/data/store-data';
 import { Category } from '@/lib/types/ecommerce';
@@ -38,8 +39,8 @@ export default function Footer() {
               <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-white text-xs sm:text-sm">Tahtakale Sevkiyatı</h4>
-              <p className="text-stone-400 text-[11px] sm:text-xs mt-0.5">Eminönü hızlı kargo</p>
+              <h4 className="font-bold text-white text-xs sm:text-sm">DHL Kargo Sevkiyatı</h4>
+              <p className="text-stone-400 text-[11px] sm:text-xs mt-0.5">1-3 iş gününde kargo</p>
             </div>
           </div>
 
@@ -59,7 +60,7 @@ export default function Footer() {
             </div>
             <div>
               <h4 className="font-bold text-white text-xs sm:text-sm">14 Gün Kolay İade</h4>
-              <p className="text-stone-400 text-[11px] sm:text-xs mt-0.5">Online iade masası</p>
+              <p className="text-stone-400 text-[11px] sm:text-xs mt-0.5">DHL Kargo RMA masası</p>
             </div>
           </div>
 
@@ -77,7 +78,7 @@ export default function Footer() {
         {/* MAIN FOOTER LINKS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 py-12 border-b border-stone-800">
           
-          {/* Column 1: Brand Info */}
+          {/* Column 1: Brand & Corporate Info */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-2.5">
               <div className="relative w-10 h-10 rounded-xl bg-stone-900 border border-stone-800 p-1 flex items-center justify-center">
@@ -99,16 +100,29 @@ export default function Footer() {
               </div>
             </div>
 
+            <p className="text-xs text-stone-400 leading-relaxed">
+              Otantikos Hediyelik Eşya Oyuncak Ticaret Limited Şirketi
+            </p>
+
             <div className="space-y-2 text-xs text-stone-400">
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                <span>Tahtakale Tanburacı Han</span>
+                <span>Süleymaniye Mah. Uzunçarşı Cad. Tamburacı ve Görenli Han No: 187 / 2G Fatih / İSTANBUL</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-amber-500 shrink-0" />
                 <a href="tel:+905077737777" className="hover:text-amber-400 transition font-medium">
                   +90 (507) 773 77 77 (10:00 - 17:00)
                 </a>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-amber-500 shrink-0" />
+                <a href="mailto:aylindurmus54@gmail.com" className="hover:text-amber-400 transition font-medium">
+                  aylindurmus54@gmail.com
+                </a>
+              </div>
+              <div className="pt-1 text-[11px] text-stone-400">
+                <span>Hocapaşa V.D. | VKN: 6491340351 | MERSİS: 0649134035100001</span>
               </div>
             </div>
           </div>
@@ -181,11 +195,6 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
-                <Link href="/kvkk" className="hover:text-amber-400 transition">
-                  KVKK Aydınlatma Metni
-                </Link>
-              </li>
-              <li>
                 <Link href="/mesafeli-satis-sozlesmesi" className="hover:text-amber-400 transition">
                   Mesafeli Satış Sözleşmesi
                 </Link>
@@ -196,8 +205,18 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/iade-ve-teslimat" className="hover:text-amber-400 transition">
+                  Cayma Hakkı & İade Şartları
+                </Link>
+              </li>
+              <li>
+                <Link href="/kvkk" className="hover:text-amber-400 transition">
+                  KVKK Aydınlatma Metni
+                </Link>
+              </li>
+              <li>
                 <Link href="/gizlilik-politikasi" className="hover:text-amber-400 transition">
-                  Gizlilik Politikası
+                  Gizlilik ve Güvenlik
                 </Link>
               </li>
               <li>
@@ -210,27 +229,35 @@ export default function Footer() {
 
         </div>
 
-        {/* LEGAL IMPRINT & COPYRIGHT */}
+        {/* LEGAL IMPRINT & PAYMENT SECURITY BADGES */}
         <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-stone-500">
           <div>
             <p>
-              © 2026 Otantikos Concept. Tüm hakları saklıdır. Tahtakale / Eminönü / İstanbul.
+              © 2026 Otantikos Hediyelik Eşya Oyuncak Ticaret Ltd. Şti. Tüm hakları saklıdır.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-stone-400">
-            <span className="text-[10px] uppercase tracking-wider font-semibold">Güvenli Ödeme:</span>
-            <div className="px-2 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-bold text-stone-300">
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-stone-400">Güvenli Ödeme:</span>
+            <div className="px-2.5 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-bold text-amber-400 flex items-center gap-1">
+              <Lock className="w-3 h-3" />
+              <span>256-Bit SSL</span>
+            </div>
+            <div className="px-2.5 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-bold text-stone-300">
               3D Secure
             </div>
-            <div className="px-2 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-bold text-stone-300">
-              Mastercard
-            </div>
-            <div className="px-2 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-bold text-stone-300">
+            <div className="px-2.5 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-black text-sky-400 tracking-wider">
               VISA
             </div>
-            <div className="px-2 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-bold text-stone-300">
+            <div className="px-2.5 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-bold text-red-400">
+              Mastercard
+            </div>
+            <div className="px-2.5 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-bold text-teal-400">
               Troy
+            </div>
+            <div className="px-2.5 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-bold text-amber-400 flex items-center gap-1">
+              <Truck className="w-3 h-3" />
+              <span>DHL Kargo</span>
             </div>
           </div>
         </div>

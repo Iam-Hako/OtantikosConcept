@@ -24,7 +24,7 @@ export default function AboutPage() {
 
       <div className="bg-white p-5 sm:p-10 rounded-3xl border border-stone-200 shadow-2xs shadow-xs space-y-6 text-xs sm:text-sm text-stone-700 leading-relaxed">
         <p>
-          <strong>Otantikos Concept</strong>, İstanbul'un ticaret kalbi olan Eminönü Tahtakale Tanburacı Han&apos;da faaliyet göstermektedir. Hediyelik eşyalar, takı ve trend koleksiyonlarda toptan ve perakende satış sunuyoruz.
+          <strong>Otantikos Concept</strong> (Otantikos Hediyelik Eşya Oyuncak Ticaret Limited Şirketi), İstanbul&apos;un ticaret kalbi olan Eminönü Süleymaniye / Tahtakale bölgesinde faaliyet göstermektedir. Hediyelik eşyalar, oyuncak, squishy ve trend koleksiyonlarda toptan ve perakende satış sunuyoruz.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
