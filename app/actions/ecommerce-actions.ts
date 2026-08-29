@@ -8,21 +8,25 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-async function verifyAdmin() {
+async function getCurrentAdminUser() {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      if (user.app_metadata?.role === 'admin') return true;
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
-      if (profile?.role === 'admin') return true;
-      const isOwnerEmail = (user.email === 'chessvip11@gmail.com' || user.email === 'admin@otantikosconcept.com');
-      if (isOwnerEmail) return true;
-    }
+    if (!user) return null;
+    if (user.app_metadata?.role === 'admin') return user;
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+    if (profile?.role === 'admin') return user;
+    const isOwnerEmail = (user.email === 'chessvip11@gmail.com' || user.email === 'admin@otantikosconcept.com');
+    if (isOwnerEmail) return user;
   } catch {
     // Fallback
   }
-  return false;
+  return null;
+}
+
+async function verifyAdmin() {
+  const user = await getCurrentAdminUser();
+  return Boolean(user);
 }
 
 export async function actionSaveProduct(productData: Partial<Product>) {
@@ -531,5 +535,98 @@ export async function actionClearAllCargoLabels(): Promise<{ success: boolean; e
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message };
+  }
+}
+
+export interface AdminUserListItem {
+  id: string;
+  email: string;
+  full_name: string | null;
+  phone: string | null;
+  role: 'customer' | 'admin';
+  avatar_url: string | null;
+  created_at: string;
+}
+
+export async function actionGetUsers(): Promise<{ 
+  success: boolean; 
+  data: AdminUserListItem[]; 
+  currentUserId?: string; 
+  error?: string 
+}> {
+  const currentAdmin = await getCurrentAdminUser();
+  if (!currentAdmin) {
+    return { success: false, data: [], error: 'Bu işlem için yönetici yetkisi gereklidir.' };
+  }
+
+  try {
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('id, email, full_name, phone, role, avatar_url, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return { success: false, data: [], error: error.message };
+    }
+
+    return { 
+      success: true, 
+      data: (data || []) as AdminUserListItem[],
+      currentUserId: currentAdmin.id
+    };
+  } catch (err: any) {
+    return { success: false, data: [], error: err?.message || 'Kullanıcılar alınırken hata oluştu.' };
+  }
+}
+
+export async function actionUpdateUserRole(
+  targetUserId: string,
+  newRole: 'admin' | 'customer'
+): Promise<{ success: boolean; error?: string }> {
+  const currentAdmin = await getCurrentAdminUser();
+  if (!currentAdmin) {
+    return { success: false, error: 'Bu işlem için yönetici yetkisi gereklidir.' };
+  }
+
+  // Self-demotion guard
+  if (currentAdmin.id === targetUserId && newRole !== 'admin') {
+    return { success: false, error: 'Kendi yöneticilik (admin) yetkinizi kaldıramazsınız.' };
+  }
+
+  if (newRole !== 'admin' && newRole !== 'customer') {
+    return { success: false, error: 'Geçersiz yetki türü.' };
+  }
+
+  try {
+    const supabaseAdmin = createAdminClient();
+
+    // 1. Update public.profiles
+    const { error: profileErr } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        role: newRole,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', targetUserId);
+
+    if (profileErr) {
+      return { success: false, error: 'Profil yetkisi güncellenemedi: ' + profileErr.message };
+    }
+
+    // 2. Sync Supabase Auth app_metadata
+    try {
+      await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+        app_metadata: { role: newRole }
+      });
+    } catch (authErr) {
+      console.warn('Auth app_metadata update warning:', authErr);
+    }
+
+    revalidatePath('/admin');
+    revalidatePath('/admin/kullanicilar');
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Yetki güncelleme sırasında beklenmeyen bir hata oluştu.' };
   }
 }

@@ -367,6 +367,12 @@ WITH CHECK (
   (role = 'customer'::user_role OR public.is_admin())
 );
 
+CREATE POLICY "Admins can update all profiles"
+ON public.profiles FOR UPDATE
+TO authenticated
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
 -- Categories policies
 CREATE POLICY "Categories are viewable by everyone"
 ON public.categories FOR SELECT

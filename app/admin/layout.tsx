@@ -22,7 +22,8 @@ import {
   Zap,
   Menu,
   X,
-  Printer
+  Printer,
+  Users
 } from 'lucide-react';
 import { useAuth } from '@/lib/store/auth-context';
 
@@ -34,6 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const menuItems = [
     { href: '/admin', label: 'Genel Bakış (Dashboard)', icon: LayoutDashboard },
+    { href: '/admin/kullanicilar', label: 'Kullanıcılar & Yetkiler', icon: Users, badge: 'RBAC' },
     { href: '/admin/urunler', label: 'Ürün & Dinamik Özellikler', icon: Package },
     { href: '/admin/hizli-stok', label: 'Hızlı Stok & Fiyat Izgarası', icon: Zap, badge: 'Hızlı' },
     { href: '/admin/kategoriler', label: 'Kategori Yöneticisi', icon: Layers },
