@@ -21,7 +21,8 @@ import {
   ShieldCheck,
   Zap,
   Menu,
-  X
+  X,
+  Printer
 } from 'lucide-react';
 import { useAuth } from '@/lib/store/auth-context';
 
@@ -37,6 +38,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/hizli-stok', label: 'Hızlı Stok & Fiyat Izgarası', icon: Zap, badge: 'Hızlı' },
     { href: '/admin/kategoriler', label: 'Kategori Yöneticisi', icon: Layers },
     { href: '/admin/siparisler', label: 'Siparişler & Koli Fişi', icon: ShoppingBag },
+    { href: '/admin/kargo-etiketi', label: 'Kargo Etiketi (Termal)', icon: Printer, badge: '90mm' },
     { href: '/admin/iadeler', label: 'İade Masası (RMA)', icon: RotateCcw },
     { href: '/admin/soru-cevap', label: 'Soru-Cevap Moderasyonu', icon: HelpCircle },
     { href: '/admin/yorumlar', label: 'Yorum Moderasyonu', icon: Star },
@@ -45,10 +47,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="min-h-screen bg-stone-100 flex flex-col">
+    <div className="min-h-screen bg-stone-100 flex flex-col print:bg-white">
       
       {/* Admin Topbar */}
-      <header className="bg-stone-900 text-white border-b border-stone-800 px-4 py-3 sticky top-0 z-30 flex items-center justify-between">
+      <header className="bg-stone-900 text-white border-b border-stone-800 px-4 py-3 sticky top-0 z-30 flex items-center justify-between print:hidden">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -113,7 +115,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Sidebar */}
         <aside
-          className={`w-64 bg-stone-900 text-stone-300 border-r border-stone-800 p-4 space-y-1.5 shrink-0 z-40 ${
+          className={`w-64 bg-stone-900 text-stone-300 border-r border-stone-800 p-4 space-y-1.5 shrink-0 z-40 print:hidden ${
             isSidebarOpen ? 'fixed inset-y-0 left-0 top-14 block' : 'hidden lg:block'
           }`}
         >
@@ -155,7 +157,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </aside>
 
         {/* Content Area */}
-        <main className="flex-1 p-3 sm:p-8 overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-8 overflow-x-hidden print:p-0 print:overflow-visible">
           {children}
         </main>
 

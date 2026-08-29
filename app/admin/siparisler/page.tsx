@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Search, Printer, Truck, Check, Eye } from 'lucide-react';
+import { ShoppingBag, Search, Printer, Truck, Check, Eye, Tag } from 'lucide-react';
 import { Order } from '@/lib/types/ecommerce';
 import { DataService, normalizeTurkish } from '@/lib/data/store-data';
 import { formatPrice, formatDate } from '@/lib/utils/format';
@@ -110,15 +110,25 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              <Link
-                href={`/admin/siparisler/${ord.id}`}
-                className="w-full py-2.5 bg-stone-900 hover:bg-amber-600 active:scale-95 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 min-h-[40px] shadow-2xs"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Koli Fişi & Siparişi Yönet</span>
-              </Link>
-            </div>
-          ))
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    href={`/admin/kargo-etiketi?alici=${encodeURIComponent(ord.shipping_address?.full_name || '')}&tel=${encodeURIComponent(ord.shipping_address?.phone || '')}&adres=${encodeURIComponent((ord.shipping_address?.full_address || `${ord.shipping_address?.district || ''} / ${ord.shipping_address?.province || ''}`).trim())}&order=${encodeURIComponent(ord.order_number)}`}
+                    className="py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 min-h-[40px] shadow-2xs"
+                  >
+                    <Tag className="w-3.5 h-3.5" />
+                    <span>Kargo Etiketi</span>
+                  </Link>
+
+                  <Link
+                    href={`/admin/siparisler/${ord.id}`}
+                    className="py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 min-h-[40px] shadow-2xs"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Fiş & Detay</span>
+                  </Link>
+                </div>
+              </div>
+            ))
         )}
       </div>
 
@@ -185,13 +195,25 @@ export default function AdminOrdersPage() {
                   </td>
 
                   <td className="py-3.5 px-4 text-right">
-                    <Link
-                      href={`/admin/siparisler/${ord.id}`}
-                      className="px-3 py-1.5 bg-stone-900 hover:bg-amber-600 text-white font-bold rounded-lg text-xs transition inline-flex items-center gap-1.5 shadow-2xs"
-                    >
-                      <Printer className="w-3.5 h-3.5" />
-                      <span>Fiş & Yönet</span>
-                    </Link>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Link
+                        href={`/admin/kargo-etiketi?alici=${encodeURIComponent(ord.shipping_address?.full_name || '')}&tel=${encodeURIComponent(ord.shipping_address?.phone || '')}&adres=${encodeURIComponent((ord.shipping_address?.full_address || `${ord.shipping_address?.district || ''} / ${ord.shipping_address?.province || ''}`).trim())}&order=${encodeURIComponent(ord.order_number)}`}
+                        className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold rounded-lg text-xs transition inline-flex items-center gap-1 shadow-2xs"
+                        title="Termal Kargo Etiketi Oluştur / Yazdır"
+                      >
+                        <Tag className="w-3.5 h-3.5 text-amber-700" />
+                        <span>Kargo Etiketi</span>
+                      </Link>
+
+                      <Link
+                        href={`/admin/siparisler/${ord.id}`}
+                        className="px-2.5 py-1.5 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-lg text-xs transition inline-flex items-center gap-1 shadow-2xs"
+                        title="Koli Fişi & Sipariş Yönetimi"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Fiş & Detay</span>
+                      </Link>
+                    </div>
                   </td>
 
                 </tr>

@@ -15,7 +15,8 @@ import {
   CreditCard, 
   FileText, 
   CheckCircle2,
-  Clock
+  Clock,
+  Tag
 } from 'lucide-react';
 import { Order } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
@@ -103,13 +104,23 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        <button
-          onClick={handlePrint}
-          className="px-5 py-2.5 bg-stone-900 hover:bg-amber-600 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 min-h-[40px]"
-        >
-          <Printer className="w-4 h-4" />
-          <span>Koli Fişi Yazdır</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/admin/kargo-etiketi?alici=${encodeURIComponent(order.shipping_address?.full_name || '')}&tel=${encodeURIComponent(order.shipping_address?.phone || '')}&adres=${encodeURIComponent((order.shipping_address?.full_address || `${order.shipping_address?.district || ''} / ${order.shipping_address?.province || ''}`).trim())}&order=${encodeURIComponent(order.order_number)}`}
+            className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-1.5 min-h-[40px]"
+          >
+            <Tag className="w-4 h-4" />
+            <span>Kargo Etiketi Oluştur</span>
+          </Link>
+
+          <button
+            onClick={handlePrint}
+            className="px-4 py-2.5 bg-stone-900 hover:bg-stone-800 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-1.5 min-h-[40px]"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Koli Fişi Yazdır</span>
+          </button>
+        </div>
       </div>
 
       {/* Admin Order Control Form (hidden on print) */}
