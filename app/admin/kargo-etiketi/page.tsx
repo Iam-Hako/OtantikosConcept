@@ -208,7 +208,44 @@ function KargoEtiketiContent() {
     }
   };
 
-  // 2. Supabase'e Kaydet ve 90mm Yazdır
+  // Genel Yazdırma Fonksiyonu (DOM'a anında yazar ve Xprinter/termal pencereyi açar)
+  const tetikleYazdir = (hedefAlici: string, hedefTel: string, hedefAdres: string, hedefKopya = 1) => {
+    const kopyalar = Math.max(1, hedefKopya || 1);
+    const container = document.getElementById('print-container');
+    const telefonGoster = hedefTel ? hedefTel : '-';
+
+    if (container) {
+      container.innerHTML = '';
+      for (let c = 0; c < kopyalar; c++) {
+        const page = document.createElement('div');
+        page.className = 'label-page';
+        page.innerHTML = `
+          <div class="label-box">
+            <div class="info-row"><div class="title">ALICI:</div><div class="content">${hedefAlici}</div></div>
+            <div class="info-row"><div class="title">TEL:</div><div class="content">${telefonGoster}</div></div>
+            <div class="info-row"><div class="title">ADRES:</div><div class="content">${hedefAdres}</div></div>
+            <div class="divider"></div>
+            <div class="sender-box">
+              <div class="sender-title">GÖNDEREN</div>
+              <div class="sender-name">OTANTİKOS CONCEPT</div>
+            </div>
+          </div>
+        `;
+        container.appendChild(page);
+      }
+    }
+
+    setBaskiListesi([{
+      alici: hedefAlici,
+      tel: hedefTel,
+      adres: hedefAdres,
+      kopya: kopyalar
+    }]);
+
+    window.print();
+  };
+
+  // 2. Kaydet ve 90mm Yazdır
   const yazdirVeKaydet = async () => {
     const cleanAlici = alici.trim().toUpperCase();
     const cleanTel = tel.trim();
@@ -220,49 +257,31 @@ function KargoEtiketiContent() {
       return;
     }
 
-    // Supabase kaydı
+    // Supabase arka plan kaydı
     setIsSaving(true);
-    try {
-      actionSaveCargoLabel({
-        recipient_name: cleanAlici,
-        phone: cleanTel,
-        address: cleanAdres,
-        order_number: secilenSiparis || undefined,
-        print_count: kopyaAdet
-      }).then((res) => {
-        if (res.success && res.data) {
-          setKayitlar((prev) => [res.data!, ...prev.filter((p) => p.id !== res.data!.id)]);
-        }
-      }).catch(() => {});
-    } finally {
+    actionSaveCargoLabel({
+      recipient_name: cleanAlici,
+      phone: cleanTel,
+      address: cleanAdres,
+      order_number: secilenSiparis || undefined,
+      print_count: kopyaAdet
+    }).then((res) => {
       setIsSaving(false);
-    }
+      if (res.success && res.data) {
+        setKayitlar((prev) => [res.data!, ...prev.filter((p) => p.id !== res.data!.id)]);
+        toast.success('Adres kaydedildi.');
+      }
+    }).catch(() => {
+      setIsSaving(false);
+    });
 
-    // Yazdırma listesini tetikle
-    setBaskiListesi([{
-      alici: cleanAlici,
-      tel: cleanTel,
-      adres: cleanAdres,
-      kopya: kopyaAdet
-    }]);
-
-    setTimeout(() => {
-      window.print();
-    }, 150);
+    // Anında termal çıktıyı bas
+    tetikleYazdir(cleanAlici, cleanTel, cleanAdres, kopyaAdet);
   };
 
   // 3. Tablodan Direkt Yazdır
   const direktYazdir = (hedefAlici: string, hedefTel: string, hedefAdres: string, hedefKopya = 1) => {
-    setBaskiListesi([{
-      alici: hedefAlici.toUpperCase(),
-      tel: hedefTel,
-      adres: hedefAdres.toUpperCase(),
-      kopya: hedefKopya
-    }]);
-
-    setTimeout(() => {
-      window.print();
-    }, 150);
+    tetikleYazdir(hedefAlici.toUpperCase(), hedefTel, hedefAdres.toUpperCase(), hedefKopya);
   };
 
   // 4. Supabase'den Kayıt Sil
@@ -522,7 +541,7 @@ function KargoEtiketiContent() {
                 className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-md transition flex items-center justify-center gap-2 min-h-[44px]"
               >
                 <Printer className="w-4 h-4" />
-                <span>{isSaving ? 'Supabase\'e Kaydediliyor...' : 'Supabase\'e Kaydet ve Yazdır'}</span>
+                <span>{isSaving ? 'Kaydediliyor...' : 'Kaydet ve Yazdır'}</span>
               </button>
 
               <button
@@ -532,7 +551,7 @@ function KargoEtiketiContent() {
                 className="w-full py-2.5 bg-stone-800 hover:bg-stone-900 text-white font-semibold text-xs rounded-xl transition flex items-center justify-center gap-1.5"
               >
                 <Save className="w-3.5 h-3.5" />
-                <span>Sadece Supabase'e Kaydet</span>
+                <span>Sadece Kaydet</span>
               </button>
             </div>
 
@@ -708,80 +727,89 @@ function KargoEtiketiContent() {
         })}
       </div>
 
-      {/* INJECT PRINT STYLES */}
-      <style jsx global>{`
-        @media screen {
-          .print-area {
-            display: none !important;
-          }
-        }
-        @media print {
-          @page {
-            margin: 0;
-            size: auto;
-          }
-          body {
-            margin: 0 !important;
-            padding: 0 !important;
-            background: #fff !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-          .print-area {
-            display: block !important;
-          }
-          .label-page {
-            width: 90mm;
-            margin: 4mm auto;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            color: #000;
-            page-break-after: always;
-          }
-          .label-box {
-            border: 2.5px solid #000;
-            padding: 16px;
-            border-radius: 6px;
-            background: #fff;
-          }
-          .info-row {
-            display: flex;
-            margin-bottom: 10px;
-            font-size: 15px;
-            line-height: 1.4;
-          }
-          .title {
-            font-weight: 800;
-            width: 75px;
-            flex-shrink: 0;
-            letter-spacing: 0.5px;
-          }
-          .content {
-            font-weight: 600;
-            word-break: break-word;
-          }
-          .divider {
-            border-top: 2px dashed #000;
-            margin: 18px 0 14px 0;
-          }
-          .sender-box {
-            text-align: center;
-          }
-          .sender-title {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-bottom: 3px;
-            color: #333;
-            font-weight: bold;
-          }
-          .sender-name {
-            font-size: 17px;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-          }
-        }
-      `}</style>
+      {/* PRINT STYLES */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            @media screen {
+              #print-container, .print-area {
+                display: none !important;
+              }
+            }
+            @media print {
+              @page {
+                margin: 0;
+                size: auto;
+              }
+              body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+              }
+              .no-print {
+                display: none !important;
+              }
+              #print-container, .print-area {
+                display: block !important;
+                visibility: visible !important;
+              }
+              #print-container *, .print-area * {
+                visibility: visible !important;
+              }
+              .label-page {
+                width: 90mm !important;
+                margin: 3mm auto 5mm auto !important;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+                color: #000 !important;
+                page-break-after: always !important;
+                break-after: page !important;
+              }
+              .label-box {
+                border: 2.5px solid #000 !important;
+                padding: 16px !important;
+                border-radius: 6px !important;
+                background: #fff !important;
+              }
+              .info-row {
+                display: flex !important;
+                margin-bottom: 9px !important;
+                font-size: 15px !important;
+                line-height: 1.35 !important;
+              }
+              .title {
+                font-weight: 800 !important;
+                width: 75px !important;
+                flex-shrink: 0 !important;
+                letter-spacing: 0.5px !important;
+              }
+              .content {
+                font-weight: 700 !important;
+                word-break: break-word !important;
+              }
+              .divider {
+                border-top: 2px dashed #000 !important;
+                margin: 16px 0 12px 0 !important;
+              }
+              .sender-box {
+                text-align: center !important;
+              }
+              .sender-title {
+                font-size: 11px !important;
+                text-transform: uppercase !important;
+                letter-spacing: 1.5px !important;
+                margin-bottom: 2px !important;
+                color: #222 !important;
+                font-weight: bold !important;
+              }
+              .sender-name {
+                font-size: 17px !important;
+                font-weight: 800 !important;
+                letter-spacing: 0.5px !important;
+              }
+            }
+          `,
+        }}
+      />
 
     </div>
   );
