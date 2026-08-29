@@ -413,3 +413,123 @@ export async function actionDeleteOrder(orderId: string) {
   revalidatePath('/admin/siparisler');
   return { success: true };
 }
+
+export interface CargoLabelData {
+  id?: string;
+  recipient_name: string;
+  phone?: string | null;
+  address: string;
+  order_number?: string | null;
+  print_count?: number;
+  created_at?: string;
+}
+
+export async function actionGetCargoLabels(): Promise<{ success: boolean; data: CargoLabelData[]; error?: string }> {
+  try {
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin
+      .from('cargo_labels')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
+        return { success: false, data: [], error: 'TABLE_NOT_FOUND' };
+      }
+      return { success: false, data: [], error: error.message };
+    }
+    return { success: true, data: data || [] };
+  } catch (err: any) {
+    return { success: false, data: [], error: err?.message || 'Bilinmeyen hata' };
+  }
+}
+
+export async function actionSaveCargoLabel(labelData: {
+  id?: string;
+  recipient_name: string;
+  phone?: string;
+  address: string;
+  order_number?: string;
+  print_count?: number;
+}): Promise<{ success: boolean; data?: CargoLabelData; error?: string }> {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) {
+    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+  }
+
+  try {
+    const supabaseAdmin = createAdminClient();
+    const payload = {
+      recipient_name: labelData.recipient_name.trim().toUpperCase(),
+      phone: labelData.phone?.trim() || null,
+      address: labelData.address.trim().toUpperCase(),
+      order_number: labelData.order_number?.trim() || null,
+      print_count: Math.max(1, labelData.print_count || 1),
+      updated_at: new Date().toISOString(),
+    };
+
+    let result;
+    if (labelData.id && UUID_REGEX.test(labelData.id)) {
+      result = await supabaseAdmin
+        .from('cargo_labels')
+        .update(payload)
+        .eq('id', labelData.id)
+        .select()
+        .maybeSingle();
+    } else {
+      result = await supabaseAdmin
+        .from('cargo_labels')
+        .insert({
+          ...payload,
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .maybeSingle();
+    }
+
+    if (result.error) {
+      return { success: false, error: result.error.message };
+    }
+
+    revalidatePath('/admin/kargo-etiketi');
+    return { success: true, data: result.data };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Veritabanı kayıt hatası' };
+  }
+}
+
+export async function actionDeleteCargoLabel(id: string): Promise<{ success: boolean; error?: string }> {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) {
+    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+  }
+
+  try {
+    const supabaseAdmin = createAdminClient();
+    const { error } = await supabaseAdmin.from('cargo_labels').delete().eq('id', id);
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath('/admin/kargo-etiketi');
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message };
+  }
+}
+
+export async function actionClearAllCargoLabels(): Promise<{ success: boolean; error?: string }> {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) {
+    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+  }
+
+  try {
+    const supabaseAdmin = createAdminClient();
+    const { error } = await supabaseAdmin.from('cargo_labels').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath('/admin/kargo-etiketi');
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message };
+  }
+}

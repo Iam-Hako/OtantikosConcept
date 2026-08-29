@@ -9,28 +9,60 @@ import {
   Trash2, 
   Search, 
   ShoppingBag, 
-  RotateCcw, 
-  FileText, 
-  Plus, 
-  Check, 
+  Truck, 
+  Database,
+  CheckCircle2, 
+  AlertCircle, 
   Copy, 
-  ExternalLink,
-  Truck,
-  ArrowLeft,
+  Check, 
+  RefreshCw,
   X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DataService } from '@/lib/data/store-data';
 import { Order } from '@/lib/types/ecommerce';
+import { 
+  actionGetCargoLabels, 
+  actionSaveCargoLabel, 
+  actionDeleteCargoLabel, 
+  actionClearAllCargoLabels,
+  CargoLabelData 
+} from '@/app/actions/ecommerce-actions';
 
-interface KargoKaydi {
-  id: number;
-  alici: string;
-  tel: string;
-  adres: string;
-  orderNumber?: string;
-  createdAt?: string;
-}
+const SQL_SETUP_SCRIPT = `-- ==============================================================================
+-- OTANTİKOS CONCEPT: KARGO ETİKETLERİ VE ADRES DEFTERİ TABLOSU
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.cargo_labels (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    recipient_name TEXT NOT NULL,
+    phone TEXT,
+    address TEXT NOT NULL,
+    order_number TEXT,
+    print_count INT DEFAULT 1 NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- Hızlı Arama ve Sıralama İndeksleri
+CREATE INDEX IF NOT EXISTS idx_cargo_labels_recipient ON public.cargo_labels(recipient_name);
+CREATE INDEX IF NOT EXISTS idx_cargo_labels_created_at ON public.cargo_labels(created_at DESC);
+
+-- RLS (Satır Bazlı Güvenlik)
+ALTER TABLE public.cargo_labels ENABLE ROW LEVEL SECURITY;
+
+-- Yalnızca Yetkili Yöneticiler (Admin) Erişebilir
+CREATE POLICY "Admins full access to cargo_labels"
+ON public.cargo_labels FOR ALL
+TO authenticated
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+-- Canlı Güncellemeler için Realtime Yayını
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.cargo_labels;
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;`;
 
 function KargoEtiketiContent() {
   const searchParams = useSearchParams();
@@ -45,34 +77,57 @@ function KargoEtiketiContent() {
   const [adres, setAdres] = useState(paramAdres);
   const [kopya, setKopya] = useState<number>(1);
   const [secilenSiparis, setSecilenSiparis] = useState(paramOrder);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Data & List State
-  const [kayitlar, setKayitlar] = useState<KargoKaydi[]>([]);
+  const [kayitlar, setKayitlar] = useState<CargoLabelData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
+  const [tableNeedsCreation, setTableNeedsCreation] = useState(false);
+  const [hasCopiedSql, setHasCopiedSql] = useState(false);
+
   const [aramaKelimesi, setAramaKelimesi] = useState('');
   const [siparisler, setSiparisler] = useState<Order[]>([]);
-  const [isLoadingSiparisler, setIsLoadingSiparisler] = useState(true);
 
   // Print Queue State
   const [baskiListesi, setBaskiListesi] = useState<{ alici: string; tel: string; adres: string; kopya: number }[]>([]);
 
-  // Load from localStorage on mount
-  useEffect(() => {
+  // 1. Fetch labels from Supabase on mount
+  const loadCargoLabels = async () => {
+    setIsLoading(true);
     try {
-      const stored = localStorage.getItem('otantikos_kargo');
-      if (stored) {
-        setKayitlar(JSON.parse(stored));
+      const res = await actionGetCargoLabels();
+      if (res.success) {
+        setKayitlar(res.data);
+        setIsSupabaseConnected(true);
+        setTableNeedsCreation(false);
+      } else if (res.error === 'TABLE_NOT_FOUND') {
+        setTableNeedsCreation(true);
+        setIsSupabaseConnected(false);
+        // Fallback to local cache if table is not created yet
+        const stored = localStorage.getItem('otantikos_kargo_cache');
+        if (stored) {
+          try {
+            setKayitlar(JSON.parse(stored));
+          } catch {}
+        }
+      } else {
+        toast.error('Kargo etiketleri yüklenirken hata oluştu: ' + res.error);
       }
     } catch {
-      // ignore
+      // Fallback
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    loadCargoLabels();
 
     // Load recent orders from DataService for quick auto-fill
     DataService.getOrders()
-      .then((data) => {
-        setSiparisler(data);
-      })
-      .catch(() => {})
-      .finally(() => setIsLoadingSiparisler(false));
+      .then((data) => setSiparisler(data))
+      .catch(() => {});
   }, []);
 
   // Update from URL params if present
@@ -84,19 +139,9 @@ function KargoEtiketiContent() {
       if (paramOrder) {
         setSecilenSiparis(paramOrder);
       }
-      toast.info(`Sipariş #${paramOrder || ''} bilgileri kargo etiket formuna yüklendi.`);
+      toast.info(`Sipariş #${paramOrder || ''} bilgileri yüklendi.`);
     }
   }, [paramAlici, paramTel, paramAdres, paramOrder]);
-
-  // Save list to localStorage
-  const kayitlariGuncelle = (yeniListe: KargoKaydi[]) => {
-    setKayitlar(yeniListe);
-    try {
-      localStorage.setItem('otantikos_kargo', JSON.stringify(yeniListe));
-    } catch {
-      // ignore
-    }
-  };
 
   // Formu Temizle
   const formuTemizle = () => {
@@ -124,8 +169,8 @@ function KargoEtiketiContent() {
     toast.success(`Sipariş #${ord.order_number} (${addr.full_name}) aktarıldı.`);
   };
 
-  // 1. Sadece Listeye Kaydet
-  const sadeceKaydet = () => {
+  // 1. Sadece Supabase'e Kaydet
+  const sadeceKaydet = async () => {
     const cleanAlici = alici.trim().toUpperCase();
     const cleanTel = tel.trim();
     const cleanAdres = adres.trim().toUpperCase();
@@ -135,31 +180,36 @@ function KargoEtiketiContent() {
       return;
     }
 
-    const varMi = kayitlar.some(
-      (k) => k.alici === cleanAlici && k.adres === cleanAdres
-    );
+    setIsSaving(true);
+    try {
+      const res = await actionSaveCargoLabel({
+        recipient_name: cleanAlici,
+        phone: cleanTel,
+        address: cleanAdres,
+        order_number: secilenSiparis || undefined,
+        print_count: Math.max(1, kopya || 1)
+      });
 
-    if (varMi) {
-      toast.warning('Bu adres zaten listenizde kayıtlı.');
-      return;
+      if (res.success) {
+        toast.success('Adres Supabase veritabanına başarıyla kaydedildi.');
+        if (res.data) {
+          setKayitlar((prev) => [res.data!, ...prev.filter((p) => p.id !== res.data!.id)]);
+        } else {
+          loadCargoLabels();
+        }
+        formuTemizle();
+      } else {
+        toast.error('Kayıt başarısız: ' + (res.error || 'Bilinmeyen hata'));
+      }
+    } catch {
+      toast.error('Sunucu bağlantı hatası oluştu.');
+    } finally {
+      setIsSaving(false);
     }
-
-    const yeniKayit: KargoKaydi = {
-      id: Date.now(),
-      alici: cleanAlici,
-      tel: cleanTel,
-      adres: cleanAdres,
-      orderNumber: secilenSiparis || undefined,
-      createdAt: new Date().toLocaleDateString('tr-TR')
-    };
-
-    kayitlariGuncelle([yeniKayit, ...kayitlar]);
-    toast.success('Adres başarıyla listeye kaydedildi.');
-    formuTemizle();
   };
 
-  // 2. Kaydet ve Yazdır (Hem listeye kaydeder hem de belirtilen kopya sayısı kadar 90mm basar)
-  const yazdirVeKaydet = () => {
+  // 2. Supabase'e Kaydet ve 90mm Yazdır
+  const yazdirVeKaydet = async () => {
     const cleanAlici = alici.trim().toUpperCase();
     const cleanTel = tel.trim();
     const cleanAdres = adres.trim().toUpperCase();
@@ -170,24 +220,25 @@ function KargoEtiketiContent() {
       return;
     }
 
-    // Listeye ekle (varsa tekrar eklemez)
-    const varMi = kayitlar.some(
-      (k) => k.alici === cleanAlici && k.adres === cleanAdres
-    );
-
-    if (!varMi) {
-      const yeniKayit: KargoKaydi = {
-        id: Date.now(),
-        alici: cleanAlici,
-        tel: cleanTel,
-        adres: cleanAdres,
-        orderNumber: secilenSiparis || undefined,
-        createdAt: new Date().toLocaleDateString('tr-TR')
-      };
-      kayitlariGuncelle([yeniKayit, ...kayitlar]);
+    // Supabase kaydı
+    setIsSaving(true);
+    try {
+      actionSaveCargoLabel({
+        recipient_name: cleanAlici,
+        phone: cleanTel,
+        address: cleanAdres,
+        order_number: secilenSiparis || undefined,
+        print_count: kopyaAdet
+      }).then((res) => {
+        if (res.success && res.data) {
+          setKayitlar((prev) => [res.data!, ...prev.filter((p) => p.id !== res.data!.id)]);
+        }
+      }).catch(() => {});
+    } finally {
+      setIsSaving(false);
     }
 
-    // Baskı listesini hazırla ve yazdırmayı tetikle
+    // Yazdırma listesini tetikle
     setBaskiListesi([{
       alici: cleanAlici,
       tel: cleanTel,
@@ -200,7 +251,7 @@ function KargoEtiketiContent() {
     }, 150);
   };
 
-  // 3. Tablodan Direkt Yazdır (1 Adet veya özel kopya)
+  // 3. Tablodan Direkt Yazdır
   const direktYazdir = (hedefAlici: string, hedefTel: string, hedefAdres: string, hedefKopya = 1) => {
     setBaskiListesi([{
       alici: hedefAlici.toUpperCase(),
@@ -214,22 +265,43 @@ function KargoEtiketiContent() {
     }, 150);
   };
 
-  // 4. Kayıt Sil
-  const kayitSil = (id: number) => {
-    if (confirm('Bu adresi listeden silmek istediğinize emin misiniz?')) {
-      const filtrelenmis = kayitlar.filter((k) => k.id !== id);
-      kayitlariGuncelle(filtrelenmis);
-      toast.info('Adres kaydı silindi.');
+  // 4. Supabase'den Kayıt Sil
+  const kayitSil = async (id?: string) => {
+    if (!id) return;
+    if (confirm('Bu kargo adresini Supabase veritabanından kalıcı olarak silmek istediğinize emin misiniz?')) {
+      // Optimistic update
+      setKayitlar((prev) => prev.filter((k) => k.id !== id));
+      const res = await actionDeleteCargoLabel(id);
+      if (res.success) {
+        toast.info('Adres kaydı Supabase\'den silindi.');
+      } else {
+        toast.error('Silinemedi: ' + res.error);
+        loadCargoLabels();
+      }
     }
   };
 
   // 5. Tüm Listeyi Temizle
-  const tumunuTemizle = () => {
+  const tumunuTemizle = async () => {
     if (kayitlar.length === 0) return;
-    if (confirm('Tüm kayıtlı kargo adres defterini temizlemek istediğinize emin misiniz?')) {
-      kayitlariGuncelle([]);
-      toast.info('Kargo adres defteri temizlendi.');
+    if (confirm('Tüm kayıtlı kargo adres defterini Supabase veritabanından temizlemek istediğinize emin misiniz?')) {
+      setKayitlar([]);
+      const res = await actionClearAllCargoLabels();
+      if (res.success) {
+        toast.info('Kargo adres defteri Supabase\'den temizlendi.');
+      } else {
+        toast.error('Temizlenemedi: ' + res.error);
+        loadCargoLabels();
+      }
     }
+  };
+
+  // SQL Script Kopyalama
+  const handleCopySql = () => {
+    navigator.clipboard.writeText(SQL_SETUP_SCRIPT);
+    setHasCopiedSql(true);
+    toast.success('Supabase SQL kodu panoya kopyalandı! Supabase SQL Editor\'e yapıştırıp Run diyebilirsiniz.');
+    setTimeout(() => setHasCopiedSql(false), 3000);
   };
 
   // Arama filtreleme
@@ -238,10 +310,10 @@ function KargoEtiketiContent() {
     const q = aramaKelimesi.trim().toUpperCase();
     return kayitlar.filter(
       (k) =>
-        k.alici.toUpperCase().includes(q) ||
-        k.adres.toUpperCase().includes(q) ||
-        (k.tel && k.tel.includes(q)) ||
-        (k.orderNumber && k.orderNumber.toUpperCase().includes(q))
+        k.recipient_name.toUpperCase().includes(q) ||
+        k.address.toUpperCase().includes(q) ||
+        (k.phone && k.phone.includes(q)) ||
+        (k.order_number && k.order_number.toUpperCase().includes(q))
     );
   }, [kayitlar, aramaKelimesi]);
 
@@ -258,16 +330,38 @@ function KargoEtiketiContent() {
               <Printer className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-lg sm:text-xl font-serif font-black text-stone-900">
-                Kargo Etiketi & Adres Masası
-              </h1>
-              <p className="text-xs text-stone-500">
-                Termal yazıcılar (90mm standart) veya A4 çıktıları için hızlı kargo gönderi etiketi basma sistemi
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg sm:text-xl font-serif font-black text-stone-900">
+                  Kargo Etiketi & Adres Masası
+                </h1>
+                {isSupabaseConnected ? (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                    <Database className="w-3 h-3 text-emerald-600" />
+                    <span>Supabase Canlı Veritabanı</span>
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
+                    <Database className="w-3 h-3 text-amber-600" />
+                    <span>Supabase Tablosu Bekleniyor</span>
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Termal yazıcılar (90mm standart) ve A4 kargo çıktıları için Supabase senkronize etiket sistemi
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={loadCargoLabels}
+              className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl transition"
+              title="Yenile"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
+
             <Link
               href="/admin/siparisler"
               className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5"
@@ -277,6 +371,45 @@ function KargoEtiketiContent() {
             </Link>
           </div>
         </div>
+
+        {/* SUPABASE SQL CREATION BANNER (Visible if table needs creation) */}
+        {tableNeedsCreation && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 text-amber-900 space-y-3 shadow-xs">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-amber-100 text-amber-800 shrink-0 mt-0.5">
+                <Database className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-sm text-stone-900">
+                  Supabase'de <code className="bg-amber-100 px-1.5 py-0.5 rounded text-xs font-mono font-bold">cargo_labels</code> Tablosu Henüz Oluşturulmamış
+                </h3>
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  Adreslerin tüm cihazlarınızda (depo bilgisayarı, ofis, cep telefonu) ortak ve kalıcı olarak Supabase veritabanında saklanabilmesi için aşağıdaki SQL komutunu Supabase panelinizdeki <strong>SQL Editor</strong> alanına yapıştırıp <strong>Run</strong> demeniz yeterlidir.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1 pl-11">
+              <button
+                type="button"
+                onClick={handleCopySql}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs"
+              >
+                {hasCopiedSql ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                <span>{hasCopiedSql ? 'SQL Kodu Kopyalandı!' : '1-Tıkla Supabase SQL Kodunu Kopyala'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={loadCargoLabels}
+                className="px-3 py-2 bg-white border border-amber-300 text-amber-900 font-semibold text-xs rounded-xl hover:bg-amber-100/60 transition flex items-center gap-1.5"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Tabloyu Kontrol Et</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Main Grid: Form + Address Book */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -375,7 +508,7 @@ function KargoEtiketiContent() {
                   />
                 </div>
                 <div className="text-[11px] text-stone-400 pt-4">
-                  Birden fazla koli veya poşet için kopya adedi belirleyebilirsiniz.
+                  Termal veya normal yazıcı için kopya adedi belirleyin.
                 </div>
               </div>
             </div>
@@ -384,20 +517,22 @@ function KargoEtiketiContent() {
             <div className="space-y-2 pt-2">
               <button
                 type="button"
+                disabled={isSaving}
                 onClick={yazdirVeKaydet}
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-sm rounded-xl shadow-md transition flex items-center justify-center gap-2 min-h-[44px]"
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-md transition flex items-center justify-center gap-2 min-h-[44px]"
               >
                 <Printer className="w-4 h-4" />
-                <span>Kaydet ve Yazdır</span>
+                <span>{isSaving ? 'Supabase\'e Kaydediliyor...' : 'Supabase\'e Kaydet ve Yazdır'}</span>
               </button>
 
               <button
                 type="button"
+                disabled={isSaving}
                 onClick={sadeceKaydet}
-                className="w-full py-2.5 bg-stone-700 hover:bg-stone-800 text-white font-semibold text-xs rounded-xl transition flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 bg-stone-800 hover:bg-stone-900 text-white font-semibold text-xs rounded-xl transition flex items-center justify-center gap-1.5"
               >
                 <Save className="w-3.5 h-3.5" />
-                <span>Sadece Listeye Kaydet</span>
+                <span>Sadece Supabase'e Kaydet</span>
               </button>
             </div>
 
@@ -414,7 +549,7 @@ function KargoEtiketiContent() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
               <div className="flex items-center gap-2">
                 <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900">
-                  Kayıtlı Kargo Adres Listesi
+                  Supabase Kayıtlı Adres Defteri
                 </h2>
                 <span className="px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-bold text-[10px]">
                   {kayitlar.length} Adres
@@ -457,7 +592,13 @@ function KargoEtiketiContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
-                  {filtrelenmisKayitlar.length === 0 ? (
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={4} className="py-12 text-center text-stone-400 text-xs">
+                        Supabase'den kargo adresleri yükleniyor...
+                      </td>
+                    </tr>
+                  ) : filtrelenmisKayitlar.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="py-12 text-center text-stone-400 text-xs">
                         {aramaKelimesi ? 'Aramanıza uygun kayıt bulunamadı.' : 'Henüz kayıtlı kargo etiketi bulunmuyor.'}
@@ -465,40 +606,42 @@ function KargoEtiketiContent() {
                     </tr>
                   ) : (
                     filtrelenmisKayitlar.map((k) => (
-                      <tr key={k.id} className="hover:bg-stone-50/80 transition group">
+                      <tr key={k.id || k.recipient_name} className="hover:bg-stone-50/80 transition group">
                         <td className="py-3 px-3.5">
-                          <div className="font-bold text-stone-900">{k.alici}</div>
-                          {k.orderNumber && (
+                          <div className="font-bold text-stone-900">{k.recipient_name}</div>
+                          {k.order_number && (
                             <span className="inline-block text-[10px] text-amber-700 font-mono bg-amber-50 px-1.5 rounded mt-0.5">
-                              #{k.orderNumber}
+                              #{k.order_number}
                             </span>
                           )}
                         </td>
                         <td className="py-3 px-3.5 font-medium text-stone-600 whitespace-nowrap">
-                          {k.tel || '-'}
+                          {k.phone || '-'}
                         </td>
                         <td className="py-3 px-3.5 text-stone-600 max-w-xs break-words">
-                          {k.adres}
+                          {k.address}
                         </td>
                         <td className="py-3 px-3.5 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               type="button"
-                              onClick={() => direktYazdir(k.alici, k.tel, k.adres, 1)}
+                              onClick={() => direktYazdir(k.recipient_name, k.phone || '', k.address, 1)}
                               className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] rounded-lg transition flex items-center gap-1 shadow-2xs"
                               title="1 Adet Yazdır"
                             >
                               <Printer className="w-3 h-3" />
                               <span>Yazdır</span>
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => kayitSil(k.id)}
-                              className="p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700 rounded-lg transition"
-                              title="Sil"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
+                            {k.id && (
+                              <button
+                                type="button"
+                                onClick={() => kayitSil(k.id)}
+                                className="p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700 rounded-lg transition"
+                                title="Supabase'den Sil"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -510,7 +653,7 @@ function KargoEtiketiContent() {
 
             {/* Quick Demo Fill Helper */}
             <div className="pt-2 flex justify-between items-center text-[11px] text-stone-400">
-              <span>Etiketler tarayıcınızın hafızasında (localStorage) saklanır.</span>
+              <span>Tüm kargo etiketleri Supabase PostgreSQL veritabanında saklanır.</span>
               <button
                 type="button"
                 onClick={() => {

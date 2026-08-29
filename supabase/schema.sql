@@ -259,6 +259,21 @@ CREATE TABLE IF NOT EXISTS public.cart_items (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_cart_items_unique 
 ON public.cart_items (user_id, product_id, COALESCE(variant_id, '00000000-0000-0000-0000-000000000000'::uuid));
 
+-- 18. CARGO LABELS (KARGO ETİKETLERİ & ADRES DEFTERİ)
+CREATE TABLE IF NOT EXISTS public.cargo_labels (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    recipient_name TEXT NOT NULL,
+    phone TEXT,
+    address TEXT NOT NULL,
+    order_number TEXT,
+    print_count INT DEFAULT 1 NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_cargo_labels_recipient ON public.cargo_labels(recipient_name);
+CREATE INDEX IF NOT EXISTS idx_cargo_labels_created_at ON public.cargo_labels(created_at DESC);
+
 -- 18. AUTOMATIC UPDATED_AT TRIGGER
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER AS $$
@@ -556,13 +571,23 @@ CREATE POLICY "Only Admins delete storage objects"
 ON storage.objects FOR DELETE
 USING (bucket_id IN ('product-images', 'chat-attachments') AND public.is_admin());
 
--- 23. SUPABASE REALTIME REPLICATION
+-- 23. CARGO LABELS POLICIES
+ALTER TABLE public.cargo_labels ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins full access to cargo_labels"
+ON public.cargo_labels FOR ALL
+TO authenticated
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+-- 24. SUPABASE REALTIME REPLICATION
 DO $$ BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.questions;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.reviews;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.live_chat_sessions;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.live_chat_messages;
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.cargo_labels;
 EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
