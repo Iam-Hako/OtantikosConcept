@@ -10,6 +10,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   loginWithGoogle: (redirectToPath?: string) => Promise<void>;
+  loginWithGoogleIdToken: (idToken: string, redirectToPath?: string) => Promise<{ success: boolean; error?: string }>;
   loginWithEmail: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   signUpWithEmail: (email: string, pass: string, fullName: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
@@ -87,6 +88,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const loginWithGoogleIdToken = async (idToken: string, redirectToPath?: string) => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+      });
+
+      if (error) {
+        toast.error(`Google ile giriş yapılamadı: ${error.message}`);
+        return { success: false, error: error.message };
+      }
+
+      if (data?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profile) {
+          setUser(profile as UserProfile);
+        } else {
+          const hasAdminMeta = data.user.app_metadata?.role === 'admin';
+          setUser({
+            id: data.user.id,
+            email: data.user.email || '',
+            full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Kullanıcı',
+            role: hasAdminMeta ? 'admin' : 'customer',
+            created_at: data.user.created_at,
+          });
+        }
+      }
+
+      toast.success('Google ile giriş başarılı!');
+      if (redirectToPath) {
+        window.location.href = redirectToPath;
+      }
+      return { success: true };
+    } catch (err: any) {
+      toast.error('Google bağlantısı sağlanamadı.');
+      return { success: false, error: err?.message || 'Bilinmeyen hata' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const loginWithGoogle = async (redirectToPath?: string) => {
     try {
       const nextQuery = redirectToPath ? `?next=${encodeURIComponent(redirectToPath)}` : '';
@@ -156,6 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAdmin,
         loginWithGoogle,
+        loginWithGoogleIdToken,
         loginWithEmail,
         signUpWithEmail,
         logout,
