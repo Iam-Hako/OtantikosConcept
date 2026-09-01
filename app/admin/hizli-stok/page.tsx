@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 interface RowEditState {
   stock: number;
   price: number;
+  costPrice: number | '' | null;
   wholesalePrice: number | '' | null;
   isPublished: boolean;
 }
@@ -45,6 +46,7 @@ export default function QuickStockPage() {
           initialMap[p.id] = { 
             stock: p.stock, 
             price: p.price,
+            costPrice: p.cost_price !== undefined && p.cost_price !== null ? p.cost_price : '',
             wholesalePrice: p.wholesale_price !== undefined && p.wholesale_price !== null ? p.wholesale_price : '',
             isPublished: p.is_published !== false
           };
@@ -75,11 +77,15 @@ export default function QuickStockPage() {
     const wsPrice = current.wholesalePrice === '' || current.wholesalePrice === null 
       ? null 
       : Number(current.wholesalePrice);
+    const cPrice = current.costPrice === '' || current.costPrice === null 
+      ? null 
+      : Number(current.costPrice);
 
     const res = await actionUpdateQuickStock(
       product.id,
       Number(current.stock) || 0,
       Number(current.price) || 0,
+      cPrice,
       wsPrice,
       current.isPublished
     );
@@ -87,7 +93,7 @@ export default function QuickStockPage() {
 
     if (res.success) {
       toast.success(`"${product.name}" güncellendi!`, {
-        description: `Stok: ${current.stock} | Perakende: ${formatPrice(current.price)} | Durum: ${current.isPublished ? 'Yayında' : 'Sadece Depo'}`,
+        description: `Stok: ${current.stock} | Perakende: ${formatPrice(current.price)} | Alış: ${cPrice ? formatPrice(cPrice) : 'Yok'} | Durum: ${current.isPublished ? 'Yayında' : 'Sadece Depo'}`,
       });
       setProducts((prev) =>
         prev.map((p) =>
@@ -96,6 +102,7 @@ export default function QuickStockPage() {
                 ...p,
                 stock: current.stock,
                 price: current.price,
+                cost_price: cPrice,
                 wholesale_price: wsPrice,
                 is_published: current.isPublished,
               }
@@ -113,9 +120,12 @@ export default function QuickStockPage() {
       if (!current) return false;
       const wsCurrent = current.wholesalePrice === '' ? null : current.wholesalePrice;
       const wsOld = p.wholesale_price || null;
+      const cCurrent = current.costPrice === '' ? null : current.costPrice;
+      const cOld = p.cost_price || null;
       return (
         current.stock !== p.stock ||
         current.price !== p.price ||
+        cCurrent !== cOld ||
         wsCurrent !== wsOld ||
         current.isPublished !== (p.is_published !== false)
       );
@@ -135,10 +145,14 @@ export default function QuickStockPage() {
         const wsPrice = current.wholesalePrice === '' || current.wholesalePrice === null 
           ? null 
           : Number(current.wholesalePrice);
+        const cPrice = current.costPrice === '' || current.costPrice === null 
+          ? null 
+          : Number(current.costPrice);
         const res = await actionUpdateQuickStock(
           p.id, 
           Number(current.stock) || 0, 
           Number(current.price) || 0, 
+          cPrice,
           wsPrice, 
           current.isPublished
         );
@@ -147,7 +161,7 @@ export default function QuickStockPage() {
     }
 
     setIsSavingAll(false);
-    toast.success(`${successCount} ürünün fiyat ve stok bilgileri topluca güncellendi!`);
+    toast.success(`${successCount} ürün başarıyla güncellendi!`);
 
     const list = await DataService.getAllAdminProducts();
     setProducts(list);
@@ -216,17 +230,18 @@ export default function QuickStockPage() {
               <tr className="bg-stone-50 border-b border-stone-200 text-stone-500 font-bold uppercase tracking-wider">
                 <th className="py-3.5 px-4 w-14 text-center">Görsel</th>
                 <th className="py-3.5 px-4 min-w-[200px]">Ürün & Kod</th>
-                <th className="py-3.5 px-4 w-36">Perakende Fiyat (₺)</th>
-                <th className="py-3.5 px-4 w-36">Toptan Fiyat (₺)</th>
-                <th className="py-3.5 px-4 w-32 text-center">Depo Stoğu</th>
-                <th className="py-3.5 px-4 w-44 text-center">Web Satış (Yayın)</th>
-                <th className="py-3.5 px-4 w-28 text-right">Kaydet</th>
+                <th className="py-3.5 px-4 w-32">Alış Maliyeti (₺)</th>
+                <th className="py-3.5 px-4 w-32">Perakende (₺)</th>
+                <th className="py-3.5 px-4 w-32">Toptan (₺)</th>
+                <th className="py-3.5 px-4 w-28 text-center">Depo Stoğu</th>
+                <th className="py-3.5 px-4 w-40 text-center">Web Satış (Yayın)</th>
+                <th className="py-3.5 px-4 w-24 text-right">Kaydet</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 text-stone-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-stone-400">
+                  <td colSpan={8} className="py-12 text-center text-stone-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-brand-600" />
                     <span>Envanter yükleniyor...</span>
                   </td>
@@ -236,12 +251,14 @@ export default function QuickStockPage() {
                   const current = editedValues[product.id] || { 
                     stock: product.stock, 
                     price: product.price, 
+                    costPrice: product.cost_price || '',
                     wholesalePrice: product.wholesale_price || '', 
                     isPublished: product.is_published !== false 
                   };
                   const isRowChanged =
                     current.stock !== product.stock ||
                     current.price !== product.price ||
+                    (current.costPrice === '' ? null : current.costPrice) !== (product.cost_price || null) ||
                     (current.wholesalePrice === '' ? null : current.wholesalePrice) !== (product.wholesale_price || null) ||
                     current.isPublished !== (product.is_published !== false);
                   const coverImage = product.images?.find((img) => img.is_cover) || product.images?.[0];
@@ -284,6 +301,19 @@ export default function QuickStockPage() {
                             </span>
                           )}
                         </div>
+                      </td>
+
+                      {/* Cost Price Input */}
+                      <td className="py-3 px-4">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          placeholder="0.00"
+                          value={current.costPrice ?? ""}
+                          onChange={(e) => handleFieldChange(product.id, 'costPrice', e.target.value === '' ? '' : Number(e.target.value))}
+                          className="w-full font-bold text-xs p-2 bg-amber-50/60 border border-amber-300 rounded-lg focus:outline-none focus:border-amber-600 text-amber-950"
+                        />
                       </td>
 
                       {/* Retail Price Input */}

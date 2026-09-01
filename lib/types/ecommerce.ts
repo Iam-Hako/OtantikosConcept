@@ -1,4 +1,4 @@
-﻿// Otantikos Concept TypeScript Definitions
+// Otantikos Concept TypeScript Definitions
 
 export type UserRole = 'customer' | 'admin';
 
@@ -62,6 +62,7 @@ export interface Product {
   description: string;
   short_description?: string | null;
   price: number; // Perakende Satış Fiyatı
+  cost_price?: number | null; // Alış / Tedarik Maliyet Fiyatı (Opsiyonel)
   wholesale_price?: number | null; // Toptan Satış Fiyatı (Opsiyonel)
   stock: number; // Toplam Depo Stoğu
   sku?: string | null; // Barkod / Ürün Kodu (Opsiyonel)
@@ -234,3 +235,60 @@ export interface CartItem {
   variant?: ProductVariant | null;
   quantity: number;
 }
+
+// Accounting & Profit/Loss Types
+export type AccountingTransactionType = 'purchase' | 'sale' | 'expense';
+export type SaleChannel = 'magaza' | 'toptan' | 'website';
+
+export interface AccountingTransaction {
+  id: string;
+  type: AccountingTransactionType;
+  product_id?: string | null;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_amount: number;
+  unit_cost?: number | null; // Satış anındaki birim alış maliyeti
+  total_cost?: number | null; // Satış anındaki toplam alış maliyeti
+  net_profit?: number | null; // Satış işlemindeki net kâr = total_amount - total_cost
+  customer_name?: string | null; // Satışta zorunlu
+  customer_phone?: string | null; // Satışta zorunlu
+  sale_channel?: SaleChannel | null; // Satışta zorunlu ('magaza' | 'toptan' | 'website')
+  supplier_name?: string | null; // Alışta opsiyonel
+  payment_method?: string | null; // Opsiyonel (Nakit, Kredi Kartı, Havale/EFT, Veresiye)
+  document_no?: string | null; // Opsiyonel (Fatura / Fiş No)
+  notes?: string | null; // Opsiyonel
+  transaction_date: string; // Zorunlu (YYYY-MM-DD)
+  update_stock?: boolean; // Stoğa işlendi mi?
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface ProfitSummary {
+  totalRevenue: number;
+  totalCost: number;
+  totalExpenses: number;
+  netProfit: number;
+  profitMargin: number;
+  totalSalesCount: number;
+  totalPurchasesCount: number;
+  salesByChannel: {
+    magaza: number;
+    toptan: number;
+    website: number;
+  };
+}
+
+export interface ProductProfitStat {
+  productId?: string | null;
+  productName: string;
+  totalSoldQuantity: number;
+  totalRevenue: number;
+  totalCost: number;
+  netProfit: number;
+  profitMargin: number;
+  currentStock: number;
+  unitCostPrice: number;
+  unitSalePrice: number;
+}
+

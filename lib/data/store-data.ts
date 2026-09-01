@@ -1,4 +1,4 @@
-﻿// Central High-Resilience Data Layer for Otantikos Concept
+// Central High-Resilience Data Layer for Otantikos Concept
 // Connects to Supabase PostgreSQL with automated client-side & local state synchronization
 
 import { 
@@ -10,7 +10,10 @@ import {
   Review, 
   LiveChatSession, 
   LiveChatMessage, 
-  WholesaleRequest 
+  WholesaleRequest,
+  AccountingTransaction,
+  ProfitSummary,
+  ProductProfitStat
 } from '@/lib/types/ecommerce';
 import { createClient } from '@/lib/supabase/client';
 
@@ -66,6 +69,7 @@ let runtimeQuestions: Question[] = [];
 let runtimeReviews: Review[] = [];
 let runtimeChatSessions: LiveChatSession[] = [];
 let runtimeWholesale: WholesaleRequest[] = [];
+let runtimeTransactions: AccountingTransaction[] = [];
 
 export function deduplicateLiveChatMessages(messages: LiveChatMessage[]): LiveChatMessage[] {
   if (!Array.isArray(messages)) return [];
@@ -332,22 +336,6 @@ export const DataService = {
       if (!prodErr && upsertedProduct) {
         const prodDbId = upsertedProduct.id;
         savedProduct.id = prodDbId;
-        
-
-        // Sync Images (Always delete first to remove deleted photos/cover)
-        if (savedProduct.images !== undefined) {
-          await supabase.from('product_images').delete().eq('product_id', prodDbId);
-          if (savedProduct.images.length > 0) {
-            await supabase.from('product_images').insert(
-              savedProduct.images.map((img, i) => ({
-                product_id: prodDbId,
-                image_url: img.image_url,
-                is_cover: img.is_cover || i === 0,
-                display_order: img.display_order || i + 1,
-              }))
-            );
-          }
-        }
 
         // Sync Variants (Always delete first to remove deleted variants)
         if (savedProduct.variants !== undefined) {
@@ -361,6 +349,21 @@ export const DataService = {
                 stock: v.stock,
                 price_override: v.price_override || null,
                 is_active: v.is_active ?? true,
+              }))
+            );
+          }
+        }
+
+        // Sync Images (Always delete first to remove deleted photos/cover)
+        if (savedProduct.images !== undefined) {
+          await supabase.from('product_images').delete().eq('product_id', prodDbId);
+          if (savedProduct.images.length > 0) {
+            await supabase.from('product_images').insert(
+              savedProduct.images.map((img, i) => ({
+                product_id: prodDbId,
+                image_url: img.image_url,
+                is_cover: img.is_cover || i === 0,
+                display_order: img.display_order || i + 1,
               }))
             );
           }
@@ -392,6 +395,7 @@ export const DataService = {
     productId: string, 
     newStock: number, 
     newPrice: number, 
+    newCostPrice?: number | null,
     newWholesalePrice?: number | null, 
     newIsPublished?: boolean
   ): Promise<boolean> {
@@ -400,6 +404,7 @@ export const DataService = {
     if (idx > -1) {
       localList[idx].stock = newStock;
       localList[idx].price = newPrice;
+      if (newCostPrice !== undefined) localList[idx].cost_price = newCostPrice;
       if (newWholesalePrice !== undefined) localList[idx].wholesale_price = newWholesalePrice;
       if (newIsPublished !== undefined) localList[idx].is_published = newIsPublished;
       localList[idx].updated_at = new Date().toISOString();
@@ -410,13 +415,15 @@ export const DataService = {
       const supabase = createClient();
       if (!productId.startsWith('prod-')) {
         const updatePayload: any = { stock: newStock, price: newPrice };
+        if (newCostPrice !== undefined) updatePayload.cost_price = newCostPrice;
         if (newWholesalePrice !== undefined) updatePayload.wholesale_price = newWholesalePrice;
         if (newIsPublished !== undefined) updatePayload.is_published = newIsPublished;
         await supabase.from('products').update(updatePayload).eq('id', productId);
       }
     } catch {
-      // Ignore
+      // Fallback
     }
+
     return true;
   },
 
@@ -1627,6 +1634,369 @@ export const DataService = {
     }
 
     return true;
+  },
+
+  // ==========================================
+  // 10. ACCOUNTING & PROFIT / LOSS (ALIS - SATIS & KAR ZARAR)
+  // ==========================================
+  async getAccountingTransactions(): Promise<AccountingTransaction[]> {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('accounting_transactions')
+        .select('*')
+        .order('transaction_date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (!error && Array.isArray(data)) {
+        runtimeTransactions = data as AccountingTransaction[];
+        return runtimeTransactions;
+      }
+    } catch {
+      // Fallback
+    }
+    return runtimeTransactions;
+  },
+
+  async saveAccountingTransaction(txData: Partial<AccountingTransaction>): Promise<AccountingTransaction> {
+    const qty = Math.max(1, Number(txData.quantity) || 1);
+    const unitPrice = Number(txData.unit_price) || 0;
+    const totalAmount = Number(txData.total_amount) || (qty * unitPrice);
+    const unitCost = txData.unit_cost !== undefined && txData.unit_cost !== null ? Number(txData.unit_cost) : 0;
+    const totalCost = txData.total_cost !== undefined && txData.total_cost !== null ? Number(txData.total_cost) : (qty * unitCost);
+
+    let netProfit = 0;
+    if (txData.type === 'sale') {
+      netProfit = totalAmount - totalCost;
+    } else if (txData.type === 'purchase') {
+      netProfit = -totalAmount; // Purchase is direct cost/expense
+    } else if (txData.type === 'expense') {
+      netProfit = -totalAmount;
+    }
+
+    const tx: AccountingTransaction = {
+      id: txData.id || `tx-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      type: txData.type || 'sale',
+      product_id: txData.product_id || null,
+      product_name: txData.product_name || 'Genel Kalem',
+      quantity: qty,
+      unit_price: unitPrice,
+      total_amount: totalAmount,
+      unit_cost: unitCost,
+      total_cost: totalCost,
+      net_profit: netProfit,
+      customer_name: txData.customer_name || null,
+      customer_phone: txData.customer_phone || null,
+      sale_channel: txData.sale_channel || 'magaza',
+      supplier_name: txData.supplier_name || null,
+      payment_method: txData.payment_method || 'nakit',
+      document_no: txData.document_no || null,
+      notes: txData.notes || null,
+      transaction_date: txData.transaction_date || new Date().toISOString().split('T')[0],
+      update_stock: Boolean(txData.update_stock),
+      created_at: txData.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Update in-memory runtime transactions
+    const existingIndex = runtimeTransactions.findIndex((t) => t.id === tx.id);
+    if (existingIndex >= 0) {
+      runtimeTransactions[existingIndex] = tx;
+    } else {
+      runtimeTransactions.unshift(tx);
+    }
+
+    // Optional Stock Update
+    if (tx.product_id && tx.update_stock) {
+      try {
+        const prod = runtimeProducts.find((p) => p.id === tx.product_id);
+        if (prod) {
+          if (tx.type === 'purchase') {
+            prod.stock += qty;
+            prod.cost_price = unitPrice; // Update latest cost price on purchase
+          } else if (tx.type === 'sale') {
+            prod.stock = Math.max(0, prod.stock - qty);
+          }
+          await this.saveProduct(prod);
+        }
+      } catch {
+        // Ignore stock sync fail
+      }
+    }
+
+    // Save to Supabase
+    try {
+      const supabase = createClient();
+      const payload: any = {
+        type: tx.type,
+        product_id: tx.product_id,
+        product_name: tx.product_name,
+        quantity: tx.quantity,
+        unit_price: tx.unit_price,
+        total_amount: tx.total_amount,
+        unit_cost: tx.unit_cost,
+        total_cost: tx.total_cost,
+        net_profit: tx.net_profit,
+        customer_name: tx.customer_name,
+        customer_phone: tx.customer_phone,
+        sale_channel: tx.sale_channel,
+        supplier_name: tx.supplier_name,
+        payment_method: tx.payment_method,
+        document_no: tx.document_no,
+        notes: tx.notes,
+        transaction_date: tx.transaction_date,
+        update_stock: tx.update_stock,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (tx.id && !tx.id.startsWith('tx-')) {
+        payload.id = tx.id;
+      }
+
+      const { data, error } = await supabase
+        .from('accounting_transactions')
+        .upsert(payload)
+        .select()
+        .single();
+
+      if (!error && data?.id) {
+        tx.id = data.id;
+      }
+    } catch {
+      // Fallback
+    }
+
+    return tx;
+  },
+
+  async deleteAccountingTransaction(id: string): Promise<boolean> {
+    runtimeTransactions = runtimeTransactions.filter((t) => t.id !== id);
+
+    try {
+      const supabase = createClient();
+      await supabase.from('accounting_transactions').delete().eq('id', id);
+    } catch {
+      // Fallback
+    }
+
+    return true;
+  },
+
+  async updateProductCostPrice(productId: string, costPrice: number): Promise<boolean> {
+    const prod = runtimeProducts.find((p) => p.id === productId);
+    if (prod) {
+      prod.cost_price = costPrice;
+    }
+
+    try {
+      const supabase = createClient();
+      await supabase.from('products').update({ cost_price: costPrice }).eq('id', productId);
+    } catch {
+      // Fallback
+    }
+
+    return true;
+  },
+
+  async getProfitSummary(options?: { startDate?: string; endDate?: string; channel?: string }): Promise<ProfitSummary> {
+    const [txList, orders, products] = await Promise.all([
+      this.getAccountingTransactions(),
+      this.getOrders(),
+      this.getAllAdminProducts(),
+    ]);
+
+    // Build cost lookup map for products
+    const productCostMap = new Map<string, number>();
+    products.forEach((p) => {
+      productCostMap.set(p.id, Number(p.cost_price) || 0);
+      productCostMap.set(p.name.toLowerCase().trim(), Number(p.cost_price) || 0);
+    });
+
+    let totalRevenue = 0;
+    let totalCost = 0;
+    let totalExpenses = 0;
+    let totalSalesCount = 0;
+    let totalPurchasesCount = 0;
+    const salesByChannel = {
+      magaza: 0,
+      toptan: 0,
+      website: 0,
+    };
+
+    const isDateInRange = (dateStr: string) => {
+      if (!dateStr) return true;
+      const d = dateStr.split('T')[0];
+      if (options?.startDate && d < options.startDate) return false;
+      if (options?.endDate && d > options.endDate) return false;
+      return true;
+    };
+
+    // 1. Process Accounting Transactions (Manual Sales, Purchases, Expenses)
+    txList.forEach((tx) => {
+      if (!isDateInRange(tx.transaction_date)) return;
+
+      if (tx.type === 'sale') {
+        if (options?.channel && options.channel !== 'all' && tx.sale_channel !== options.channel) {
+          return;
+        }
+
+        totalRevenue += tx.total_amount;
+        totalCost += (tx.total_cost || 0);
+        totalSalesCount++;
+
+        const ch = (tx.sale_channel || 'magaza') as 'magaza' | 'toptan' | 'website';
+        if (salesByChannel[ch] !== undefined) {
+          salesByChannel[ch] += tx.total_amount;
+        }
+      } else if (tx.type === 'purchase') {
+        if (!options?.channel || options.channel === 'all') {
+          totalPurchasesCount++;
+          // Purchase record is an inventory asset acquisition
+        }
+      } else if (tx.type === 'expense') {
+        if (!options?.channel || options.channel === 'all') {
+          totalExpenses += tx.total_amount;
+        }
+      }
+    });
+
+    // 2. Process E-Commerce Web Orders (Paid Online Orders)
+    if (!options?.channel || options.channel === 'all' || options.channel === 'website') {
+      orders.forEach((o) => {
+        if (o.payment_status === 'paid' && isDateInRange(o.created_at)) {
+          totalRevenue += o.total_amount;
+          salesByChannel.website += o.total_amount;
+          totalSalesCount++;
+
+          // Compute cost of items sold online
+          if (Array.isArray(o.items)) {
+            o.items.forEach((item) => {
+              const unitCost = (item.product_id ? productCostMap.get(item.product_id) : undefined) ||
+                productCostMap.get(item.product_name.toLowerCase().trim()) || 0;
+              totalCost += unitCost * item.quantity;
+            });
+          }
+        }
+      });
+    }
+
+    const netProfit = totalRevenue - totalCost - totalExpenses;
+    const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100) : 0;
+
+    return {
+      totalRevenue,
+      totalCost,
+      totalExpenses,
+      netProfit,
+      profitMargin: Math.round(profitMargin * 10) / 10,
+      totalSalesCount,
+      totalPurchasesCount,
+      salesByChannel,
+    };
+  },
+
+  async getProductProfitStats(): Promise<ProductProfitStat[]> {
+    const [txList, orders, products] = await Promise.all([
+      this.getAccountingTransactions(),
+      this.getOrders(),
+      this.getAllAdminProducts(),
+    ]);
+
+    const statMap = new Map<string, {
+      productId?: string | null;
+      productName: string;
+      totalSoldQuantity: number;
+      totalRevenue: number;
+      totalCost: number;
+      currentStock: number;
+      unitCostPrice: number;
+      unitSalePrice: number;
+    }>();
+
+    // Initialize with all products
+    products.forEach((p) => {
+      statMap.set(p.id, {
+        productId: p.id,
+        productName: p.name,
+        totalSoldQuantity: 0,
+        totalRevenue: 0,
+        totalCost: 0,
+        currentStock: p.stock,
+        unitCostPrice: Number(p.cost_price) || 0,
+        unitSalePrice: Number(p.price) || 0,
+      });
+    });
+
+    // 1. Accumulate Manual Sales
+    txList.forEach((tx) => {
+      if (tx.type === 'sale') {
+        const key = tx.product_id || tx.product_name.toLowerCase().trim();
+        let existing = statMap.get(key);
+        if (!existing && tx.product_id) {
+          existing = statMap.get(tx.product_id);
+        }
+        if (!existing) {
+          existing = {
+            productId: tx.product_id || null,
+            productName: tx.product_name,
+            totalSoldQuantity: 0,
+            totalRevenue: 0,
+            totalCost: 0,
+            currentStock: 0,
+            unitCostPrice: tx.unit_cost || 0,
+            unitSalePrice: tx.unit_price || 0,
+          };
+          statMap.set(key, existing);
+        }
+
+        existing.totalSoldQuantity += tx.quantity;
+        existing.totalRevenue += tx.total_amount;
+        existing.totalCost += (tx.total_cost || 0);
+      }
+    });
+
+    // 2. Accumulate Web Orders
+    orders.forEach((o) => {
+      if (o.payment_status === 'paid' && Array.isArray(o.items)) {
+        o.items.forEach((item) => {
+          const key = item.product_id || item.product_name.toLowerCase().trim();
+          let existing = statMap.get(key);
+          if (!existing && item.product_id) {
+            existing = statMap.get(item.product_id);
+          }
+          if (!existing) {
+            existing = {
+              productId: item.product_id || null,
+              productName: item.product_name,
+              totalSoldQuantity: 0,
+              totalRevenue: 0,
+              totalCost: 0,
+              currentStock: 0,
+              unitCostPrice: 0,
+              unitSalePrice: item.price,
+            };
+            statMap.set(key, existing);
+          }
+
+          const unitCost = existing.unitCostPrice || 0;
+          existing.totalSoldQuantity += item.quantity;
+          existing.totalRevenue += item.total || (item.price * item.quantity);
+          existing.totalCost += unitCost * item.quantity;
+        });
+      }
+    });
+
+    return Array.from(statMap.values())
+      .map((item) => {
+        const netProfit = item.totalRevenue - item.totalCost;
+        const profitMargin = item.totalRevenue > 0 ? Math.round(((netProfit / item.totalRevenue) * 100) * 10) / 10 : 0;
+        return {
+          ...item,
+          netProfit,
+          profitMargin,
+        };
+      })
+      .sort((a, b) => b.netProfit - a.netProfit);
   }
 };
 

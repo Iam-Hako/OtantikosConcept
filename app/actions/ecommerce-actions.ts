@@ -1,8 +1,8 @@
-﻿'use server';
+'use server';
 
 import { revalidatePath } from 'next/cache';
 import { DataService } from '@/lib/data/store-data';
-import { Product, Category, Order, ReturnRequest } from '@/lib/types/ecommerce';
+import { Product, Category, Order, ReturnRequest, AccountingTransaction } from '@/lib/types/ecommerce';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
@@ -208,6 +208,7 @@ export async function actionUpdateQuickStock(
   productId: string, 
   stock: number, 
   price: number, 
+  costPrice?: number | null,
   wholesalePrice?: number | null, 
   isPublished?: boolean
 ) {
@@ -227,12 +228,14 @@ export async function actionUpdateQuickStock(
 
     if (UUID_REGEX.test(dbId)) {
       const payload: any = { stock: Math.max(0, stock), price: Math.max(0, price), updated_at: new Date().toISOString() };
+      if (costPrice !== undefined) payload.cost_price = costPrice;
       if (wholesalePrice !== undefined) payload.wholesale_price = wholesalePrice;
       if (isPublished !== undefined) payload.is_published = isPublished;
 
       await supabaseAdmin.from('products').update(payload).eq('id', dbId);
     } else {
       const payload: any = { stock: Math.max(0, stock), price: Math.max(0, price), updated_at: new Date().toISOString() };
+      if (costPrice !== undefined) payload.cost_price = costPrice;
       if (wholesalePrice !== undefined) payload.wholesale_price = wholesalePrice;
       if (isPublished !== undefined) payload.is_published = isPublished;
 
@@ -242,10 +245,11 @@ export async function actionUpdateQuickStock(
     console.error('Supabase admin quick stock update error:', err);
   }
 
-  const ok = await DataService.updateQuickStockAndPrice(productId, stock, price, wholesalePrice, isPublished);
+  const ok = await DataService.updateQuickStockAndPrice(productId, stock, price, costPrice, wholesalePrice, isPublished);
   revalidatePath('/');
   revalidatePath('/kategori/[slug]', 'page');
   revalidatePath('/admin/hizli-stok');
+  revalidatePath('/admin/kar-zarar');
   revalidatePath('/admin');
   return { success: ok };
 }
@@ -669,4 +673,124 @@ export async function actionToggleProductPublish(productId: string, isPublished:
   revalidatePath('/admin/hizli-stok');
   return { success: true };
 }
+
+export async function actionSaveAccountingTransaction(txData: Partial<AccountingTransaction>) {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) {
+    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+  }
+
+  try {
+    const savedTx = await DataService.saveAccountingTransaction(txData);
+
+    try {
+      const supabaseAdmin = createAdminClient();
+      const payload: any = {
+        type: savedTx.type,
+        product_id: savedTx.product_id && UUID_REGEX.test(savedTx.product_id) ? savedTx.product_id : null,
+        product_name: savedTx.product_name,
+        quantity: savedTx.quantity,
+        unit_price: savedTx.unit_price,
+        total_amount: savedTx.total_amount,
+        unit_cost: savedTx.unit_cost,
+        total_cost: savedTx.total_cost,
+        net_profit: savedTx.net_profit,
+        customer_name: savedTx.customer_name,
+        customer_phone: savedTx.customer_phone,
+        sale_channel: savedTx.sale_channel,
+        supplier_name: savedTx.supplier_name,
+        payment_method: savedTx.payment_method,
+        document_no: savedTx.document_no,
+        notes: savedTx.notes,
+        transaction_date: savedTx.transaction_date,
+        update_stock: savedTx.update_stock,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (savedTx.id && UUID_REGEX.test(savedTx.id)) {
+        payload.id = savedTx.id;
+      }
+
+      await supabaseAdmin.from('accounting_transactions').upsert(payload);
+
+      // If stock update was requested, sync stock in Supabase
+      if (savedTx.product_id && savedTx.update_stock && UUID_REGEX.test(savedTx.product_id)) {
+        const prod = await DataService.getProductById(savedTx.product_id);
+        if (prod) {
+          await supabaseAdmin
+            .from('products')
+            .update({ 
+              stock: prod.stock, 
+              cost_price: prod.cost_price, 
+              updated_at: new Date().toISOString() 
+            })
+            .eq('id', savedTx.product_id);
+        }
+      }
+    } catch (err) {
+      console.warn('Accounting Supabase sync notice:', err);
+    }
+
+    revalidatePath('/admin');
+    revalidatePath('/admin/kar-zarar');
+    revalidatePath('/admin/urunler');
+    revalidatePath('/admin/hizli-stok');
+    return { success: true, transaction: savedTx };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'İşlem kaydedilirken bir hata oluştu.' };
+  }
+}
+
+export async function actionDeleteAccountingTransaction(id: string) {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) {
+    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+  }
+
+  try {
+    await DataService.deleteAccountingTransaction(id);
+
+    try {
+      const supabaseAdmin = createAdminClient();
+      await supabaseAdmin.from('accounting_transactions').delete().eq('id', id);
+    } catch (err) {
+      console.warn('Accounting delete sync notice:', err);
+    }
+
+    revalidatePath('/admin');
+    revalidatePath('/admin/kar-zarar');
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'İşlem silinirken bir hata oluştu.' };
+  }
+}
+
+export async function actionUpdateProductCostPrice(productId: string, costPrice: number) {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) {
+    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+  }
+
+  try {
+    await DataService.updateProductCostPrice(productId, costPrice);
+
+    try {
+      const supabaseAdmin = createAdminClient();
+      await supabaseAdmin
+        .from('products')
+        .update({ cost_price: costPrice, updated_at: new Date().toISOString() })
+        .eq('id', productId);
+    } catch (err) {
+      console.warn('Product cost price sync notice:', err);
+    }
+
+    revalidatePath('/admin');
+    revalidatePath('/admin/kar-zarar');
+    revalidatePath('/admin/hizli-stok');
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Maliyet fiyatı güncellenemedi.' };
+  }
+}
+
 

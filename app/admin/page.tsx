@@ -12,26 +12,31 @@ import {
   ArrowRight, 
   Sparkles,
   Zap,
-  Printer
+  Printer,
+  Calculator,
+  ArrowUpRight
 } from 'lucide-react';
-import { Product, Order } from '@/lib/types/ecommerce';
+import { Product, Order, ProfitSummary } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
 import { formatPrice, formatDate } from '@/lib/utils/format';
 
 export default function AdminDashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [profitSummary, setProfitSummary] = useState<ProfitSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadStats() {
       try {
-        const [pList, oList] = await Promise.all([
+        const [pList, oList, pSummary] = await Promise.all([
           DataService.getAllAdminProducts(),
           DataService.getOrders(),
+          DataService.getProfitSummary(),
         ]);
         setProducts(pList);
         setOrders(oList);
+        setProfitSummary(pSummary);
       } finally {
         setIsLoading(false);
       }
@@ -39,7 +44,7 @@ export default function AdminDashboardPage() {
     loadStats();
   }, []);
 
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.payment_status === 'paid' ? o.total_amount : 0), 0);
+  const totalRevenue = profitSummary?.totalRevenue ?? orders.reduce((sum, o) => sum + (o.payment_status === 'paid' ? o.total_amount : 0), 0);
   const pendingOrders = orders.filter((o) => o.status === 'hazirlaniyor' || o.status === 'siparis_alindi');
   const lowStockProducts = products.filter((p) => p.stock <= 5);
 
@@ -57,55 +62,82 @@ export default function AdminDashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/admin/kar-zarar"
+            className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs"
+          >
+            <Calculator className="w-3.5 h-3.5 text-emerald-300" />
+            <span>Kâr / Zarar Masası</span>
+          </Link>
           <Link
             href="/admin/hizli-stok"
             className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs"
           >
             <Zap className="w-3.5 h-3.5 text-amber-400" />
-            <span>Hızlı Stok/Fiyat Düzenle</span>
+            <span>Hızlı Stok/Fiyat</span>
           </Link>
           <Link
             href="/admin/urunler/yeni"
             className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs"
           >
-            <span>+ Yeni Ürün Ekle</span>
+            <span>+ Yeni Ürün</span>
           </Link>
         </div>
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         
         {/* Total Revenue */}
         <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-xs text-stone-500 font-semibold block">Toplam Satış Cirosu</span>
-            <span className="text-2xl font-black text-stone-900 mt-1 block">
+            <span className="text-xl sm:text-2xl font-black text-stone-900 mt-1 block">
               {formatPrice(totalRevenue)}
             </span>
-            <span className="text-[10px] text-emerald-600 font-bold mt-1 block">
-              ✓ Sanal POS ve Mağaza Onaylı
+            <span className="text-[10px] text-blue-600 font-bold mt-1 block">
+              Web + Dükkan Satışları
             </span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center">
-            <TrendingUp className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+            <TrendingUp className="w-5 h-5" />
           </div>
         </div>
+
+        {/* Net Profit */}
+        <Link 
+          href="/admin/kar-zarar"
+          className="bg-emerald-950 text-white p-5 rounded-2xl border border-emerald-900 shadow-xs flex items-center justify-between hover:bg-emerald-900 transition group"
+        >
+          <div>
+            <span className="text-xs text-emerald-300 font-bold block">Net Kâr Durumu</span>
+            <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-1 block">
+              +{formatPrice(profitSummary?.netProfit || 0)}
+            </span>
+            <span className="text-[10px] text-emerald-200 font-bold mt-1 flex items-center gap-1">
+              <span>%{profitSummary?.profitMargin || 0} Marj</span>
+              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition" />
+            </span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-emerald-800 text-emerald-200 flex items-center justify-center">
+            <Calculator className="w-5 h-5" />
+          </div>
+        </Link>
 
         {/* Total Orders */}
         <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs text-stone-500 font-semibold block">Toplam Sipariş Sayısı</span>
-            <span className="text-2xl font-black text-stone-900 mt-1 block">
+            <span className="text-xs text-stone-500 font-semibold block">Toplam Sipariş</span>
+            <span className="text-xl sm:text-2xl font-black text-stone-900 mt-1 block">
               {orders.length} Sipariş
             </span>
             <span className="text-[10px] text-stone-400 mt-1 block">
-              OTN-2026 serisi siparişler
+              OTN-2026 serisi
             </span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-stone-100 text-stone-800 flex items-center justify-center">
-            <ShoppingBag className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-xl bg-stone-100 text-stone-800 flex items-center justify-center">
+            <ShoppingBag className="w-5 h-5" />
           </div>
         </div>
 
@@ -113,31 +145,31 @@ export default function AdminDashboardPage() {
         <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-xs text-stone-500 font-semibold block">Bekleyen Kargolar</span>
-            <span className="text-2xl font-black text-amber-700 mt-1 block">
+            <span className="text-xl sm:text-2xl font-black text-amber-700 mt-1 block">
               {pendingOrders.length} Paket
             </span>
             <span className="text-[10px] text-amber-800 font-bold mt-1 block">
-              Paketlenip kargoya verilecek
+              Kargoya verilecek
             </span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center">
-            <Clock className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+            <Clock className="w-5 h-5" />
           </div>
         </div>
 
         {/* Low Stock Alerts */}
         <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs text-stone-500 font-semibold block">Kritik Stok Uyarısı (≤5)</span>
-            <span className="text-2xl font-black text-rose-600 mt-1 block">
+            <span className="text-xs text-stone-500 font-semibold block">Kritik Stok (≤5)</span>
+            <span className="text-xl sm:text-2xl font-black text-rose-600 mt-1 block">
               {lowStockProducts.length} Ürün
             </span>
             <span className="text-[10px] text-rose-700 font-bold mt-1 block">
-              Acil Tahtakale ikmali gerekli
+              Acil Tahtakale ikmali
             </span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center">
-            <AlertTriangle className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center">
+            <AlertTriangle className="w-5 h-5" />
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-﻿-- Otantikos Concept Database Schema & Migrations (Audited & Hardened)
+-- Otantikos Concept Database Schema & Migrations (Audited & Hardened)
 -- PostgreSQL Schema for Supabase with RLS, Storage, Realtime, Triggers, and Indexes
 
 -- 1. EXTENSIONS
@@ -588,15 +588,45 @@ TO authenticated
 USING (public.is_admin())
 WITH CHECK (public.is_admin());
 
--- 24. SUPABASE REALTIME REPLICATION
+-- 25. ACCOUNTING & TRANSACTIONS (ALIS-SATIS & KAR-ZARAR)
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS cost_price NUMERIC(10, 2);
+
+CREATE TABLE IF NOT EXISTS public.accounting_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    type TEXT CHECK (type IN ('purchase', 'sale', 'expense')) NOT NULL,
+    product_id UUID REFERENCES public.products(id) ON DELETE SET NULL,
+    product_name TEXT NOT NULL,
+    quantity INT NOT NULL DEFAULT 1,
+    unit_price NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    total_amount NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    unit_cost NUMERIC(10, 2) DEFAULT 0.00,
+    total_cost NUMERIC(10, 2) DEFAULT 0.00,
+    net_profit NUMERIC(10, 2) DEFAULT 0.00,
+    customer_name TEXT,
+    customer_phone TEXT,
+    sale_channel TEXT CHECK (sale_channel IN ('magaza', 'toptan', 'website')),
+    supplier_name TEXT,
+    payment_method TEXT DEFAULT 'nakit',
+    document_no TEXT,
+    notes TEXT,
+    transaction_date DATE DEFAULT CURRENT_DATE NOT NULL,
+    update_stock BOOLEAN DEFAULT FALSE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+ALTER TABLE public.accounting_transactions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins full access to accounting_transactions"
+ON public.accounting_transactions FOR ALL
+TO authenticated
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
 DO $$ BEGIN
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.questions;
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.reviews;
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.live_chat_sessions;
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.live_chat_messages;
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.cargo_labels;
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.accounting_transactions;
 EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
+
 
