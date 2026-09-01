@@ -261,7 +261,7 @@ CREATE TABLE IF NOT EXISTS public.cart_items (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_cart_items_unique 
 ON public.cart_items (user_id, product_id, COALESCE(variant_id, '00000000-0000-0000-0000-000000000000'::uuid));
 
--- 18. CARGO LABELS (KARGO ETÄ°KETLERÄ° & ADRES DEFTERÄ°)
+-- 18. CARGO LABELS (KARGO ETİKETLERİ & ADRES DEFTERİ)
 CREATE TABLE IF NOT EXISTS public.cargo_labels (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     recipient_name TEXT NOT NULL,

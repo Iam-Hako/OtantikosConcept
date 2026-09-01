@@ -816,7 +816,7 @@ export const DataService = {
       order_id: req.order_id!,
       order_item_id: req.order_item_id || null,
       user_id: req.user_id || null,
-      reason: req.reason || 'DiÄŸer',
+      reason: req.reason || 'Diğer',
       details: req.details || '',
       status: 'talep_alindi',
       created_at: new Date().toISOString(),
@@ -1326,7 +1326,7 @@ export const DataService = {
       session = {
         id: `chat-${sessionId}`,
         session_id: sessionId,
-        customer_name: customerName || 'ZiyaretÃ§i',
+        customer_name: customerName || 'Ziyaretçi',
         customer_email: customerEmail || null,
         status: 'active',
         created_at: new Date().toISOString(),
@@ -1340,7 +1340,7 @@ export const DataService = {
       session.messages.push(newMsg);
       session.last_message = newMsg;
       session.updated_at = new Date().toISOString();
-      if (customerName && session.customer_name === 'ZiyaretÃ§i') {
+      if (customerName && session.customer_name === 'Ziyaretçi') {
         session.customer_name = customerName;
       }
       if (customerEmail && !session.customer_email) {

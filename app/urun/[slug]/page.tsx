@@ -132,7 +132,7 @@ export default function ProductDetailPage() {
     e.preventDefault();
     if (!stockAlertEmail || !product) return;
     toast.success('Haber verme talebiniz kaydedildi!', {
-      description: `${product.name} stoÄŸa girdiÄŸi an ${stockAlertEmail} adresine e-posta gÃ¶nderilecektir.`,
+      description: `${product.name} stoğa girdiği an ${stockAlertEmail} adresine e-posta gönderilecektir.`,
     });
     setIsStockAlertOpen(false);
     setStockAlertEmail('');
@@ -143,12 +143,12 @@ export default function ProductDetailPage() {
     if (!newQuestionText || !product) return;
     await DataService.addQuestion(
       product.id,
-      newQuestionName || 'Ä°simsiz MÃ¼ÅŸteri',
+      newQuestionName || 'İsimsiz Müşteri',
       newQuestionEmail,
       newQuestionText
     );
-    toast.success('Sorunuz yÃ¶neticiye iletildi!', {
-      description: 'YÃ¶netici onayÄ±ndan sonra Ã¼rÃ¼n sayfasÄ±nda yanÄ±tÄ±yla birlikte yayÄ±nlanacaktÄ±r.',
+    toast.success('Sorunuz yöneticiye iletildi!', {
+      description: 'Yönetici onayından sonra ürün sayfasında yanıtıyla birlikte yayınlanacaktır.',
     });
     setNewQuestionText('');
     setNewQuestionName('');
@@ -160,12 +160,12 @@ export default function ProductDetailPage() {
     if (!newReviewComment || !product) return;
     const newRev = await DataService.addReview(
       product.id,
-      newReviewName || 'MÃ¼ÅŸteri',
+      newReviewName || 'Müşteri',
       newReviewRating,
       newReviewComment
     );
     setReviews((prev) => [newRev, ...prev]);
-    toast.success('DeÄŸerlendirmeniz iÃ§in teÅŸekkÃ¼r ederiz!');
+    toast.success('Değerlendirmeniz için teşekkür ederiz!');
     setNewReviewComment('');
     setNewReviewName('');
   };
@@ -174,7 +174,7 @@ export default function ProductDetailPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
         <div className="w-12 h-12 border-4 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-sm font-semibold text-stone-600">Tahtakale Ã¼rÃ¼n detaylarÄ± yÃ¼kleniyor...</p>
+        <p className="text-sm font-semibold text-stone-600">Tahtakale ürün detayları yükleniyor...</p>
       </div>
     );
   }
@@ -182,10 +182,10 @@ export default function ProductDetailPage() {
   if (!product) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <h2 className="text-2xl font-bold text-stone-900 mb-2">ÃœrÃ¼n BulunamadÄ±</h2>
-        <p className="text-xs text-stone-500 mb-6">AradÄ±ÄŸÄ±nÄ±z Ã¼rÃ¼n kaldÄ±rÄ±lmÄ±ÅŸ veya baÄŸlantÄ± deÄŸiÅŸmiÅŸ olabilir.</p>
+        <h2 className="text-2xl font-bold text-stone-900 mb-2">Ürün Bulunamadı</h2>
+        <p className="text-xs text-stone-500 mb-6">Aradığınız ürün kaldırılmış veya bağlantı değişmiş olabilir.</p>
         <Link href="/kategori/tum-urunler" className="px-5 py-2.5 bg-amber-600 text-white text-xs font-bold rounded-lg">
-          Koleksiyona DÃ¶n
+          Koleksiyona Dön
         </Link>
       </div>
     );
@@ -258,7 +258,7 @@ export default function ProductDetailPage() {
                     className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition shrink-0 bg-stone-900 flex flex-col items-center justify-center gap-1 group ${
                       isShowingVideo ? 'border-amber-500 ring-2 ring-amber-500/30' : 'border-stone-700 hover:border-stone-500'
                     }`}
-                    title="TanÄ±tÄ±m Videosunu Ä°zle"
+                    title="Tanıtım Videosunu İzle"
                   >
                     <div className="w-7 h-7 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center group-hover:scale-110 transition shadow-md">
                       <Play className="w-4 h-4 fill-stone-950 ml-0.5" />
@@ -348,7 +348,7 @@ export default function ProductDetailPage() {
                   {/* Hover Badge */}
                   <div className="absolute bottom-3 right-3 bg-stone-900/70 backdrop-blur-xs text-white text-[10px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 opacity-80 group-hover:opacity-100 transition">
                     <Eye className="w-3 h-3 text-amber-400" />
-                    <span>BÃ¼yÃ¼tmek iÃ§in Ã¼zerine gelin</span>
+                    <span>Büyütmek için üzerine gelin</span>
                   </div>
                 </div>
               ) : (
@@ -356,7 +356,7 @@ export default function ProductDetailPage() {
                 <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-stone-100 text-stone-400">
                   <Sparkles className="w-12 h-12 text-stone-300 mb-2" />
                   <span className="text-xs font-semibold text-stone-500">{product.name}</span>
-                  <span className="text-[11px] text-stone-400 mt-1">GÃ¶rsel yakÄ±nda eklenecektir</span>
+                  <span className="text-[11px] text-stone-400 mt-1">Görsel yakında eklenecektir</span>
                 </div>
               )}
             </div>
@@ -389,7 +389,7 @@ export default function ProductDetailPage() {
               </div>
               <span className="text-stone-300">|</span>
               <a href="#yorumlar" className="text-stone-500 hover:text-amber-700 underline">
-                {reviews.length} DeÄŸerlendirme
+                {reviews.length} Değerlendirme
               </a>
               <span className="text-stone-300">|</span>
               <a href="#sorular" className="text-stone-500 hover:text-amber-700 underline">
@@ -402,7 +402,7 @@ export default function ProductDetailPage() {
           <div className="p-5 bg-amber-50/60 rounded-2xl border border-amber-200/80">
             <div className="flex items-baseline justify-between">
               <div>
-                <span className="text-xs text-stone-500 block">DoÄŸrudan Net Fiyat (KDV Dahil):</span>
+                <span className="text-xs text-stone-500 block">Doğrudan Net Fiyat (KDV Dahil):</span>
                 <span className="text-3xl font-serif font-black text-amber-900">
                   {formatPrice(currentPrice)}
                 </span>
@@ -410,7 +410,7 @@ export default function ProductDetailPage() {
               <div className="text-right">
                 {isOutOfStock ? (
                   <span className="inline-block px-3 py-1 bg-rose-100 text-rose-700 text-xs font-bold rounded-full">
-                    TÃ¼kendi
+                    Tükendi
                   </span>
                 ) : (
                   <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full">
@@ -421,7 +421,7 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="mt-3 pt-3 border-t border-amber-200/60 text-[11px] text-stone-600 flex items-center justify-between">
-              <span>ğŸ’³ PeÅŸin fiyatÄ±na taksit seÃ§enekleri mevcuttur</span>
+              <span>ğŸ’³ Peşin fiyatına taksit seçenekleri mevcuttur</span>
               <span className="font-bold text-amber-800">Net Fiyat Garantisi</span>
             </div>
           </div>
@@ -430,7 +430,7 @@ export default function ProductDetailPage() {
           {product.variants && product.variants.length > 0 && (
             <div className="space-y-3">
               <label className="block text-xs font-bold text-stone-900">
-                SeÃ§enek / {product.variants[0].name}:{' '}
+                Seçenek / {product.variants[0].name}:{' '}
                 <strong className="text-amber-700">{selectedVariant?.value}</strong>
               </label>
               <div className="flex flex-wrap gap-2.5">
@@ -524,7 +524,7 @@ export default function ProductDetailPage() {
                   <span>Gelince Haber Ver</span>
                 </button>
                 <p className="text-[11px] text-center text-stone-500">
-                  Bu Ã¼rÃ¼n ÅŸu anda tÃ¼kenmiÅŸtir. StoÄŸa girdiÄŸinde e-posta bildirimi alabilirsiniz.
+                  Bu ürün şu anda tükenmiştir. Stoğa girdiğinde e-posta bildirimi alabilirsiniz.
                 </p>
               </div>
             )}
@@ -535,15 +535,15 @@ export default function ProductDetailPage() {
             <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white border border-stone-200">
               <Truck className="w-4 h-4 text-amber-600 shrink-0" />
               <div>
-                <span className="font-bold text-stone-900 block text-[11px]">HÄ±zlÄ± Sevkiyat</span>
-                <span className="text-[10px] text-stone-500">EminÃ¶nÃ¼ DoÄŸrudan Kargo</span>
+                <span className="font-bold text-stone-900 block text-[11px]">Hızlı Sevkiyat</span>
+                <span className="text-[10px] text-stone-500">Eminönü Doğrudan Kargo</span>
               </div>
             </div>
             <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white border border-stone-200">
               <RotateCcw className="w-4 h-4 text-amber-600 shrink-0" />
               <div>
-                <span className="font-bold text-stone-900 block text-[11px]">14 GÃ¼n Ä°ade</span>
-                <span className="text-[10px] text-stone-500">Kolay RMA MasasÄ±</span>
+                <span className="font-bold text-stone-900 block text-[11px]">14 Gün İade</span>
+                <span className="text-[10px] text-stone-500">Kolay RMA Masası</span>
               </div>
             </div>
           </div>
@@ -556,10 +556,10 @@ export default function ProductDetailPage() {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-700">
             <Sparkles className="w-4 h-4" />
-            <span>DetaylÄ± ÃœrÃ¼n Analizi</span>
+            <span>Detaylı Ürün Analizi</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-serif font-black text-stone-900 mt-1">
-            Teknik Ã–zellikler ve ÃœrÃ¼n AÃ§Ä±klamasÄ±
+            Teknik Özellikler ve Ürün Açıklaması
           </h2>
         </div>
 
@@ -570,7 +570,7 @@ export default function ProductDetailPage() {
         {product.specifications && product.specifications.length > 0 && (
           <div className="mt-6 border border-stone-200 rounded-2xl overflow-hidden">
             <div className="bg-stone-100/70 px-4 py-3 border-b border-stone-200 text-xs font-bold text-stone-900 uppercase tracking-wider">
-              ÃœrÃ¼n Teknik Ã–zellikler Tablosu
+              Ürün Teknik Özellikler Tablosu
             </div>
             <div className="divide-y divide-stone-100 text-xs">
               {product.specifications.map((spec, idx) => (
@@ -593,7 +593,7 @@ export default function ProductDetailPage() {
       <section id="sorular" className="bg-white rounded-3xl border border-stone-200 p-6 sm:p-10 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-700">MÃ¼ÅŸteri SorularÄ±</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-700">Müşteri Soruları</span>
             <h2 className="text-xl sm:text-2xl font-serif font-black text-stone-900 mt-1">
               Soru & Cevap ({questions.length})
             </h2>
@@ -604,7 +604,7 @@ export default function ProductDetailPage() {
         <div className="space-y-3">
           {questions.length === 0 ? (
             <p className="text-xs text-stone-500 py-2">
-              Bu Ã¼rÃ¼n hakkÄ±nda henÃ¼z soru sorulmamÄ±ÅŸ. Ä°lk soruyu aÅŸaÄŸÄ±daki formdan iletebilirsiniz.
+              Bu ürün hakkında henüz soru sorulmamış. İlk soruyu aşağıdaki formdan iletebilirsiniz.
             </p>
           ) : (
             questions.map((q) => {
@@ -629,10 +629,10 @@ export default function ProductDetailPage() {
                     <div className="p-4 bg-white border-t border-stone-200 text-xs text-stone-700 space-y-1 animate-slide-down">
                       <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-[11px]">
                         <Check className="w-3.5 h-3.5" />
-                        <span>Otantikos Yetkili YanÄ±tÄ±:</span>
+                        <span>Otantikos Yetkili Yanıtı:</span>
                       </div>
                       <p className="pl-5 leading-relaxed text-stone-600">
-                        {q.answer_text || 'Bu soru inceleniyor, yanÄ±t yakÄ±nda eklenecektir.'}
+                        {q.answer_text || 'Bu soru inceleniyor, yanıt yakında eklenecektir.'}
                       </p>
                     </div>
                   )}
@@ -644,12 +644,12 @@ export default function ProductDetailPage() {
 
         {/* Ask Question Form */}
         <form onSubmit={handleQuestionSubmit} className="pt-6 border-t border-stone-200 space-y-3 bg-stone-50 p-5 rounded-2xl">
-          <h4 className="text-xs font-bold text-stone-900">ÃœrÃ¼n HakkÄ±nda Soru Sorun</h4>
+          <h4 className="text-xs font-bold text-stone-900">Ürün Hakkında Soru Sorun</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
               type="text"
               required
-              placeholder="AdÄ±nÄ±z SoyadÄ±nÄ±z"
+              placeholder="Adınız Soyadınız"
               value={newQuestionName}
               onChange={(e) => setNewQuestionName(e.target.value)}
               className="text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-amber-500"
@@ -665,7 +665,7 @@ export default function ProductDetailPage() {
           <textarea
             required
             rows={2}
-            placeholder="Sorunuzu buraya yazÄ±n..."
+            placeholder="Sorunuzu buraya yazın..."
             value={newQuestionText}
             onChange={(e) => setNewQuestionText(e.target.value)}
             className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-amber-500"
@@ -674,7 +674,7 @@ export default function ProductDetailPage() {
             type="submit"
             className="px-5 py-2.5 bg-stone-900 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition"
           >
-            Soruyu GÃ¶nder
+            Soruyu Gönder
           </button>
         </form>
       </section>
@@ -685,7 +685,7 @@ export default function ProductDetailPage() {
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-amber-700">Deneyimler</span>
             <h2 className="text-xl sm:text-2xl font-serif font-black text-stone-900 mt-1">
-              MÃ¼ÅŸteri DeÄŸerlendirmeleri ({reviews.length})
+              Müşteri Değerlendirmeleri ({reviews.length})
             </h2>
           </div>
           <div className="flex items-center gap-2 bg-amber-50 px-4 py-2 rounded-xl border border-amber-200">
@@ -699,7 +699,7 @@ export default function ProductDetailPage() {
         <div className="divide-y divide-stone-100">
           {reviews.length === 0 ? (
             <p className="text-xs text-stone-500 py-4">
-              Bu Ã¼rÃ¼n iÃ§in henÃ¼z yorum yapÄ±lmamÄ±ÅŸ. Ä°lk yorumu siz yazÄ±n!
+              Bu ürün için henüz yorum yapılmamış. İlk yorumu siz yazın!
             </p>
           ) : (
             reviews.map((rev) => (
@@ -728,18 +728,18 @@ export default function ProductDetailPage() {
 
         {/* Submit Review Form */}
         <form onSubmit={handleReviewSubmit} className="pt-6 border-t border-stone-200 space-y-3 bg-stone-50 p-5 rounded-2xl">
-          <h4 className="text-xs font-bold text-stone-900">ÃœrÃ¼nÃ¼ DeÄŸerlendirin</h4>
+          <h4 className="text-xs font-bold text-stone-900">Ürünü Değerlendirin</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
               type="text"
               required
-              placeholder="AdÄ±nÄ±z SoyadÄ±nÄ±z"
+              placeholder="Adınız Soyadınız"
               value={newReviewName}
               onChange={(e) => setNewReviewName(e.target.value)}
               className="text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-amber-500"
             />
             <div className="flex items-center gap-2 bg-white px-3 py-2 border border-stone-300 rounded-lg">
-              <span className="text-xs text-stone-600">PuanÄ±nÄ±z:</span>
+              <span className="text-xs text-stone-600">Puanınız:</span>
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
@@ -761,7 +761,7 @@ export default function ProductDetailPage() {
           <textarea
             required
             rows={2}
-            placeholder="ÃœrÃ¼n hakkÄ±ndaki yorum ve deneyiminiz..."
+            placeholder="Ürün hakkındaki yorum ve deneyiminiz..."
             value={newReviewComment}
             onChange={(e) => setNewReviewComment(e.target.value)}
             className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-amber-500"
@@ -770,7 +770,7 @@ export default function ProductDetailPage() {
             type="submit"
             className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition"
           >
-            Yorumu GÃ¶nder
+            Yorumu Gönder
           </button>
         </form>
       </section>
@@ -779,7 +779,7 @@ export default function ProductDetailPage() {
       {similarProducts.length > 0 && (
         <section className="space-y-6 pt-6">
           <h2 className="text-xl sm:text-2xl font-serif font-black text-stone-900">
-            Benzer Tahtakale ÃœrÃ¼nleri
+            Benzer Tahtakale Ürünleri
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {similarProducts.map((p) => {
@@ -827,7 +827,7 @@ export default function ProductDetailPage() {
             </div>
 
             <p className="text-xs text-stone-600">
-              <strong>{product.name}</strong> stoÄŸa girdiÄŸinde anÄ±nda haberdar olmak iÃ§in e-posta adresinizi bÄ±rakÄ±n.
+              <strong>{product.name}</strong> stoğa girdiğinde anında haberdar olmak için e-posta adresinizi bırakın.
             </p>
 
             <form onSubmit={handleStockAlertSubmit} className="space-y-3">
@@ -843,7 +843,7 @@ export default function ProductDetailPage() {
                 type="submit"
                 className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition"
               >
-                Bildirim Talebi OluÅŸtur
+                Bildirim Talebi Oluştur
               </button>
             </form>
           </div>

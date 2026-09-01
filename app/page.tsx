@@ -59,12 +59,12 @@ export default function HomePage() {
             <h1 className="text-2xl sm:text-5xl lg:text-6xl font-serif font-black tracking-tight leading-[1.2] text-white">
               Otantikos Concept&apos;e <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500">
-                HoÅŸ Geldiniz.
+                Hoş Geldiniz.
               </span>
             </h1>
 
             <p className="text-xs sm:text-base text-stone-300 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
-              Hediyelik EÅŸyalar toptan ve perakende satÄ±ÅŸ
+              Hediyelik Eşyalar toptan ve perakende satış
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-1 sm:pt-2">
@@ -72,30 +72,30 @@ export default function HomePage() {
                 href="/kategori/tum-urunler"
                 className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xl hover:shadow-amber-600/30 transition flex items-center justify-center gap-2 group"
               >
-                <span>Koleksiyonu KeÅŸfet</span>
+                <span>Koleksiyonu Keşfet</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
               </Link>
               <Link
                 href="/toptan-satis"
                 className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs sm:text-sm rounded-xl backdrop-blur-xs transition text-center"
               >
-                Tahtakale Toptan SatÄ±ÅŸ
+                Tahtakale Toptan Satış
               </Link>
             </div>
 
             {/* Micro Trust Stats */}
             <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-5 sm:pt-6 border-t border-white/10 text-center lg:text-left">
               <div>
-                <div className="text-base sm:text-2xl font-black text-amber-400">Ã‡in MantÄ±sÄ±</div>
-                <div className="text-[10px] sm:text-xs text-stone-300 leading-tight">Squishy & Trend ÃœrÃ¼nler</div>
+                <div className="text-base sm:text-2xl font-black text-amber-400">Çin Mantısı</div>
+                <div className="text-[10px] sm:text-xs text-stone-300 leading-tight">Squishy & Trend Ürünler</div>
               </div>
               <div>
-                <div className="text-base sm:text-2xl font-black text-amber-400">AynÄ± GÃ¼n</div>
-                <div className="text-[10px] sm:text-xs text-stone-300 leading-tight">Tahtakale SevkiyatÄ±</div>
+                <div className="text-base sm:text-2xl font-black text-amber-400">Aynı Gün</div>
+                <div className="text-[10px] sm:text-xs text-stone-300 leading-tight">Tahtakale Sevkiyatı</div>
               </div>
               <div>
                 <div className="text-base sm:text-2xl font-black text-amber-400">%100 Net</div>
-                <div className="text-[10px] sm:text-xs text-stone-300 leading-tight">ÅŞeffaf Fiyat PolitikasÄ±</div>
+                <div className="text-[10px] sm:text-xs text-stone-300 leading-tight">ÅŞeffaf Fiyat Politikası</div>
               </div>
             </div>
           </div>
@@ -105,23 +105,23 @@ export default function HomePage() {
             <div className="relative mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-white/10 aspect-4/3 sm:aspect-16/10">
               <Image
                 src="https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=1200&auto=format&fit=crop&q=80"
-                alt="Otantikos Ã–zel Koleksiyon"
+                alt="Otantikos Özel Koleksiyon"
                 fill
                 className="object-cover"
                 priority
               />
               <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-transparent flex flex-col justify-end p-6 sm:p-8">
-                <span className="text-xs uppercase tracking-widest text-amber-400 font-bold">Ã–zel Seri</span>
+                <span className="text-xs uppercase tracking-widest text-amber-400 font-bold">Özel Seri</span>
                 <h3 className="text-lg sm:text-xl font-bold text-white mt-1">
-                  Tahtakale Ã–zgÃ¼n Koleksiyonu
+                  Tahtakale Özgün Koleksiyonu
                 </h3>
-                <p className="text-xs text-stone-300 mt-1">YÃ¼ksek zanaat ve kaliteli malzeme garantisi.</p>
+                <p className="text-xs text-stone-300 mt-1">Yüksek zanaat ve kaliteli malzeme garantisi.</p>
                 <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/20">
                   <Link
                     href="/kategori/tum-urunler"
                     className="text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded-lg transition"
                   >
-                    Koleksiyonu GÃ¶r â”
+                    Koleksiyonu Gör â”
                   </Link>
                 </div>
               </div>
@@ -143,14 +143,14 @@ export default function HomePage() {
             href="/kategori/tum-urunler"
             className="text-xs font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1 group"
           >
-            <span>TÃ¼m Kategorileri GÃ¶r</span>
+            <span>Tüm Kategorileri Gör</span>
             <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition" />
           </Link>
         </div>
 
         {categories.length === 0 ? (
           <div className="text-center py-12 bg-stone-50 rounded-2xl border border-stone-200">
-            <p className="text-xs text-stone-500 font-medium">HenÃ¼z kategori bulunmuyor.</p>
+            <p className="text-xs text-stone-500 font-medium">Henüz kategori bulunmuyor.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -175,7 +175,7 @@ export default function HomePage() {
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-bold text-amber-400">
-                  <span>ÃœrÃ¼nleri KeÅŸfet</span>
+                  <span>Ürünleri Keşfet</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
                 </div>
               </Link>
@@ -184,7 +184,7 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* 3. FEATURED PRODUCTS (Vitrin ÃœrÃ¼nleri) */}
+      {/* 3. FEATURED PRODUCTS (Vitrin Ürünleri) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2.5">
@@ -192,9 +192,9 @@ export default function HomePage() {
               <Flame className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-amber-700">HaftanÄ±n Vitrini</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-amber-700">Haftanın Vitrini</span>
               <h2 className="text-2xl sm:text-3xl font-serif font-black text-stone-900 mt-0.5">
-                Ã–ne Ã‡Ä±kan Tahtakale ÃœrÃ¼nleri
+                Öne Çıkan Tahtakale Ürünleri
               </h2>
             </div>
           </div>
@@ -203,9 +203,9 @@ export default function HomePage() {
         {displayProducts.length === 0 ? (
           <div className="text-center py-16 bg-stone-50 rounded-3xl border border-stone-200 space-y-2">
             <ShoppingBag className="w-10 h-10 text-stone-400 mx-auto" />
-            <h3 className="text-sm font-bold text-stone-800">HenÃ¼z Ã¼rÃ¼n eklenmedi</h3>
+            <h3 className="text-sm font-bold text-stone-800">Henüz ürün eklenmedi</h3>
             <p className="text-xs text-stone-500 max-w-sm mx-auto">
-              VeritabanÄ±na Ã¼rÃ¼n eklendiÄŸinde burada listelenecektir.
+              Veritabanına ürün eklendiğinde burada listelenecektir.
             </p>
           </div>
         ) : (
@@ -217,18 +217,18 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* 4. TAHTAKALE EMÄ°NÃ–NÃœ HERITAGE BANNER */}
+      {/* 4. TAHTAKALE EMİNÖNÜ HERITAGE BANNER */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="rounded-3xl bg-gradient-to-r from-amber-900 via-stone-900 to-amber-950 text-white p-8 sm:p-12 lg:p-16 relative overflow-hidden shadow-xl">
           <div className="relative z-10 max-w-2xl space-y-4">
             <span className="text-xs font-bold uppercase tracking-widest text-amber-400">
-              EminÃ¶nÃ¼ Tahtakale GeleneÄŸi
+              Eminönü Tahtakale Geleneği
             </span>
             <h2 className="text-2xl sm:text-4xl font-serif font-black text-white leading-tight">
-              Toptan FiyatÄ±na Perakende Kalite ve ÅŞeffaf Ticaret
+              Toptan Fiyatına Perakende Kalite ve ÅŞeffaf Ticaret
             </h2>
             <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
-              YÄ±llardÄ±r Tahtakale'nin tarihi ticaret sokaklarÄ±nda ÅŸekillenen iÅŸ ahlakÄ±mÄ±zla; yapay indirim kuponlarÄ±, ÅŸiÅŸirilip indirilen fiyatlar yerine dÃ¼rÃ¼st ve doÄŸrudan net fiyatlandÄ±rma sunuyoruz. Ä°ster kargo ile kapÄ±nÄ±za gelsin, ister EminÃ¶nÃ¼ maÄŸazamÄ±zdan Ã¼cretsiz teslim alÄ±n.
+              Yıllardır Tahtakale'nin tarihi ticaret sokaklarında şekillenen iş ahlakımızla; yapay indirim kuponları, şişirilip indirilen fiyatlar yerine dürüst ve doğrudan net fiyatlandırma sunuyoruz. İster kargo ile kapınıza gelsin, ister Eminönü mağazamızdan ücretsiz teslim alın.
             </p>
             <div className="flex flex-wrap gap-4 pt-4">
               <Link
@@ -236,7 +236,7 @@ export default function HomePage() {
                 className="px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Tahtakale Toptan Teklif Ä°ste</span>
+                <span>Tahtakale Toptan Teklif İste</span>
               </Link>
               <Link
                 href="/hakkimizda"
