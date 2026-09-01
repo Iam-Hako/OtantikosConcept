@@ -59,6 +59,11 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Hide on admin paths as requested by user
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-brand-100 transition-all">
       {/* Search Modal Component */}
@@ -66,21 +71,6 @@ export default function Navbar() {
         isOpen={isSearchModalOpen} 
         onClose={() => setIsSearchModalOpen(false)} 
       />
-
-      {/* TOP ANNOUNCEMENT BAR */}
-      <div className="bg-navy-950 text-white text-[11px] font-medium py-1.5 px-4 text-center tracking-wide">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <span className="hidden sm:inline-flex items-center gap-1.5 text-brand-300">
-            <Sparkles className="w-3.5 h-3.5" /> El Emeği Otantik Zanaat & Doğal Taş Koleksiyonları
-          </span>
-          <span className="mx-auto sm:mx-0">
-            🚚 <strong>1.500 TL Üzeri Ücretsiz Kargo</strong> | Kapıda Ödeme & Taksit İmkanı
-          </span>
-          <Link href="/toptan-satis" className="hidden sm:inline text-brand-300 hover:text-white underline transition">
-            Toptan Alım Teklifi Al
-          </Link>
-        </div>
-      </div>
 
       {/* MAIN NAVBAR */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -99,7 +89,7 @@ export default function Navbar() {
             <Link href="/" className="flex items-center gap-2.5 group">
               <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full overflow-hidden bg-brand-50 border border-brand-200 shrink-0">
                 <Image
-                  src="/otantikos-logo.webp"
+                  src="/images/logo.webp"
                   alt="Otantikos Concept"
                   fill
                   priority
@@ -107,11 +97,11 @@ export default function Navbar() {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="font-display font-bold text-lg sm:text-2xl text-slate-900 tracking-tight leading-none group-hover:text-brand-700 transition">
+                <span className="font-serif font-black text-lg sm:text-2xl text-slate-900 tracking-tight leading-none group-hover:text-brand-700 transition">
                   Otantikos
                 </span>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-brand-600 tracking-widest uppercase mt-0.5">
-                  Concept
+                <span className="text-[9px] sm:text-[10px] font-bold text-brand-600 tracking-widest uppercase mt-0.5">
+                  CONCEPT
                 </span>
               </div>
             </Link>
@@ -121,7 +111,7 @@ export default function Navbar() {
           <div className="hidden md:flex flex-1 max-w-lg mx-4">
             <button
               onClick={() => setIsSearchModalOpen(true)}
-              className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 hover:bg-brand-50/70 border border-slate-200 hover:border-brand-300 rounded-full text-slate-500 text-xs sm:text-sm transition group shadow-2xs"
+              className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 hover:bg-brand-50/70 border border-slate-200 hover:border-brand-300 rounded-full text-slate-500 text-xs sm:text-sm transition group shadow-2xs cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
                 <Search className="w-4 h-4 text-brand-600 group-hover:scale-110 transition" />
@@ -153,7 +143,7 @@ export default function Navbar() {
             >
               <Heart className="w-5 h-5" />
               {totalFavorites > 0 && (
-                <span className="absolute top-1 right-1 bg-rose-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-scale-in">
+                <span className="absolute 0 top-0.5 right-0.5 bg-rose-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                   {totalFavorites}
                 </span>
               )}
@@ -162,38 +152,43 @@ export default function Navbar() {
             {/* Cart Drawer Trigger */}
             <button
               onClick={openDrawer}
-              className="relative p-2 text-slate-700 hover:text-brand-700 hover:bg-brand-50 rounded-full transition flex items-center gap-1.5"
+              className="relative p-2 text-slate-700 hover:text-brand-700 hover:bg-brand-50 rounded-full transition"
               aria-label="Sepetim"
             >
               <ShoppingBag className="w-5 h-5" />
               {totalItems > 0 && (
-                <span className="absolute top-1 right-1 bg-brand-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-scale-in">
+                <span className="absolute 0 top-0.5 right-0.5 bg-brand-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-scale">
                   {totalItems}
                 </span>
               )}
             </button>
 
-            {/* User Profile / Admin Menu */}
+            {/* User Dropdown */}
             <div className="relative" ref={userDropdownRef}>
               <button
                 onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                className="flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-2 text-slate-700 hover:text-brand-700 hover:bg-brand-50 rounded-full sm:rounded-xl text-xs font-semibold transition border border-transparent hover:border-brand-200"
+                className="flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-2 text-xs font-semibold text-slate-700 hover:bg-brand-50 rounded-full sm:rounded-xl transition border border-transparent hover:border-brand-200"
               >
-                <User className="w-5 h-5 sm:w-4 sm:h-4 text-brand-600" />
-                <span className="hidden sm:inline">{user ? user.email?.split('@')[0] : 'Giriş Yap'}</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center font-bold text-xs">
+                  {user ? (user.full_name?.[0] || user.email?.[0] || 'U').toUpperCase() : <User className="w-4 h-4" />}
+                </div>
+                <span className="hidden sm:inline max-w-[100px] truncate">
+                  {user ? (user.full_name?.split(' ')[0] || user.email?.split('@')[0]) : 'Giriş'}
+                </span>
                 <ChevronDown className="w-3 h-3 text-slate-400 hidden sm:inline" />
               </button>
 
+              {/* Dropdown Menu */}
               {isUserDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-brand-100 py-2 z-50 animate-slide-down">
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-scale-in">
                   {user ? (
                     <>
                       <div className="px-4 py-2 border-b border-slate-100">
-                        <p className="text-xs font-bold text-slate-900">{user.full_name || 'Kullanıcı'}</p>
-                        <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
+                        <p className="text-xs text-slate-400">Giriş Yapıldı</p>
+                        <p className="text-xs font-bold text-slate-900 truncate">{user.email}</p>
                         {isAdmin && (
-                          <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 bg-brand-100 text-brand-900 rounded-md">
-                            👑 Yönetici (Admin)
+                          <span className="inline-block mt-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full">
+                            ⭐ Yönetici (Admin)
                           </span>
                         )}
                       </div>
@@ -229,7 +224,7 @@ export default function Navbar() {
                           logout();
                           setIsUserDropdownOpen(false);
                         }}
-                        className="w-full text-left flex items-center gap-2.5 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 font-bold transition"
+                        className="w-full text-left flex items-center gap-2.5 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 font-bold transition cursor-pointer"
                       >
                         <LogOut className="w-4 h-4" />
                         <span>Çıkış Yap</span>
@@ -290,7 +285,7 @@ export default function Navbar() {
             <li>
               <Link 
                 href="/toptan-satis" 
-                className="text-brand-700 hover:text-brand-900 transition py-1 flex items-center gap-1"
+                className="text-brand-700 hover:text-brand-900 transition py-1 flex items-center gap-1 font-extrabold"
               >
                 ✨ Toptan Satış
               </Link>
@@ -323,7 +318,7 @@ export default function Navbar() {
               setIsMobileMenuOpen(false);
               setIsSearchModalOpen(true);
             }} 
-            className="w-full flex items-center justify-between px-4 py-2.5 mb-4 bg-slate-100 text-slate-500 text-xs rounded-xl border border-slate-200"
+            className="w-full flex items-center justify-between px-4 py-2.5 mb-4 bg-slate-100 text-slate-500 text-xs rounded-xl border border-slate-200 cursor-pointer"
           >
             <div className="flex items-center gap-2">
               <Search className="w-4 h-4 text-brand-600" />
@@ -391,4 +386,3 @@ export default function Navbar() {
     </header>
   );
 }
-
