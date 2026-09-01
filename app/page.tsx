@@ -95,7 +95,7 @@ export default function HomePage() {
               </div>
               <div>
                 <div className="text-base sm:text-2xl font-black text-amber-400">%100 Net</div>
-                <div className="text-[10px] sm:text-xs text-stone-300 leading-tight">Åeffaf Fiyat PolitikasÄ±</div>
+                <div className="text-[10px] sm:text-xs text-stone-300 leading-tight">ÅŞeffaf Fiyat PolitikasÄ±</div>
               </div>
             </div>
           </div>
@@ -225,7 +225,7 @@ export default function HomePage() {
               EminÃ¶nÃ¼ Tahtakale GeleneÄŸi
             </span>
             <h2 className="text-2xl sm:text-4xl font-serif font-black text-white leading-tight">
-              Toptan FiyatÄ±na Perakende Kalite ve Åeffaf Ticaret
+              Toptan FiyatÄ±na Perakende Kalite ve ÅŞeffaf Ticaret
             </h2>
             <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
               YÄ±llardÄ±r Tahtakale'nin tarihi ticaret sokaklarÄ±nda ÅŸekillenen iÅŸ ahlakÄ±mÄ±zla; yapay indirim kuponlarÄ±, ÅŸiÅŸirilip indirilen fiyatlar yerine dÃ¼rÃ¼st ve doÄŸrudan net fiyatlandÄ±rma sunuyoruz. Ä°ster kargo ile kapÄ±nÄ±za gelsin, ister EminÃ¶nÃ¼ maÄŸazamÄ±zdan Ã¼cretsiz teslim alÄ±n.

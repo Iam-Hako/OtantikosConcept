@@ -17,19 +17,19 @@ import { createClient } from '@/lib/supabase/client';
 export function normalizeTurkish(text: string): string {
   if (!text) return '';
   return text
-    .replace(/Ä°/g, 'i')
+    .replace(/İ/g, 'i')
     .replace(/I/g, 'i')
-    .replace(/Ä±/g, 'i')
-    .replace(/Å/g, 's')
-    .replace(/ÅŸ/g, 's')
-    .replace(/Ä/g, 'g')
-    .replace(/ÄŸ/g, 'g')
-    .replace(/Ãœ/g, 'u')
-    .replace(/Ã¼/g, 'u')
-    .replace(/Ã‡/g, 'c')
-    .replace(/Ã§/g, 'c')
-    .replace(/Ã–/g, 'o')
-    .replace(/Ã¶/g, 'o')
+    .replace(/ı/g, 'i')
+    .replace(/Ş/g, 's')
+    .replace(/ş/g, 's')
+    .replace(/Ğ/g, 'g')
+    .replace(/ğ/g, 'g')
+    .replace(/Ü/g, 'u')
+    .replace(/ü/g, 'u')
+    .replace(/Ç/g, 'c')
+    .replace(/ç/g, 'c')
+    .replace(/Ö/g, 'o')
+    .replace(/ö/g, 'o')
     .toLowerCase()
     .trim();
 }
