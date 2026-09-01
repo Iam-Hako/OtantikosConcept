@@ -8,6 +8,20 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function slugify(text: string): string {
+  const trMap: Record<string, string> = {
+    ç: 'c', Ç: 'c', ğ: 'g', Ğ: 'g', ı: 'i', İ: 'i', ö: 'o', Ö: 'o', ş: 's', Ş: 's', ü: 'u', Ü: 'u',
+  };
+  return text
+    .split('')
+    .map((c) => trMap[c] || c)
+    .join('')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/[\s-]+/g, '-');
+}
+
 async function getCurrentAdminUser() {
   try {
     const supabase = await createClient();
@@ -711,6 +725,39 @@ export async function actionSaveAccountingTransaction(txData: Partial<Accounting
 
       if (savedTx.id && UUID_REGEX.test(savedTx.id)) {
         payload.id = savedTx.id;
+      }
+
+      // If purchase and no product_id was provided, automatically create product in catalog
+      if (savedTx.type === 'purchase' && !savedTx.product_id && savedTx.product_name.trim()) {
+        const pName = savedTx.product_name.trim();
+        const pSlug = slugify(pName) + '-' + Date.now().toString(36);
+        const cats = await DataService.getCategories();
+        const defaultCatId = txData.category_id || (cats.length > 0 ? cats[0].id : null);
+        const salePrice = txData.sale_price && Number(txData.sale_price) > 0 
+          ? Number(txData.sale_price) 
+          : (savedTx.unit_price > 0 ? Math.round(savedTx.unit_price * 1.5) : 100);
+
+        const newProdPayload = {
+          name: pName,
+          slug: pSlug,
+          category_id: defaultCatId,
+          price: salePrice,
+          cost_price: savedTx.unit_price,
+          stock: Number(savedTx.quantity) || 0,
+          is_published: true,
+          updated_at: new Date().toISOString()
+        };
+
+        const { data: createdProd } = await supabaseAdmin
+          .from('products')
+          .insert(newProdPayload)
+          .select('id')
+          .single();
+
+        if (createdProd?.id) {
+          savedTx.product_id = createdProd.id;
+          payload.product_id = createdProd.id;
+        }
       }
 
       await supabaseAdmin.from('accounting_transactions').upsert(payload);

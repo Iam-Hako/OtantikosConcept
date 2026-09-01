@@ -1836,6 +1836,7 @@ export const DataService = {
     });
 
     let totalRevenue = 0;
+    let totalPurchasesAmount = 0;
     let totalCost = 0;
     let totalExpenses = 0;
     let totalSalesCount = 0;
@@ -1885,6 +1886,7 @@ export const DataService = {
       } else if (tx.type === 'purchase') {
         if (!options?.channel || options.channel === 'all') {
           totalPurchasesCount++;
+          totalPurchasesAmount += tx.total_amount;
           if (tx.payment_status === 'pending') {
             pendingPayables += tx.total_amount;
           }
@@ -1925,6 +1927,7 @@ export const DataService = {
 
     return {
       totalRevenue,
+      totalPurchasesAmount,
       totalCost,
       totalExpenses,
       netProfit,

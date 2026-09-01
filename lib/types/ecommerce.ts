@@ -262,13 +262,16 @@ export interface AccountingTransaction {
   notes?: string | null; // Opsiyonel
   transaction_date: string; // Zorunlu (YYYY-MM-DD)
   update_stock?: boolean; // Stoğa işlendi mi?
+  category_id?: string | null; // Yeni ürün oluştururken kategori
+  sale_price?: number | null; // Yeni ürün oluştururken satış fiyatı
   created_at: string;
   updated_at?: string;
 }
 
 export interface ProfitSummary {
   totalRevenue: number;
-  totalCost: number;
+  totalPurchasesAmount: number; // Dönem içerisindeki toplam mal alımları / harcamalar
+  totalCost: number; // Satılan malların toplam maliyeti (SMM)
   totalExpenses: number;
   netProfit: number;
   collectedProfit: number; // Kasaya fiilen girmiş tahsil edilmiş net kâr

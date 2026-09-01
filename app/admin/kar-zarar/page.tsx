@@ -36,9 +36,11 @@ import {
   ReceiptText,
   Tag,
   Clock,
-  Check
+  Check,
+  Layers,
+  ArrowRight
 } from 'lucide-react';
-import { Product, Order, AccountingTransaction, SaleChannel, ProfitSummary, ProductProfitStat } from '@/lib/types/ecommerce';
+import { Product, Order, AccountingTransaction, SaleChannel, ProfitSummary, ProductProfitStat, Category } from '@/lib/types/ecommerce';
 import { DataService, normalizeTurkish } from '@/lib/data/store-data';
 import { 
   actionSaveAccountingTransaction, 
@@ -55,6 +57,7 @@ type PaymentStatusFilter = 'all' | 'paid' | 'pending';
 export default function KarZararPage() {
   const [transactions, setTransactions] = useState<AccountingTransaction[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [profitStats, setProfitStats] = useState<ProductProfitStat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -77,7 +80,7 @@ export default function KarZararPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [togglingStatusId, setTogglingStatusId] = useState<string | null>(null);
 
-  // Form States - SATIŞ GİRİŞİ (Inputs as strings to prevent leading 0 bugs like 080)
+  // Form States - SATIŞ GİRİŞİ (Yalnızca Mevcut Gerçek Ürünler Üzerinden Güvenli Satış)
   const [saleForm, setSaleForm] = useState({
     productId: '',
     productName: '',
@@ -95,10 +98,13 @@ export default function KarZararPage() {
     updateStock: true,
   });
 
-  // Form States - ALIŞ GİRİŞİ (Mal Alımı / Tedarik Formu - Zorunlu Olmayan Esnek Alanlar)
+  // Form States - ALIŞ GİRİŞİ (Mevcut Ürüne Stok Ekleme veya Yeni Ürün Oluşturarak Alma)
   const [purchaseForm, setPurchaseForm] = useState({
+    isNewProductMode: false, // true = Yeni ürün oluşturarak al, false = Mevcut ürüne al
     productId: '',
     productName: '',
+    categoryId: '',
+    salePriceInput: '', // Yeni ürün için tahmini satış fiyatı
     quantity: '10',
     unitPrice: '', // Birim Alış Fiyatı
     totalPriceInput: '', // Toplam Alış Fiyatı
@@ -126,16 +132,21 @@ export default function KarZararPage() {
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [txList, pList, oList, stats] = await Promise.all([
+      const [txList, pList, oList, stats, catList] = await Promise.all([
         DataService.getAccountingTransactions(),
         DataService.getAllAdminProducts(),
         DataService.getOrders(),
         DataService.getProductProfitStats(),
+        DataService.getCategories(),
       ]);
       setTransactions(txList);
       setProducts(pList);
       setOrders(oList);
       setProfitStats(stats);
+      setCategories(catList);
+      if (catList.length > 0 && !purchaseForm.categoryId) {
+        setPurchaseForm((prev) => ({ ...prev, categoryId: catList[0].id }));
+      }
     } catch (err) {
       console.error('Data load error:', err);
       toast.error('Veriler yüklenirken bir hata oluştu.');
@@ -179,9 +190,10 @@ export default function KarZararPage() {
     return { startDate: '', endDate: '' };
   }, [datePreset, customStartDate, customEndDate]);
 
-  // Combined Live Filtered Summary (Calculated on the fly)
+  // Combined Live Filtered Summary
   const summary: ProfitSummary = useMemo(() => {
     let totalRevenue = 0;
+    let totalPurchasesAmount = 0;
     let totalCost = 0;
     let totalExpenses = 0;
     let totalSalesCount = 0;
@@ -226,6 +238,7 @@ export default function KarZararPage() {
       } else if (tx.type === 'purchase') {
         if (channelFilter === 'all') {
           totalPurchasesCount++;
+          totalPurchasesAmount += tx.total_amount;
           if (tx.payment_status === 'pending') {
             pendingPayables += tx.total_amount;
           }
@@ -271,6 +284,7 @@ export default function KarZararPage() {
 
     return {
       totalRevenue,
+      totalPurchasesAmount,
       totalCost,
       totalExpenses,
       netProfit,
@@ -287,27 +301,22 @@ export default function KarZararPage() {
   // Filtered Ledger List
   const filteredTransactions = useMemo(() => {
     return transactions.filter((tx) => {
-      // Date filter
       if (startDate && tx.transaction_date < startDate) return false;
       if (endDate && tx.transaction_date > endDate) return false;
 
-      // Type filter
       if (typeFilter !== 'all' && tx.type !== typeFilter) return false;
 
-      // Channel filter
       if (channelFilter !== 'all') {
         if (tx.type === 'sale' && tx.sale_channel !== channelFilter) return false;
         if (tx.type !== 'sale') return false;
       }
 
-      // Payment Status filter
       if (paymentStatusFilter === 'paid') {
         if (tx.payment_status === 'pending') return false;
       } else if (paymentStatusFilter === 'pending') {
         if (tx.payment_status !== 'pending') return false;
       }
 
-      // Search Query
       if (searchQuery.trim()) {
         const q = normalizeTurkish(searchQuery);
         const matchName = normalizeTurkish(tx.product_name).includes(q);
@@ -366,7 +375,7 @@ export default function KarZararPage() {
     }
   };
 
-  // Bidirectional Purchase Input Handlers (No 080 or zero sticking bugs)
+  // Bidirectional Purchase Input Handlers
   const handlePurchaseQuantityChange = (val: string) => {
     const qty = Math.max(1, Number(val) || 1);
     setPurchaseForm((prev) => {
@@ -396,6 +405,12 @@ export default function KarZararPage() {
     }));
   };
 
+  // Selected product details for live Sale modal
+  const selectedSaleProduct = useMemo(() => {
+    if (!saleForm.productId) return null;
+    return products.find((p) => p.id === saleForm.productId) || null;
+  }, [saleForm.productId, products]);
+
   // Calculate live profit preview for Sale Modal
   const saleModalCalculated = useMemo(() => {
     const qty = Math.max(1, Number(saleForm.quantity) || 1);
@@ -420,6 +435,10 @@ export default function KarZararPage() {
   const handleSaveSale = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!saleForm.productId) {
+      toast.error('Lütfen mağaza kataloğundan satılan ürünü seçiniz.');
+      return;
+    }
     if (!saleForm.customerName.trim()) {
       toast.error('Lütfen Müşteri Adını giriniz (Zorunlu alan).');
       return;
@@ -436,10 +455,7 @@ export default function KarZararPage() {
       toast.error('Lütfen Satış Tarihini seçiniz.');
       return;
     }
-    if (!saleForm.productName.trim()) {
-      toast.error('Lütfen satılan ürün adını giriniz veya listeden seçiniz.');
-      return;
-    }
+
     const qty = Math.max(1, Number(saleForm.quantity) || 1);
     const unitPrice = Number(saleForm.unitPrice) || 0;
     if (unitPrice <= 0) {
@@ -454,8 +470,8 @@ export default function KarZararPage() {
     try {
       const res = await actionSaveAccountingTransaction({
         type: 'sale',
-        product_id: saleForm.productId || null,
-        product_name: saleForm.productName.trim(),
+        product_id: saleForm.productId,
+        product_name: saleForm.productName.trim() || selectedSaleProduct?.name || 'Ürün',
         quantity: qty,
         unit_price: unitPrice,
         total_amount: saleModalCalculated.totalRev,
@@ -475,11 +491,10 @@ export default function KarZararPage() {
       });
 
       if (res.success) {
-        toast.success(`Satış başarıyla kaydedildi! Net Kâr: ${formatPrice(saleModalCalculated.profit)}`, {
-          description: isVeresiye ? 'Veresiye (Açık Hesap) olarak kaydedildi.' : 'Tahsil edildi olarak kaydedildi.'
+        toast.success(`Satış kaydedildi! Net Kâr: ${formatPrice(saleModalCalculated.profit)}`, {
+          description: isVeresiye ? 'Veresiye (Açık Hesap) olarak kaydedildi.' : 'Tahsil edildi olarak kasaya işlendi.'
         });
         setIsSaleModalOpen(false);
-        // Reset form
         setSaleForm({
           productId: '',
           productName: '',
@@ -511,10 +526,15 @@ export default function KarZararPage() {
   const handleSavePurchase = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!purchaseForm.productName.trim()) {
-      toast.error('Lütfen alınan ürün veya malzeme adını belirtiniz.');
+    if (!purchaseForm.isNewProductMode && !purchaseForm.productId) {
+      toast.error('Lütfen mevcut ürünlerden birini seçiniz veya "Yeni Ürün Oluştur" seçeneğini işaretleyiniz.');
       return;
     }
+    if (purchaseForm.isNewProductMode && !purchaseForm.productName.trim()) {
+      toast.error('Lütfen yeni ürünün adını giriniz.');
+      return;
+    }
+
     const qty = Math.max(1, Number(purchaseForm.quantity) || 1);
     let finalUnitPrice = Number(purchaseForm.unitPrice) || 0;
     if (purchaseForm.totalPriceInput && Number(purchaseForm.totalPriceInput) > 0) {
@@ -534,8 +554,10 @@ export default function KarZararPage() {
     try {
       const res = await actionSaveAccountingTransaction({
         type: 'purchase',
-        product_id: purchaseForm.productId || null,
-        product_name: purchaseForm.productName.trim(),
+        product_id: purchaseForm.isNewProductMode ? null : (purchaseForm.productId || null),
+        product_name: purchaseForm.productName.trim() || 'Yeni Ürün',
+        category_id: purchaseForm.categoryId || null,
+        sale_price: purchaseForm.salePriceInput ? Number(purchaseForm.salePriceInput) : null,
         quantity: qty,
         unit_price: finalUnitPrice,
         total_amount: totalAmount,
@@ -546,18 +568,22 @@ export default function KarZararPage() {
         document_no: purchaseForm.documentNo.trim() || null,
         notes: purchaseForm.notes.trim() || null,
         transaction_date: purchaseForm.transactionDate || new Date().toISOString().split('T')[0],
-        update_stock: purchaseForm.updateStock,
+        update_stock: true,
       });
 
       if (res.success) {
         toast.success(`Alış kaydedildi! ${qty} adet ürün stoğa eklendi.`, {
-          description: `Toplam: ${formatPrice(totalAmount)} (Birim: ${formatPrice(finalUnitPrice)})`
+          description: purchaseForm.isNewProductMode 
+            ? `"${purchaseForm.productName}" kataloğa eklendi ve satışa hazır!`
+            : `Toplam Tutar: ${formatPrice(totalAmount)} (Birim: ${formatPrice(finalUnitPrice)})`
         });
         setIsPurchaseModalOpen(false);
-        // Reset form
         setPurchaseForm({
+          isNewProductMode: false,
           productId: '',
           productName: '',
+          categoryId: categories[0]?.id || '',
+          salePriceInput: '',
           quantity: '10',
           unitPrice: '',
           totalPriceInput: '',
@@ -632,7 +658,7 @@ export default function KarZararPage() {
     }
   };
 
-  // Toggle Payment Status (e.g. mark open account veresiye as collected/paid)
+  // Toggle Payment Status
   const handleTogglePaymentStatus = async (tx: AccountingTransaction) => {
     const newStatus = tx.payment_status === 'pending' ? 'paid' : 'pending';
     setTogglingStatusId(tx.id);
@@ -781,19 +807,39 @@ export default function KarZararPage() {
               {formatPrice(summary.totalRevenue)}
             </div>
             <div className="flex items-center gap-2 mt-1 text-[11px] text-stone-500 font-medium">
-              <span>{summary.totalSalesCount} Satış</span>
+              <span>{summary.totalSalesCount} Satış İşlemi</span>
               <span>•</span>
               <span className="text-blue-700 font-bold">Web + Dükkan</span>
             </div>
           </div>
         </div>
 
-        {/* 2. SATILAN MALIN MALİYETİ (ALIŞ) */}
+        {/* 2. DÖNEM MAL ALIMLARI (TEDARİK HARCAMASI) */}
+        <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Toplam Mal Alımı</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
+              <Boxes className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-xl sm:text-2xl font-black text-amber-900 tracking-tight">
+              {formatPrice(summary.totalPurchasesAmount)}
+            </div>
+            <div className="flex items-center gap-2 mt-1 text-[11px] text-stone-500 font-medium">
+              <span>{summary.totalPurchasesCount} Alım Faturası</span>
+              <span>•</span>
+              <span className="text-amber-700 font-bold">Depo Stoğu Girişi</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. SATILAN MALLARIN MALİYETİ (SMM) */}
         <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Satılan Mal Maliyeti</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
-              <Boxes className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-xl bg-stone-100 text-stone-700 flex items-center justify-center font-bold">
+              <Package className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
@@ -801,7 +847,7 @@ export default function KarZararPage() {
               {formatPrice(summary.totalCost)}
             </div>
             <div className="flex items-center gap-2 mt-1 text-[11px] text-stone-500 font-medium">
-              <span>Tedarik Maliyeti</span>
+              <span>Satılan Ürünlerin Maliyeti</span>
               {summary.totalExpenses > 0 && (
                 <span className="text-rose-600 font-bold">+{formatPrice(summary.totalExpenses)} Gider</span>
               )}
@@ -809,7 +855,7 @@ export default function KarZararPage() {
           </div>
         </div>
 
-        {/* 3. NET KÂR (GENEL TOPLAM) */}
+        {/* 4. GENEL NET KÂR */}
         <div className={`p-5 rounded-3xl border shadow-xs relative overflow-hidden flex flex-col justify-between ${
           summary.netProfit >= 0 
             ? 'bg-emerald-950 text-white border-emerald-900' 
@@ -835,7 +881,7 @@ export default function KarZararPage() {
           </div>
         </div>
 
-        {/* 4. KASADAKİ (TAHSİL EDİLEN) NET KÂR */}
+        {/* 5. KASADAKİ NAKİT & BEKLEYEN VERESİYE */}
         <div className="bg-emerald-50/80 p-5 rounded-3xl border border-emerald-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">Kasadaki Net Nakit</span>
@@ -847,26 +893,9 @@ export default function KarZararPage() {
             <div className="text-xl sm:text-2xl font-black text-emerald-950 tracking-tight">
               +{formatPrice(summary.collectedProfit)}
             </div>
-            <div className="flex items-center gap-2 mt-1 text-[11px] text-emerald-800 font-semibold">
-              <span>Fiilen kasaya giren nakit</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 5. AÇIK HESAP (VERESİYE) ALACAKLAR */}
-        <div className="bg-amber-50/80 p-5 rounded-3xl border border-amber-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-900 uppercase tracking-wider">Bekleyen Veresiye</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center font-bold">
-              <Clock className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-xl sm:text-2xl font-black text-amber-950 tracking-tight">
-              {formatPrice(summary.pendingReceivables)}
-            </div>
-            <div className="flex items-center gap-2 mt-1 text-[11px] text-amber-800 font-semibold">
-              <span>Tahsil edilecek açık hesap</span>
+            <div className="flex items-center justify-between mt-1 text-[11px] text-stone-600 font-medium">
+              <span>Açık Hesap (Veresiye):</span>
+              <strong className="text-amber-800 font-bold">{formatPrice(summary.pendingReceivables)}</strong>
             </div>
           </div>
         </div>
@@ -1217,7 +1246,7 @@ export default function KarZararPage() {
                               {Number(tx.net_profit) >= 0 ? `+${formatPrice(tx.net_profit || 0)}` : formatPrice(tx.net_profit || 0)}
                             </span>
                           ) : (
-                            <span className="text-rose-600 font-semibold">
+                            <span className="text-amber-800 font-semibold">
                               -{formatPrice(tx.total_amount)}
                             </span>
                           )}
@@ -1343,7 +1372,7 @@ export default function KarZararPage() {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 1: SATIŞ GİRİŞİ (ZORUNLU ALANLAR DAHİL) */}
+      {/* MODAL 1: SATIŞ GİRİŞİ (KATALOGDAN SEÇİLİ GÜVENLİ SATIŞ) */}
       {/* ========================================================= */}
       {isSaleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
@@ -1420,7 +1449,18 @@ export default function KarZararPage() {
                       <button
                         key={c.key}
                         type="button"
-                        onClick={() => setSaleForm((prev) => ({ ...prev, saleChannel: c.key as SaleChannel }))}
+                        onClick={() => {
+                          setSaleForm((prev) => {
+                            const newChan = c.key as SaleChannel;
+                            let newPrice = prev.unitPrice;
+                            if (selectedSaleProduct) {
+                              newPrice = newChan === 'toptan' && selectedSaleProduct.wholesale_price
+                                ? String(selectedSaleProduct.wholesale_price)
+                                : String(selectedSaleProduct.price);
+                            }
+                            return { ...prev, saleChannel: newChan, unitPrice: newPrice };
+                          });
+                        }}
                         className={`p-2 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer ${
                           saleForm.saleChannel === c.key
                             ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
@@ -1435,35 +1475,56 @@ export default function KarZararPage() {
                 </div>
               </div>
 
-              {/* 2. ÜRÜN SEÇİMİ & FİYAT BİLGİLERİ */}
+              {/* 2. ÜRÜN SEÇİMİ (KATALOGDAN SEÇME ZORUNLU) */}
               <div className="space-y-3">
                 <div>
-                  <label className="block font-bold text-stone-700 mb-1">Katalogdan Ürün Seçin veya Yazın *</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-stone-900">Satılan Ürünü Seçin *(Zorunlu)</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSaleModalOpen(false);
+                        setIsPurchaseModalOpen(true);
+                      }}
+                      className="text-[11px] font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1 cursor-pointer"
+                    >
+                      <Boxes className="w-3 h-3" />
+                      <span>+ Yeni Ürün / Alış Gir</span>
+                    </button>
+                  </div>
+
                   <select
+                    required
                     value={saleForm.productId}
                     onChange={(e) => handleSelectProductInSale(e.target.value)}
-                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-semibold focus:outline-none focus:border-amber-600"
+                    className="w-full p-3 bg-stone-50 border-2 border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
                   >
-                    <option value="">-- Listeden Ürün Seçin --</option>
+                    <option value="">-- Katalogdan Satılan Ürünü Seçiniz --</option>
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name} (Stok: {p.stock} | Perakende: {p.price} TL | Maliyet: {p.cost_price || 0} TL)
+                        {p.name} (Stok: {p.stock} Adet | Alış Maliyeti: {p.cost_price ? `${p.cost_price} TL` : '0 TL'} | Satış: {p.price} TL)
                       </option>
                     ))}
                   </select>
                 </div>
 
-                <div>
-                  <label className="block font-bold text-stone-700 mb-1">Ürün / Kalem Adı *</label>
-                  <input
-                    type="text"
-                    required
-                    value={saleForm.productName}
-                    onChange={(e) => setSaleForm((prev) => ({ ...prev, productName: e.target.value }))}
-                    placeholder="Örn: 316L Kararmaz Çelik Kolye"
-                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-semibold focus:outline-none focus:border-amber-600"
-                  />
-                </div>
+                {/* Seçilen Ürün Detay Kartı */}
+                {selectedSaleProduct && (
+                  <div className="p-3 bg-emerald-50/70 border border-emerald-300 rounded-xl flex items-center justify-between text-xs animate-in fade-in">
+                    <div>
+                      <span className="font-bold text-emerald-950 block">{selectedSaleProduct.name}</span>
+                      <span className="text-[11px] text-emerald-800">
+                        Mevcut Depo Stoğu: <strong>{selectedSaleProduct.stock} Adet</strong>
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-stone-500 block">Kayıtlı Alış Maliyeti:</span>
+                      <strong className="text-stone-900 font-bold">
+                        {selectedSaleProduct.cost_price ? formatPrice(selectedSaleProduct.cost_price) : '0 TL'}
+                      </strong>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-3 gap-2.5">
                   <div>
@@ -1494,7 +1555,7 @@ export default function KarZararPage() {
                   </div>
 
                   <div>
-                    <label className="block font-bold text-stone-700 mb-1">Alış Maliyeti (TL)</label>
+                    <label className="block font-bold text-stone-700 mb-1">Birim Alış Maliyeti (TL)</label>
                     <input
                       type="number"
                       step="0.01"
@@ -1502,7 +1563,7 @@ export default function KarZararPage() {
                       value={saleForm.unitCost}
                       onChange={(e) => setSaleForm((prev) => ({ ...prev, unitCost: e.target.value }))}
                       placeholder="0.00"
-                      className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
+                      className="w-full p-2.5 bg-amber-50/70 border border-amber-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
                     />
                   </div>
                 </div>
@@ -1526,7 +1587,7 @@ export default function KarZararPage() {
                 </div>
               </div>
 
-              {/* 3. DİĞER DETAYLAR (TARİH ZORUNLU, DİĞERLERİ OPSİYONEL) */}
+              {/* 3. DİĞER DETAYLAR (TARİH ZORUNLU) */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-stone-700 mb-1">Satış Tarihi *(Zorunlu)</label>
@@ -1544,7 +1605,7 @@ export default function KarZararPage() {
                   <select
                     value={saleForm.paymentMethod}
                     onChange={(e) => setSaleForm((prev) => ({ ...prev, paymentMethod: e.target.value }))}
-                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-700"
+                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-700 font-semibold"
                   >
                     <option value="nakit">Nakit (Kasaya Girdi)</option>
                     <option value="kredi_karti">Kredi Kartı / POS</option>
@@ -1618,7 +1679,7 @@ export default function KarZararPage() {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 2: ALIŞ GİRİŞİ (MAL ALIMI - ESNEK & ZORUNSUZ BİLGİLER) */}
+      {/* MODAL 2: ALIŞ GİRİŞİ (MEVCUT ÜRÜN VEYA YENİ ÜRÜN OLUŞTURMA) */}
       {/* ========================================================= */}
       {isPurchaseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
@@ -1631,7 +1692,7 @@ export default function KarZararPage() {
                 </span>
                 <div>
                   <h3 className="text-base font-bold font-serif text-stone-900">Alış & Mal Alımı Girişi</h3>
-                  <p className="text-[11px] text-stone-500">Toptancıdan veya Tahtakale'den aldığınız ürünleri kaydedin.</p>
+                  <p className="text-[11px] text-stone-500">Toptancıdan veya Tahtakale'den aldığınız ürünleri sisteme işleyin.</p>
                 </div>
               </div>
               <button
@@ -1643,36 +1704,106 @@ export default function KarZararPage() {
               </button>
             </div>
 
+            {/* Mode Switch: Mevcut Ürün vs Yeni Ürün */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-stone-100 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setPurchaseForm((prev) => ({ ...prev, isNewProductMode: false }))}
+                className={`py-2 px-3 rounded-xl font-bold text-xs transition cursor-pointer ${
+                  !purchaseForm.isNewProductMode 
+                    ? 'bg-white text-stone-900 shadow-xs' 
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                📦 Mevcut Ürüne Stok Ekle
+              </button>
+              <button
+                type="button"
+                onClick={() => setPurchaseForm((prev) => ({ ...prev, isNewProductMode: true, productId: '' }))}
+                className={`py-2 px-3 rounded-xl font-bold text-xs transition cursor-pointer ${
+                  purchaseForm.isNewProductMode 
+                    ? 'bg-amber-600 text-white shadow-xs' 
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                ✨ + Yeni Ürün Oluştur & Al
+              </button>
+            </div>
+
             <form onSubmit={handleSavePurchase} className="space-y-4 text-xs">
               
-              <div>
-                <label className="block font-bold text-stone-700 mb-1">Mevcut Ürünlerden Seçin (Opsiyonel)</label>
-                <select
-                  value={purchaseForm.productId}
-                  onChange={(e) => handleSelectProductInPurchase(e.target.value)}
-                  className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-semibold focus:outline-none focus:border-amber-600"
-                >
-                  <option value="">-- Yeni / Özel Kalem Gireceğim --</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} (Mevcut Stok: {p.stock} | Kayıtlı Maliyet: {p.cost_price || 0} TL)
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!purchaseForm.isNewProductMode ? (
+                /* 1. MEVCUT ÜRÜNDEN SEÇİM */
+                <div>
+                  <label className="block font-bold text-stone-900 mb-1">Mevcut Ürünlerden Seçin *</label>
+                  <select
+                    required
+                    value={purchaseForm.productId}
+                    onChange={(e) => handleSelectProductInPurchase(e.target.value)}
+                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
+                  >
+                    <option value="">-- Listeden Ürünü Seçiniz --</option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} (Mevcut Stok: {p.stock} Adet | Kayıtlı Maliyet: {p.cost_price || 0} TL)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                /* 2. YENİ ÜRÜN OLUŞTURMA ALANLARI */
+                <div className="p-3.5 bg-amber-50/70 border border-amber-300 rounded-2xl space-y-3 animate-in fade-in">
+                  <div className="flex items-center gap-1.5 text-amber-900 font-bold text-xs">
+                    <Sparkles className="w-4 h-4 text-amber-700" />
+                    <span>Yeni Ürün Kartı Tanımlanacak</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800">
+                    Bu alımı kaydettiğinizde ürün <strong>otomatik olarak mağaza kataloğuna ve stok listesine eklenecektir</strong>.
+                  </p>
 
-              <div>
-                <label className="block font-bold text-stone-700 mb-1">Alınan Ürün / Malzeme Adı *</label>
-                <input
-                  type="text"
-                  required
-                  value={purchaseForm.productName}
-                  onChange={(e) => setPurchaseForm((prev) => ({ ...prev, productName: e.target.value }))}
-                  placeholder="Örn: 100 Adet Tahtakale Çelik Bileklik"
-                  className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-semibold focus:outline-none focus:border-amber-600"
-                />
-              </div>
+                  <div>
+                    <label className="block font-bold text-stone-900 mb-1">Ürün Adı *</label>
+                    <input
+                      type="text"
+                      required
+                      value={purchaseForm.productName}
+                      onChange={(e) => setPurchaseForm((prev) => ({ ...prev, productName: e.target.value }))}
+                      placeholder="Örn: 316L Kararmaz Çelik Kelepçe Bileklik"
+                      className="w-full p-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
+                    />
+                  </div>
 
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Kategori *</label>
+                      <select
+                        value={purchaseForm.categoryId}
+                        onChange={(e) => setPurchaseForm((prev) => ({ ...prev, categoryId: e.target.value }))}
+                        className="w-full p-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 font-semibold"
+                      >
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Satış Fiyatı (TL - Opsiyonel)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={purchaseForm.salePriceInput}
+                        onChange={(e) => setPurchaseForm((prev) => ({ ...prev, salePriceInput: e.target.value }))}
+                        placeholder="Örn: 350"
+                        className="w-full p-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 font-bold"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* FİYAT & ADET GİRİŞİ */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <div>
                   <label className="block font-bold text-stone-700 mb-1">Alınan Adet *</label>
@@ -1688,11 +1819,12 @@ export default function KarZararPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-stone-700 mb-1">Birim Alış (TL)</label>
+                  <label className="block font-bold text-stone-700 mb-1">Birim Alış (TL) *</label>
                   <input
                     type="number"
                     step="0.01"
                     min="0"
+                    required
                     value={purchaseForm.unitPrice}
                     onChange={(e) => handlePurchaseUnitPriceChange(e.target.value)}
                     placeholder="Birim Fiyat"
@@ -1717,7 +1849,7 @@ export default function KarZararPage() {
               {/* Alış Özet Bilgi Notu */}
               <div className="p-3 bg-stone-50 border border-stone-200 rounded-2xl flex items-center justify-between text-xs">
                 <span className="text-stone-500">Hesaplanan Toplam Alış Maliyeti:</span>
-                <span className="font-black text-stone-900 text-sm">
+                <span className="font-black text-amber-900 text-sm">
                   {formatPrice((Number(purchaseForm.unitPrice) || 0) * (Number(purchaseForm.quantity) || 1))}
                 </span>
               </div>
@@ -1763,7 +1895,7 @@ export default function KarZararPage() {
                   <select
                     value={purchaseForm.paymentMethod}
                     onChange={(e) => setPurchaseForm((prev) => ({ ...prev, paymentMethod: e.target.value }))}
-                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-700"
+                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-700 font-semibold"
                   >
                     <option value="nakit">Nakit</option>
                     <option value="kredi_karti">Kredi Kartı</option>
@@ -1795,23 +1927,6 @@ export default function KarZararPage() {
                 </div>
               )}
 
-              {/* Checkboxes for Product Sync */}
-              {purchaseForm.productId && (
-                <div className="space-y-2 pt-1">
-                  <label className="flex items-center gap-2 p-2.5 rounded-xl bg-stone-50 border border-stone-200 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={purchaseForm.updateStock}
-                      onChange={(e) => setPurchaseForm((prev) => ({ ...prev, updateStock: e.target.checked }))}
-                      className="w-4 h-4 text-amber-600 rounded"
-                    />
-                    <span className="font-semibold text-stone-700 text-xs">
-                      Alınan adedi ({purchaseForm.quantity || 1} adet) depo stoğuna otomatik ekle ve alış maliyetini güncelle
-                    </span>
-                  </label>
-                </div>
-              )}
-
               {/* Modal Actions */}
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-200">
                 <button
@@ -1828,7 +1943,7 @@ export default function KarZararPage() {
                   className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
                   {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Boxes className="w-4 h-4" />}
-                  <span>Alışı Kaydet</span>
+                  <span>{purchaseForm.isNewProductMode ? 'Ürünü Oluştur & Alışı Kaydet' : 'Alışı Kaydet & Stoğa Ekle'}</span>
                 </button>
               </div>
 
