@@ -700,6 +700,8 @@ export async function actionSaveAccountingTransaction(txData: Partial<Accounting
         sale_channel: savedTx.sale_channel,
         supplier_name: savedTx.supplier_name,
         payment_method: savedTx.payment_method,
+        payment_status: savedTx.payment_status || (savedTx.payment_method === 'veresiye' ? 'pending' : 'paid'),
+        due_date: savedTx.due_date || null,
         document_no: savedTx.document_no,
         notes: savedTx.notes,
         transaction_date: savedTx.transaction_date,
@@ -713,18 +715,39 @@ export async function actionSaveAccountingTransaction(txData: Partial<Accounting
 
       await supabaseAdmin.from('accounting_transactions').upsert(payload);
 
-      // If stock update was requested, sync stock in Supabase
-      if (savedTx.product_id && savedTx.update_stock && UUID_REGEX.test(savedTx.product_id)) {
-        const prod = await DataService.getProductById(savedTx.product_id);
-        if (prod) {
+      // If stock update was requested, directly fetch current product from DB and update stock
+      if (savedTx.product_id && savedTx.update_stock) {
+        let dbId = savedTx.product_id;
+        const isUuid = UUID_REGEX.test(dbId);
+        
+        let currentProd: any = null;
+        if (isUuid) {
+          const { data } = await supabaseAdmin.from('products').select('id, stock, cost_price').eq('id', dbId).maybeSingle();
+          currentProd = data;
+        } else {
+          const { data } = await supabaseAdmin.from('products').select('id, stock, cost_price').eq('slug', dbId).maybeSingle();
+          currentProd = data;
+        }
+
+        if (currentProd) {
+          const currentStock = Number(currentProd.stock) || 0;
+          const newStock = savedTx.type === 'purchase'
+            ? currentStock + Number(savedTx.quantity)
+            : Math.max(0, currentStock - Number(savedTx.quantity));
+
+          const updatePayload: any = { 
+            stock: newStock, 
+            updated_at: new Date().toISOString() 
+          };
+
+          if (savedTx.type === 'purchase' && savedTx.unit_price > 0) {
+            updatePayload.cost_price = savedTx.unit_price;
+          }
+
           await supabaseAdmin
             .from('products')
-            .update({ 
-              stock: prod.stock, 
-              cost_price: prod.cost_price, 
-              updated_at: new Date().toISOString() 
-            })
-            .eq('id', savedTx.product_id);
+            .update(updatePayload)
+            .eq('id', currentProd.id);
         }
       }
     } catch (err) {
@@ -738,6 +761,33 @@ export async function actionSaveAccountingTransaction(txData: Partial<Accounting
     return { success: true, transaction: savedTx };
   } catch (err: any) {
     return { success: false, error: err?.message || 'İşlem kaydedilirken bir hata oluştu.' };
+  }
+}
+
+export async function actionToggleTransactionPaymentStatus(id: string, newStatus: 'paid' | 'pending') {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) {
+    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+  }
+
+  try {
+    await DataService.toggleTransactionPaymentStatus(id, newStatus);
+
+    try {
+      const supabaseAdmin = createAdminClient();
+      await supabaseAdmin
+        .from('accounting_transactions')
+        .update({ payment_status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', id);
+    } catch (err) {
+      console.warn('Accounting status toggle sync notice:', err);
+    }
+
+    revalidatePath('/admin');
+    revalidatePath('/admin/kar-zarar');
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Ödeme durumu güncellenemedi.' };
   }
 }
 

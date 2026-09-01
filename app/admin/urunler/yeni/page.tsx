@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -38,6 +38,7 @@ export default function NewProductPage() {
   const [slug, setSlug] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [price, setPrice] = useState<number | string>('');
+  const [costPrice, setCostPrice] = useState<number | string>('');
   const [wholesalePrice, setWholesalePrice] = useState<number | string>('');
   const [stock, setStock] = useState<number | string>('');
   const [sku, setSku] = useState('');
@@ -217,6 +218,7 @@ export default function NewProductPage() {
       slug: slug || slugify(name),
       category_id: categoryId,
       price: Number(price) || 0,
+      cost_price: costPrice !== '' ? Number(costPrice) : null,
       wholesale_price: wholesalePrice ? Number(wholesalePrice) : null,
       stock: Number(stock) || 0,
       sku: sku.trim() || null, // Optional, auto-generated on backend if null
@@ -546,11 +548,28 @@ export default function NewProductPage() {
                 min="0"
                 step="1"
                 value={price}
-                onChange={(e) => setPrice(Number(e.target.value))}
+                onChange={(e) => setPrice(e.target.value)}
                 placeholder="Örn: 450"
                 className="w-full text-base font-bold p-3 bg-brand-50 text-brand-900 border border-brand-300 rounded-xl focus:bg-white focus:outline-none"
               />
               <p className="text-[10px] text-stone-400 mt-1">Web sitesindeki standart son kullanıcı fiyatı</p>
+            </div>
+
+            {/* Cost Price */}
+            <div>
+              <label className="block text-xs font-semibold text-amber-900 mb-1">
+                Alış / Maliyet Fiyatı (₺ - Kâr Hesabı İçin)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={costPrice}
+                onChange={(e) => setCostPrice(e.target.value)}
+                placeholder="Örn: 120"
+                className="w-full text-sm font-bold p-2.5 bg-amber-50 text-amber-950 border border-amber-300 rounded-xl focus:bg-white focus:outline-none"
+              />
+              <p className="text-[10px] text-stone-400 mt-1">Tahtakale / toptancıdan birim alış maliyetiniz</p>
             </div>
 
             {/* Wholesale Price */}
@@ -563,7 +582,7 @@ export default function NewProductPage() {
                 min="0"
                 step="1"
                 value={wholesalePrice}
-                onChange={(e) => setWholesalePrice(e.target.value === '' ? '' : Number(e.target.value))}
+                onChange={(e) => setWholesalePrice(e.target.value)}
                 placeholder="Örn: 220"
                 className="w-full text-sm font-semibold p-2.5 bg-stone-50 text-stone-800 border border-stone-300 rounded-xl focus:bg-white focus:outline-none"
               />
@@ -578,7 +597,7 @@ export default function NewProductPage() {
                 required
                 min="0"
                 value={stock}
-                onChange={(e) => setStock(Number(e.target.value))}
+                onChange={(e) => setStock(e.target.value)}
                 placeholder="Örn: 50"
                 className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-bold"
               />

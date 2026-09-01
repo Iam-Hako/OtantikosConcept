@@ -1690,6 +1690,8 @@ export const DataService = {
       sale_channel: txData.sale_channel || 'magaza',
       supplier_name: txData.supplier_name || null,
       payment_method: txData.payment_method || 'nakit',
+      payment_status: txData.payment_status || (txData.payment_method === 'veresiye' ? 'pending' : 'paid'),
+      due_date: txData.due_date || null,
       document_no: txData.document_no || null,
       notes: txData.notes || null,
       transaction_date: txData.transaction_date || new Date().toISOString().split('T')[0],
@@ -1713,14 +1715,13 @@ export const DataService = {
         if (prod) {
           if (tx.type === 'purchase') {
             prod.stock += qty;
-            prod.cost_price = unitPrice; // Update latest cost price on purchase
+            if (unitPrice > 0) prod.cost_price = unitPrice;
           } else if (tx.type === 'sale') {
             prod.stock = Math.max(0, prod.stock - qty);
           }
-          await this.saveProduct(prod);
         }
       } catch {
-        // Ignore stock sync fail
+        // Ignore local sync notice
       }
     }
 
@@ -1742,6 +1743,8 @@ export const DataService = {
         sale_channel: tx.sale_channel,
         supplier_name: tx.supplier_name,
         payment_method: tx.payment_method,
+        payment_status: tx.payment_status,
+        due_date: tx.due_date,
         document_no: tx.document_no,
         notes: tx.notes,
         transaction_date: tx.transaction_date,
@@ -1767,6 +1770,26 @@ export const DataService = {
     }
 
     return tx;
+  },
+
+  async toggleTransactionPaymentStatus(id: string, newStatus: 'paid' | 'pending'): Promise<boolean> {
+    const tx = runtimeTransactions.find((t) => t.id === id);
+    if (tx) {
+      tx.payment_status = newStatus;
+      tx.updated_at = new Date().toISOString();
+    }
+
+    try {
+      const supabase = createClient();
+      await supabase
+        .from('accounting_transactions')
+        .update({ payment_status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', id);
+    } catch {
+      // Fallback
+    }
+
+    return true;
   },
 
   async deleteAccountingTransaction(id: string): Promise<boolean> {
@@ -1817,6 +1840,10 @@ export const DataService = {
     let totalExpenses = 0;
     let totalSalesCount = 0;
     let totalPurchasesCount = 0;
+    let collectedProfit = 0;
+    let pendingReceivables = 0;
+    let pendingPayables = 0;
+
     const salesByChannel = {
       magaza: 0,
       toptan: 0,
@@ -1844,6 +1871,13 @@ export const DataService = {
         totalCost += (tx.total_cost || 0);
         totalSalesCount++;
 
+        const isPaid = tx.payment_status !== 'pending';
+        if (isPaid) {
+          collectedProfit += (tx.net_profit || (tx.total_amount - (tx.total_cost || 0)));
+        } else {
+          pendingReceivables += tx.total_amount;
+        }
+
         const ch = (tx.sale_channel || 'magaza') as 'magaza' | 'toptan' | 'website';
         if (salesByChannel[ch] !== undefined) {
           salesByChannel[ch] += tx.total_amount;
@@ -1851,11 +1885,14 @@ export const DataService = {
       } else if (tx.type === 'purchase') {
         if (!options?.channel || options.channel === 'all') {
           totalPurchasesCount++;
-          // Purchase record is an inventory asset acquisition
+          if (tx.payment_status === 'pending') {
+            pendingPayables += tx.total_amount;
+          }
         }
       } else if (tx.type === 'expense') {
         if (!options?.channel || options.channel === 'all') {
           totalExpenses += tx.total_amount;
+          collectedProfit -= tx.total_amount;
         }
       }
     });
@@ -1869,13 +1906,16 @@ export const DataService = {
           totalSalesCount++;
 
           // Compute cost of items sold online
+          let orderCost = 0;
           if (Array.isArray(o.items)) {
             o.items.forEach((item) => {
               const unitCost = (item.product_id ? productCostMap.get(item.product_id) : undefined) ||
                 productCostMap.get(item.product_name.toLowerCase().trim()) || 0;
-              totalCost += unitCost * item.quantity;
+              orderCost += unitCost * item.quantity;
             });
           }
+          totalCost += orderCost;
+          collectedProfit += (o.total_amount - orderCost);
         }
       });
     }
@@ -1888,6 +1928,9 @@ export const DataService = {
       totalCost,
       totalExpenses,
       netProfit,
+      collectedProfit,
+      pendingReceivables,
+      pendingPayables,
       profitMargin: Math.round(profitMargin * 10) / 10,
       totalSalesCount,
       totalPurchasesCount,

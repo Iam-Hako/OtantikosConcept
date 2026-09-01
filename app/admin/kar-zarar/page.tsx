@@ -34,16 +34,23 @@ import {
   HelpCircle,
   Percent,
   ReceiptText,
-  Tag
+  Tag,
+  Clock,
+  Check
 } from 'lucide-react';
 import { Product, Order, AccountingTransaction, SaleChannel, ProfitSummary, ProductProfitStat } from '@/lib/types/ecommerce';
 import { DataService, normalizeTurkish } from '@/lib/data/store-data';
-import { actionSaveAccountingTransaction, actionDeleteAccountingTransaction } from '@/app/actions/ecommerce-actions';
+import { 
+  actionSaveAccountingTransaction, 
+  actionDeleteAccountingTransaction,
+  actionToggleTransactionPaymentStatus 
+} from '@/app/actions/ecommerce-actions';
 import { formatPrice, formatDate } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
 type DatePreset = 'today' | 'week' | 'month' | 'year' | 'all' | 'custom';
 type ActiveTab = 'ledger' | 'product_profit';
+type PaymentStatusFilter = 'all' | 'paid' | 'pending';
 
 export default function KarZararPage() {
   const [transactions, setTransactions] = useState<AccountingTransaction[]>([]);
@@ -59,6 +66,7 @@ export default function KarZararPage() {
   const [customEndDate, setCustomEndDate] = useState('');
   const [channelFilter, setChannelFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<PaymentStatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modals
@@ -67,18 +75,20 @@ export default function KarZararPage() {
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [togglingStatusId, setTogglingStatusId] = useState<string | null>(null);
 
-  // Form States - SATIŞ GİRİŞİ (Satış Formu)
+  // Form States - SATIŞ GİRİŞİ (Inputs as strings to prevent leading 0 bugs like 080)
   const [saleForm, setSaleForm] = useState({
     productId: '',
     productName: '',
-    quantity: 1,
-    unitPrice: 0, // Satış Fiyatı
-    unitCost: 0, // Alış Maliyeti
+    quantity: '1',
+    unitPrice: '', // Satış Fiyatı
+    unitCost: '', // Alış Maliyeti
     customerName: '', // Zorunlu
     customerPhone: '', // Zorunlu
     saleChannel: 'magaza' as SaleChannel, // Zorunlu: magaza, toptan, website
     paymentMethod: 'nakit',
+    dueDate: '', // Veresiye ise Vade / Tahsilat Tarihi
     documentNo: '',
     notes: '',
     transactionDate: new Date().toISOString().split('T')[0], // Zorunlu
@@ -89,22 +99,22 @@ export default function KarZararPage() {
   const [purchaseForm, setPurchaseForm] = useState({
     productId: '',
     productName: '',
-    quantity: 10,
-    unitPrice: 0, // Birim Alış Fiyatı
-    totalPriceInput: '', // Opsiyonel toplam fiyat girildiğinde otomatik birim hesaplama
+    quantity: '10',
+    unitPrice: '', // Birim Alış Fiyatı
+    totalPriceInput: '', // Toplam Alış Fiyatı
     supplierName: '', // Opsiyonel
     paymentMethod: 'nakit',
+    dueDate: '', // Veresiye ise Vade / Ödeme Tarihi
     documentNo: '',
     notes: '',
     transactionDate: new Date().toISOString().split('T')[0],
     updateStock: true,
-    updateProductCostPrice: true,
   });
 
   // Form States - GİDER GİRİŞİ
   const [expenseForm, setExpenseForm] = useState({
     expenseTitle: '',
-    amount: 0,
+    amount: '',
     category: 'genel',
     paymentMethod: 'nakit',
     documentNo: '',
@@ -176,6 +186,10 @@ export default function KarZararPage() {
     let totalExpenses = 0;
     let totalSalesCount = 0;
     let totalPurchasesCount = 0;
+    let collectedProfit = 0;
+    let pendingReceivables = 0;
+    let pendingPayables = 0;
+
     const salesByChannel = { magaza: 0, toptan: 0, website: 0 };
 
     const isDateMatch = (dateStr: string) => {
@@ -194,8 +208,16 @@ export default function KarZararPage() {
         if (channelFilter !== 'all' && tx.sale_channel !== channelFilter) return;
 
         totalRevenue += tx.total_amount;
-        totalCost += (tx.total_cost || (tx.unit_cost ? tx.unit_cost * tx.quantity : 0));
+        const cst = tx.total_cost || (tx.unit_cost ? tx.unit_cost * tx.quantity : 0);
+        totalCost += cst;
         totalSalesCount++;
+
+        const isPaid = tx.payment_status !== 'pending';
+        if (isPaid) {
+          collectedProfit += (tx.net_profit !== undefined && tx.net_profit !== null ? tx.net_profit : (tx.total_amount - cst));
+        } else {
+          pendingReceivables += tx.total_amount;
+        }
 
         const ch = (tx.sale_channel || 'magaza') as 'magaza' | 'toptan' | 'website';
         if (salesByChannel[ch] !== undefined) {
@@ -204,17 +226,20 @@ export default function KarZararPage() {
       } else if (tx.type === 'purchase') {
         if (channelFilter === 'all') {
           totalPurchasesCount++;
+          if (tx.payment_status === 'pending') {
+            pendingPayables += tx.total_amount;
+          }
         }
       } else if (tx.type === 'expense') {
         if (channelFilter === 'all') {
           totalExpenses += tx.total_amount;
+          collectedProfit -= tx.total_amount;
         }
       }
     });
 
     // 2. Web Orders (Paid online orders from website)
     if (channelFilter === 'all' || channelFilter === 'website') {
-      // Build fast product cost map
       const costMap = new Map<string, number>();
       products.forEach((p) => {
         costMap.set(p.id, Number(p.cost_price) || 0);
@@ -227,25 +252,31 @@ export default function KarZararPage() {
           salesByChannel.website += o.total_amount;
           totalSalesCount++;
 
+          let orderCost = 0;
           if (Array.isArray(o.items)) {
             o.items.forEach((item) => {
               const uCost = (item.product_id ? costMap.get(item.product_id) : undefined) ||
                 costMap.get(item.product_name.toLowerCase().trim()) || 0;
-              totalCost += uCost * item.quantity;
+              orderCost += uCost * item.quantity;
             });
           }
+          totalCost += orderCost;
+          collectedProfit += (o.total_amount - orderCost);
         }
       });
     }
 
     const netProfit = totalRevenue - totalCost - totalExpenses;
-    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+    const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100) : 0;
 
     return {
       totalRevenue,
       totalCost,
       totalExpenses,
       netProfit,
+      collectedProfit,
+      pendingReceivables,
+      pendingPayables,
       profitMargin: Math.round(profitMargin * 10) / 10,
       totalSalesCount,
       totalPurchasesCount,
@@ -266,7 +297,14 @@ export default function KarZararPage() {
       // Channel filter
       if (channelFilter !== 'all') {
         if (tx.type === 'sale' && tx.sale_channel !== channelFilter) return false;
-        if (tx.type !== 'sale' && channelFilter !== 'all') return false;
+        if (tx.type !== 'sale') return false;
+      }
+
+      // Payment Status filter
+      if (paymentStatusFilter === 'paid') {
+        if (tx.payment_status === 'pending') return false;
+      } else if (paymentStatusFilter === 'pending') {
+        if (tx.payment_status !== 'pending') return false;
       }
 
       // Search Query
@@ -284,17 +322,16 @@ export default function KarZararPage() {
 
       return true;
     });
-  }, [transactions, startDate, endDate, typeFilter, channelFilter, searchQuery]);
+  }, [transactions, startDate, endDate, typeFilter, channelFilter, paymentStatusFilter, searchQuery]);
 
   // Select Product in Sale Form -> Auto populate sale price and unit cost
   const handleSelectProductInSale = (productId: string) => {
     if (!productId) {
-      setSaleForm((prev) => ({ ...prev, productId: '', productName: '', unitPrice: 0, unitCost: 0 }));
+      setSaleForm((prev) => ({ ...prev, productId: '', productName: '', unitPrice: '', unitCost: '' }));
       return;
     }
     const found = products.find((p) => p.id === productId);
     if (found) {
-      // If toptan channel selected, use wholesale_price if present
       const defaultPrice = saleForm.saleChannel === 'toptan' && found.wholesale_price 
         ? found.wholesale_price 
         : found.price;
@@ -303,8 +340,8 @@ export default function KarZararPage() {
         ...prev,
         productId: found.id,
         productName: found.name,
-        unitPrice: defaultPrice || 0,
-        unitCost: Number(found.cost_price) || 0,
+        unitPrice: defaultPrice !== undefined && defaultPrice !== null ? String(defaultPrice) : '',
+        unitCost: found.cost_price !== undefined && found.cost_price !== null ? String(found.cost_price) : '',
       }));
     }
   };
@@ -312,18 +349,51 @@ export default function KarZararPage() {
   // Select Product in Purchase Form -> Auto populate current product name and cost
   const handleSelectProductInPurchase = (productId: string) => {
     if (!productId) {
-      setPurchaseForm((prev) => ({ ...prev, productId: '', productName: '', unitPrice: 0 }));
+      setPurchaseForm((prev) => ({ ...prev, productId: '', productName: '', unitPrice: '', totalPriceInput: '' }));
       return;
     }
     const found = products.find((p) => p.id === productId);
     if (found) {
+      const uCost = found.cost_price !== undefined && found.cost_price !== null ? Number(found.cost_price) : 0;
+      const qty = Math.max(1, Number(purchaseForm.quantity) || 1);
       setPurchaseForm((prev) => ({
         ...prev,
         productId: found.id,
         productName: found.name,
-        unitPrice: Number(found.cost_price) || 0,
+        unitPrice: uCost > 0 ? String(uCost) : '',
+        totalPriceInput: uCost > 0 ? String(uCost * qty) : '',
       }));
     }
+  };
+
+  // Bidirectional Purchase Input Handlers (No 080 or zero sticking bugs)
+  const handlePurchaseQuantityChange = (val: string) => {
+    const qty = Math.max(1, Number(val) || 1);
+    setPurchaseForm((prev) => {
+      let total = prev.totalPriceInput;
+      if (prev.unitPrice && Number(prev.unitPrice) > 0) {
+        total = (Number(prev.unitPrice) * qty).toFixed(2);
+      }
+      return { ...prev, quantity: val, totalPriceInput: total };
+    });
+  };
+
+  const handlePurchaseUnitPriceChange = (val: string) => {
+    const qty = Math.max(1, Number(purchaseForm.quantity) || 1);
+    setPurchaseForm((prev) => ({
+      ...prev,
+      unitPrice: val,
+      totalPriceInput: val && Number(val) > 0 ? (Number(val) * qty).toFixed(2) : '',
+    }));
+  };
+
+  const handlePurchaseTotalPriceChange = (val: string) => {
+    const qty = Math.max(1, Number(purchaseForm.quantity) || 1);
+    setPurchaseForm((prev) => ({
+      ...prev,
+      totalPriceInput: val,
+      unitPrice: val && Number(val) > 0 ? (Number(val) / qty).toFixed(2) : '',
+    }));
   };
 
   // Calculate live profit preview for Sale Modal
@@ -350,7 +420,6 @@ export default function KarZararPage() {
   const handleSaveSale = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Required Validations as explicitly requested by user:
     if (!saleForm.customerName.trim()) {
       toast.error('Lütfen Müşteri Adını giriniz (Zorunlu alan).');
       return;
@@ -371,10 +440,15 @@ export default function KarZararPage() {
       toast.error('Lütfen satılan ürün adını giriniz veya listeden seçiniz.');
       return;
     }
-    if (saleForm.quantity <= 0) {
-      toast.error('Satış adedi en az 1 olmalıdır.');
+    const qty = Math.max(1, Number(saleForm.quantity) || 1);
+    const unitPrice = Number(saleForm.unitPrice) || 0;
+    if (unitPrice <= 0) {
+      toast.error('Lütfen geçerli bir Satış Fiyatı giriniz.');
       return;
     }
+
+    const isVeresiye = saleForm.paymentMethod === 'veresiye';
+    const paymentStatus = isVeresiye ? 'pending' : 'paid';
 
     setIsSubmitting(true);
     try {
@@ -382,16 +456,18 @@ export default function KarZararPage() {
         type: 'sale',
         product_id: saleForm.productId || null,
         product_name: saleForm.productName.trim(),
-        quantity: Number(saleForm.quantity),
-        unit_price: Number(saleForm.unitPrice),
+        quantity: qty,
+        unit_price: unitPrice,
         total_amount: saleModalCalculated.totalRev,
-        unit_cost: Number(saleForm.unitCost),
+        unit_cost: Number(saleForm.unitCost) || 0,
         total_cost: saleModalCalculated.totalCst,
         net_profit: saleModalCalculated.profit,
         customer_name: saleForm.customerName.trim(),
         customer_phone: saleForm.customerPhone.trim(),
         sale_channel: saleForm.saleChannel,
         payment_method: saleForm.paymentMethod,
+        payment_status: paymentStatus,
+        due_date: isVeresiye && saleForm.dueDate ? saleForm.dueDate : null,
         document_no: saleForm.documentNo.trim() || null,
         notes: saleForm.notes.trim() || null,
         transaction_date: saleForm.transactionDate,
@@ -399,25 +475,28 @@ export default function KarZararPage() {
       });
 
       if (res.success) {
-        toast.success(`Satış başarıyla kaydedildi! Net Kâr: ${formatPrice(saleModalCalculated.profit)}`);
+        toast.success(`Satış başarıyla kaydedildi! Net Kâr: ${formatPrice(saleModalCalculated.profit)}`, {
+          description: isVeresiye ? 'Veresiye (Açık Hesap) olarak kaydedildi.' : 'Tahsil edildi olarak kaydedildi.'
+        });
         setIsSaleModalOpen(false);
         // Reset form
         setSaleForm({
           productId: '',
           productName: '',
-          quantity: 1,
-          unitPrice: 0,
-          unitCost: 0,
+          quantity: '1',
+          unitPrice: '',
+          unitCost: '',
           customerName: '',
           customerPhone: '',
           saleChannel: 'magaza',
           paymentMethod: 'nakit',
+          dueDate: '',
           documentNo: '',
           notes: '',
           transactionDate: new Date().toISOString().split('T')[0],
           updateStock: true,
         });
-        loadAllData();
+        await loadAllData();
       } else {
         toast.error(res.error || 'Satış kaydedilemedi.');
       }
@@ -437,14 +516,19 @@ export default function KarZararPage() {
       return;
     }
     const qty = Math.max(1, Number(purchaseForm.quantity) || 1);
-    
-    // Auto calculate unit price if user typed total purchase price
     let finalUnitPrice = Number(purchaseForm.unitPrice) || 0;
     if (purchaseForm.totalPriceInput && Number(purchaseForm.totalPriceInput) > 0) {
       finalUnitPrice = Number(purchaseForm.totalPriceInput) / qty;
     }
 
+    if (finalUnitPrice <= 0) {
+      toast.error('Lütfen Birim Alış Fiyatı veya Toplam Alış Tutarı giriniz.');
+      return;
+    }
+
     const totalAmount = qty * finalUnitPrice;
+    const isVeresiye = purchaseForm.paymentMethod === 'veresiye';
+    const paymentStatus = isVeresiye ? 'pending' : 'paid';
 
     setIsSubmitting(true);
     try {
@@ -455,33 +539,37 @@ export default function KarZararPage() {
         quantity: qty,
         unit_price: finalUnitPrice,
         total_amount: totalAmount,
-        supplier_name: purchaseForm.supplierName.trim() || null, // Opsiyonel
-        payment_method: purchaseForm.paymentMethod || 'nakit', // Opsiyonel
-        document_no: purchaseForm.documentNo.trim() || null, // Opsiyonel
+        supplier_name: purchaseForm.supplierName.trim() || null,
+        payment_method: purchaseForm.paymentMethod || 'nakit',
+        payment_status: paymentStatus,
+        due_date: isVeresiye && purchaseForm.dueDate ? purchaseForm.dueDate : null,
+        document_no: purchaseForm.documentNo.trim() || null,
         notes: purchaseForm.notes.trim() || null,
         transaction_date: purchaseForm.transactionDate || new Date().toISOString().split('T')[0],
         update_stock: purchaseForm.updateStock,
       });
 
       if (res.success) {
-        toast.success(`Alış / Mal alımı kaydedildi! Toplam Tutar: ${formatPrice(totalAmount)} (Birim: ${formatPrice(finalUnitPrice)})`);
+        toast.success(`Alış kaydedildi! ${qty} adet ürün stoğa eklendi.`, {
+          description: `Toplam: ${formatPrice(totalAmount)} (Birim: ${formatPrice(finalUnitPrice)})`
+        });
         setIsPurchaseModalOpen(false);
         // Reset form
         setPurchaseForm({
           productId: '',
           productName: '',
-          quantity: 10,
-          unitPrice: 0,
+          quantity: '10',
+          unitPrice: '',
           totalPriceInput: '',
           supplierName: '',
           paymentMethod: 'nakit',
+          dueDate: '',
           documentNo: '',
           notes: '',
           transactionDate: new Date().toISOString().split('T')[0],
           updateStock: true,
-          updateProductCostPrice: true,
         });
-        loadAllData();
+        await loadAllData();
       } else {
         toast.error(res.error || 'Alış kaydedilemedi.');
       }
@@ -495,8 +583,9 @@ export default function KarZararPage() {
   // Handle Submit Expense
   const handleSaveExpense = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!expenseForm.expenseTitle.trim()) {
-      toast.error('Lütfen gider açıklamasını giriniz.');
+      toast.error('Lütfen gider açıklamasını yazınız.');
       return;
     }
     const amt = Number(expenseForm.amount) || 0;
@@ -514,6 +603,7 @@ export default function KarZararPage() {
         unit_price: amt,
         total_amount: amt,
         payment_method: expenseForm.paymentMethod,
+        payment_status: 'paid',
         document_no: expenseForm.documentNo.trim() || null,
         notes: expenseForm.notes.trim() || null,
         transaction_date: expenseForm.transactionDate,
@@ -524,14 +614,14 @@ export default function KarZararPage() {
         setIsExpenseModalOpen(false);
         setExpenseForm({
           expenseTitle: '',
-          amount: 0,
+          amount: '',
           category: 'genel',
           paymentMethod: 'nakit',
           documentNo: '',
           notes: '',
           transactionDate: new Date().toISOString().split('T')[0],
         });
-        loadAllData();
+        await loadAllData();
       } else {
         toast.error(res.error || 'Gider kaydedilemedi.');
       }
@@ -542,6 +632,26 @@ export default function KarZararPage() {
     }
   };
 
+  // Toggle Payment Status (e.g. mark open account veresiye as collected/paid)
+  const handleTogglePaymentStatus = async (tx: AccountingTransaction) => {
+    const newStatus = tx.payment_status === 'pending' ? 'paid' : 'pending';
+    setTogglingStatusId(tx.id);
+    try {
+      const res = await actionToggleTransactionPaymentStatus(tx.id, newStatus);
+      if (res.success) {
+        toast.success(newStatus === 'paid' ? 'İşlem Tahsil Edildi olarak güncellendi!' : 'İşlem Açık Hesap (Bekliyor) olarak işaretlendi.');
+        setTransactions((prev) => prev.map((t) => (t.id === tx.id ? { ...t, payment_status: newStatus } : t)));
+        loadAllData();
+      } else {
+        toast.error(res.error || 'Durum güncellenemedi.');
+      }
+    } catch {
+      toast.error('Hata oluştu.');
+    } finally {
+      setTogglingStatusId(null);
+    }
+  };
+
   // Delete Transaction
   const handleDeleteTransaction = async (id: string) => {
     try {
@@ -549,7 +659,7 @@ export default function KarZararPage() {
       if (res.success) {
         toast.success('İşlem silindi.');
         setDeleteConfirmId(null);
-        loadAllData();
+        await loadAllData();
       } else {
         toast.error(res.error || 'İşlem silinemedi.');
       }
@@ -565,7 +675,7 @@ export default function KarZararPage() {
       return;
     }
 
-    const headers = ['Tarih', 'İşlem Türü', 'Kalem / Ürün Adı', 'Kanal', 'Müşteri / Tedarikçi', 'Telefon', 'Adet', 'Birim Fiyat', 'Toplam Tutar', 'Birim Maliyet', 'Net Kâr', 'Ödeme Tipi', 'Belge No', 'Notlar'];
+    const headers = ['Tarih', 'İşlem Türü', 'Kalem / Ürün Adı', 'Kanal', 'Müşteri / Tedarikçi', 'Telefon', 'Adet', 'Birim Fiyat', 'Toplam Tutar', 'Birim Maliyet', 'Net Kâr', 'Ödeme Tipi', 'Ödeme Durumu', 'Vade Tarihi', 'Belge No', 'Notlar'];
     const rows = filteredTransactions.map((tx) => [
       tx.transaction_date,
       tx.type === 'sale' ? 'Satış' : tx.type === 'purchase' ? 'Alış (Mal Alımı)' : 'Gider',
@@ -579,6 +689,8 @@ export default function KarZararPage() {
       tx.unit_cost || 0,
       tx.net_profit || 0,
       tx.payment_method || '',
+      tx.payment_status === 'pending' ? 'Açık Hesap (Bekliyor)' : 'Ödendi / Kasada',
+      tx.due_date || '',
       `"${tx.document_no || ''}"`,
       `"${(tx.notes || '').replace(/"/g, '""')}"`
     ]);
@@ -618,7 +730,7 @@ export default function KarZararPage() {
           <button
             type="button"
             onClick={() => setIsSaleModalOpen(true)}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-2"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />
             <span>+ Satış Girişi Yap</span>
@@ -627,7 +739,7 @@ export default function KarZararPage() {
           <button
             type="button"
             onClick={() => setIsPurchaseModalOpen(true)}
-            className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-2"
+            className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
           >
             <Boxes className="w-4 h-4" />
             <span>+ Alış (Mal Alımı) Gir</span>
@@ -636,7 +748,7 @@ export default function KarZararPage() {
           <button
             type="button"
             onClick={() => setIsExpenseModalOpen(true)}
-            className="px-3.5 py-2.5 bg-stone-800 hover:bg-stone-900 active:scale-95 text-stone-200 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5"
+            className="px-3.5 py-2.5 bg-stone-800 hover:bg-stone-900 active:scale-95 text-stone-200 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
           >
             <ReceiptText className="w-4 h-4 text-stone-400" />
             <span>+ Gider Ekle</span>
@@ -646,7 +758,7 @@ export default function KarZararPage() {
             type="button"
             onClick={loadAllData}
             title="Verileri Yenile"
-            className="p-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl transition"
+            className="p-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl transition cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
@@ -654,50 +766,50 @@ export default function KarZararPage() {
       </div>
 
       {/* EXECUTIVE FINANCIAL KPI METRIC CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         
         {/* 1. TOPLAM GELİR (CİRO) */}
         <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Toplam Satış Geliri</span>
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">
+            <div className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">
               {formatPrice(summary.totalRevenue)}
             </div>
             <div className="flex items-center gap-2 mt-1 text-[11px] text-stone-500 font-medium">
-              <span>{summary.totalSalesCount} Satış İşlemi</span>
+              <span>{summary.totalSalesCount} Satış</span>
               <span>•</span>
-              <span className="text-blue-700 font-bold">Web + Dükkan + Toptan</span>
+              <span className="text-blue-700 font-bold">Web + Dükkan</span>
             </div>
           </div>
         </div>
 
-        {/* 2. TOPLAM SATILAN MALIN MALİYETİ (ALIŞ) */}
+        {/* 2. SATILAN MALIN MALİYETİ (ALIŞ) */}
         <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Satılan Mal Maliyeti</span>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
               <Boxes className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-black text-stone-800 tracking-tight">
+            <div className="text-xl sm:text-2xl font-black text-stone-800 tracking-tight">
               {formatPrice(summary.totalCost)}
             </div>
             <div className="flex items-center gap-2 mt-1 text-[11px] text-stone-500 font-medium">
-              <span>Tedarik / Alış Masrafı</span>
+              <span>Tedarik Maliyeti</span>
               {summary.totalExpenses > 0 && (
-                <span className="text-rose-600 font-bold">+{formatPrice(summary.totalExpenses)} Ek Gider</span>
+                <span className="text-rose-600 font-bold">+{formatPrice(summary.totalExpenses)} Gider</span>
               )}
             </div>
           </div>
         </div>
 
-        {/* 3. NET KÂR */}
+        {/* 3. NET KÂR (GENEL TOPLAM) */}
         <div className={`p-5 rounded-3xl border shadow-xs relative overflow-hidden flex flex-col justify-between ${
           summary.netProfit >= 0 
             ? 'bg-emerald-950 text-white border-emerald-900' 
@@ -705,43 +817,56 @@ export default function KarZararPage() {
         }`}>
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider">
-              {summary.netProfit >= 0 ? 'Net Kâr Durumu' : 'Net Zarar Durumu'}
+              {summary.netProfit >= 0 ? 'Genel Net Kâr' : 'Net Zarar'}
             </span>
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${
               summary.netProfit >= 0 ? 'bg-emerald-800 text-emerald-200' : 'bg-rose-800 text-rose-200'
             }`}>
-              {summary.netProfit >= 0 ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
+              {summary.netProfit >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-black tracking-tight">
+            <div className="text-xl sm:text-2xl font-black tracking-tight text-emerald-400">
               {summary.netProfit >= 0 ? `+${formatPrice(summary.netProfit)}` : formatPrice(summary.netProfit)}
             </div>
             <div className="flex items-center gap-2 mt-1 text-[11px] text-emerald-200/80 font-medium">
-              <span>(Gelir - Alış Maliyeti - Giderler)</span>
+              <span>%{summary.profitMargin} Kâr Marjı</span>
             </div>
           </div>
         </div>
 
-        {/* 4. KÂR MARJI % */}
-        <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
+        {/* 4. KASADAKİ (TAHSİL EDİLEN) NET KÂR */}
+        <div className="bg-emerald-50/80 p-5 rounded-3xl border border-emerald-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Net Kâr Marjı</span>
-            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold">
-              <Percent className="w-4 h-4" />
+            <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">Kasadaki Net Nakit</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-200 text-emerald-900 flex items-center justify-center font-bold">
+              <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">
-              %{summary.profitMargin}
+            <div className="text-xl sm:text-2xl font-black text-emerald-950 tracking-tight">
+              +{formatPrice(summary.collectedProfit)}
             </div>
-            <div className="w-full bg-stone-100 rounded-full h-2 mt-2 overflow-hidden">
-              <div 
-                className={`h-full rounded-full transition-all duration-500 ${
-                  summary.profitMargin >= 40 ? 'bg-emerald-600' : summary.profitMargin >= 20 ? 'bg-amber-500' : 'bg-rose-500'
-                }`}
-                style={{ width: `${Math.min(100, Math.max(0, summary.profitMargin))}%` }}
-              />
+            <div className="flex items-center gap-2 mt-1 text-[11px] text-emerald-800 font-semibold">
+              <span>Fiilen kasaya giren nakit</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 5. AÇIK HESAP (VERESİYE) ALACAKLAR */}
+        <div className="bg-amber-50/80 p-5 rounded-3xl border border-amber-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-amber-900 uppercase tracking-wider">Bekleyen Veresiye</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center font-bold">
+              <Clock className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-xl sm:text-2xl font-black text-amber-950 tracking-tight">
+              {formatPrice(summary.pendingReceivables)}
+            </div>
+            <div className="flex items-center gap-2 mt-1 text-[11px] text-amber-800 font-semibold">
+              <span>Tahsil edilecek açık hesap</span>
             </div>
           </div>
         </div>
@@ -783,7 +908,7 @@ export default function KarZararPage() {
             <button
               type="button"
               onClick={() => setActiveTab('ledger')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
                 activeTab === 'ledger'
                   ? 'bg-stone-900 text-white shadow-xs'
                   : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
@@ -799,7 +924,7 @@ export default function KarZararPage() {
             <button
               type="button"
               onClick={() => setActiveTab('product_profit')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
                 activeTab === 'product_profit'
                   ? 'bg-stone-900 text-white shadow-xs'
                   : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
@@ -815,7 +940,7 @@ export default function KarZararPage() {
             <button
               type="button"
               onClick={handleExportCSV}
-              className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Excel / CSV</span>
@@ -823,7 +948,7 @@ export default function KarZararPage() {
             <button
               type="button"
               onClick={() => window.print()}
-              className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Yazdır</span>
@@ -851,7 +976,7 @@ export default function KarZararPage() {
                 key={p.key}
                 type="button"
                 onClick={() => setDatePreset(p.key)}
-                className={`px-3 py-1.5 rounded-xl font-bold transition ${
+                className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
                   datePreset === p.key
                     ? 'bg-amber-600 text-white shadow-2xs'
                     : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
@@ -881,7 +1006,7 @@ export default function KarZararPage() {
             </div>
           )}
 
-          {/* Channel & Type Filters */}
+          {/* Channel, Type & Payment Status Filters */}
           <div className="flex flex-wrap items-center gap-2">
             <select
               value={channelFilter}
@@ -903,6 +1028,16 @@ export default function KarZararPage() {
               <option value="sale">Sadece Satışlar</option>
               <option value="purchase">Sadece Alışlar (Mal Alımı)</option>
               <option value="expense">Sadece Giderler</option>
+            </select>
+
+            <select
+              value={paymentStatusFilter}
+              onChange={(e) => setPaymentStatusFilter(e.target.value as PaymentStatusFilter)}
+              className="p-2 bg-stone-50 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 focus:outline-none"
+            >
+              <option value="all">Tüm Ödeme Durumları</option>
+              <option value="paid">✓ Tahsil Edilenler / Kasada</option>
+              <option value="pending">⏳ Açık Hesap (Veresiyeler)</option>
             </select>
           </div>
 
@@ -936,6 +1071,7 @@ export default function KarZararPage() {
                   <th className="p-4">Tür & Kanal</th>
                   <th className="p-4">Ürün / Kalem</th>
                   <th className="p-4">Müşteri / Tedarikçi</th>
+                  <th className="p-4">Ödeme & Durum</th>
                   <th className="p-4 text-right">Adet</th>
                   <th className="p-4 text-right">Birim Fiyat</th>
                   <th className="p-4 text-right">Toplam Tutar</th>
@@ -947,7 +1083,7 @@ export default function KarZararPage() {
               <tbody className="divide-y divide-stone-100">
                 {filteredTransactions.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="p-12 text-center text-stone-400">
+                    <td colSpan={11} className="p-12 text-center text-stone-400">
                       <ReceiptText className="w-8 h-8 mx-auto mb-2 text-stone-300" />
                       <p className="font-semibold text-stone-600">Bu filtrelere uygun işlem kaydı bulunamadı.</p>
                       <p className="text-[11px] mt-1 text-stone-400">Yukarıdaki butonlardan yeni Satış veya Alış girişi yapabilirsiniz.</p>
@@ -958,6 +1094,7 @@ export default function KarZararPage() {
                     const isSale = tx.type === 'sale';
                     const isPurchase = tx.type === 'purchase';
                     const isExpense = tx.type === 'expense';
+                    const isPending = tx.payment_status === 'pending';
 
                     return (
                       <tr key={tx.id} className="hover:bg-stone-50/70 transition">
@@ -1017,6 +1154,38 @@ export default function KarZararPage() {
                           )}
                         </td>
 
+                        {/* Ödeme Yöntemi & Durumu */}
+                        <td className="p-4 whitespace-nowrap">
+                          <div className="space-y-1">
+                            <span className="text-[11px] font-semibold text-stone-600 block">
+                              {tx.payment_method === 'kredi_karti' ? 'Kredi Kartı' : tx.payment_method === 'havale_eft' ? 'Havale / EFT' : tx.payment_method === 'veresiye' ? 'Açık Hesap (Veresiye)' : 'Nakit'}
+                            </span>
+                            {isPending ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                  <Clock className="w-3 h-3" />
+                                  <span>Bekliyor {tx.due_date ? `(Vade: ${formatDate(tx.due_date)})` : ''}</span>
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleTogglePaymentStatus(tx)}
+                                  disabled={togglingStatusId === tx.id}
+                                  title="Tahsil Edildi / Ödendi Yap"
+                                  className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-[10px] font-bold rounded transition flex items-center gap-1 cursor-pointer"
+                                >
+                                  {togglingStatusId === tx.id ? <RefreshCw className="w-2.5 h-2.5 animate-spin" /> : <Check className="w-2.5 h-2.5" />}
+                                  <span>Tahsil Et</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>Kasada / Ödendi</span>
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
                         {/* Adet */}
                         <td className="p-4 text-right font-bold text-stone-800">
                           {tx.quantity} adet
@@ -1061,14 +1230,14 @@ export default function KarZararPage() {
                               <button
                                 type="button"
                                 onClick={() => handleDeleteTransaction(tx.id)}
-                                className="px-2 py-1 bg-rose-600 text-white rounded-lg text-[10px] font-bold"
+                                className="px-2 py-1 bg-rose-600 text-white rounded-lg text-[10px] font-bold cursor-pointer"
                               >
                                 Evet, Sil
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setDeleteConfirmId(null)}
-                                className="px-2 py-1 bg-stone-200 text-stone-700 rounded-lg text-[10px] font-bold"
+                                className="px-2 py-1 bg-stone-200 text-stone-700 rounded-lg text-[10px] font-bold cursor-pointer"
                               >
                                 İptal
                               </button>
@@ -1078,7 +1247,7 @@ export default function KarZararPage() {
                               type="button"
                               onClick={() => setDeleteConfirmId(tx.id)}
                               title="Kaydı Sil"
-                              className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                              className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -1193,7 +1362,7 @@ export default function KarZararPage() {
               <button
                 type="button"
                 onClick={() => setIsSaleModalOpen(false)}
-                className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg"
+                className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1252,7 +1421,7 @@ export default function KarZararPage() {
                         key={c.key}
                         type="button"
                         onClick={() => setSaleForm((prev) => ({ ...prev, saleChannel: c.key as SaleChannel }))}
-                        className={`p-2 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 ${
+                        className={`p-2 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer ${
                           saleForm.saleChannel === c.key
                             ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
                             : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50'
@@ -1304,32 +1473,35 @@ export default function KarZararPage() {
                       min="1"
                       required
                       value={saleForm.quantity}
-                      onChange={(e) => setSaleForm((prev) => ({ ...prev, quantity: Math.max(1, parseInt(e.target.value) || 1) }))}
+                      onChange={(e) => setSaleForm((prev) => ({ ...prev, quantity: e.target.value }))}
+                      placeholder="1"
                       className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-bold text-stone-700 mb-1">Satış Birim Fiyatı (TL) *</label>
+                    <label className="block font-bold text-stone-700 mb-1">Birim Satış (TL) *</label>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       required
                       value={saleForm.unitPrice}
-                      onChange={(e) => setSaleForm((prev) => ({ ...prev, unitPrice: parseFloat(e.target.value) || 0 }))}
+                      onChange={(e) => setSaleForm((prev) => ({ ...prev, unitPrice: e.target.value }))}
+                      placeholder="0.00"
                       className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-bold text-stone-700 mb-1">Birim Alış Maliyeti (TL)</label>
+                    <label className="block font-bold text-stone-700 mb-1">Alış Maliyeti (TL)</label>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       value={saleForm.unitCost}
-                      onChange={(e) => setSaleForm((prev) => ({ ...prev, unitCost: parseFloat(e.target.value) || 0 }))}
+                      onChange={(e) => setSaleForm((prev) => ({ ...prev, unitCost: e.target.value }))}
+                      placeholder="0.00"
                       className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
                     />
                   </div>
@@ -1368,19 +1540,41 @@ export default function KarZararPage() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-stone-600 mb-1">Ödeme Yöntemi (Opsiyonel)</label>
+                  <label className="block font-semibold text-stone-600 mb-1">Ödeme Yöntemi</label>
                   <select
                     value={saleForm.paymentMethod}
                     onChange={(e) => setSaleForm((prev) => ({ ...prev, paymentMethod: e.target.value }))}
                     className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-700"
                   >
-                    <option value="nakit">Nakit</option>
+                    <option value="nakit">Nakit (Kasaya Girdi)</option>
                     <option value="kredi_karti">Kredi Kartı / POS</option>
                     <option value="havale_eft">Havale / EFT</option>
-                    <option value="veresiye">Veresiye / Açık Hesap</option>
+                    <option value="veresiye">Veresiye (Açık Hesap / Borç)</option>
                   </select>
                 </div>
               </div>
+
+              {/* Veresiye Seçildiyse Vade / Tahsilat Tarihi Girişi */}
+              {saleForm.paymentMethod === 'veresiye' && (
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-2xl space-y-2 animate-in fade-in">
+                  <div className="flex items-center gap-1.5 text-amber-900 font-bold text-xs">
+                    <Clock className="w-4 h-4 text-amber-700" />
+                    <span>Açık Hesap (Veresiye) Detayı</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800">
+                    Müşteri ödemeyi daha sonra yapacaktır. Bu tutar <strong>Bekleyen Alacaklar</strong> hanesine yazılacaktır.
+                  </p>
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">Vade / Tahsilat Sözü Tarihi (Opsiyonel)</label>
+                    <input
+                      type="date"
+                      value={saleForm.dueDate}
+                      onChange={(e) => setSaleForm((prev) => ({ ...prev, dueDate: e.target.value }))}
+                      className="w-full p-2 bg-white border border-amber-300 rounded-xl text-stone-900 text-xs font-semibold"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Checkbox: Depo Stoğundan Düş */}
               {saleForm.productId && (
@@ -1392,7 +1586,7 @@ export default function KarZararPage() {
                     className="w-4 h-4 text-amber-600 rounded"
                   />
                   <span className="font-semibold text-stone-700 text-xs">
-                    Bu satışı depo stoğundan otomatik olarak düş ({saleForm.quantity} adet)
+                    Bu satışı depo stoğundan otomatik olarak düş ({saleForm.quantity || 1} adet)
                   </span>
                 </label>
               )}
@@ -1402,7 +1596,7 @@ export default function KarZararPage() {
                 <button
                   type="button"
                   onClick={() => setIsSaleModalOpen(false)}
-                  className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl"
+                  className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl cursor-pointer"
                 >
                   Vazgeç
                 </button>
@@ -1410,7 +1604,7 @@ export default function KarZararPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-1.5"
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
                   {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <PlusCircle className="w-4 h-4" />}
                   <span>Satışı Onayla & Kaydet</span>
@@ -1443,7 +1637,7 @@ export default function KarZararPage() {
               <button
                 type="button"
                 onClick={() => setIsPurchaseModalOpen(false)}
-                className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg"
+                className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1487,7 +1681,8 @@ export default function KarZararPage() {
                     min="1"
                     required
                     value={purchaseForm.quantity}
-                    onChange={(e) => setPurchaseForm((prev) => ({ ...prev, quantity: Math.max(1, parseInt(e.target.value) || 1) }))}
+                    onChange={(e) => handlePurchaseQuantityChange(e.target.value)}
+                    placeholder="10"
                     className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
                   />
                 </div>
@@ -1499,14 +1694,7 @@ export default function KarZararPage() {
                     step="0.01"
                     min="0"
                     value={purchaseForm.unitPrice}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value) || 0;
-                      setPurchaseForm((prev) => ({ 
-                        ...prev, 
-                        unitPrice: val, 
-                        totalPriceInput: (val * prev.quantity).toFixed(2) 
-                      }));
-                    }}
+                    onChange={(e) => handlePurchaseUnitPriceChange(e.target.value)}
                     placeholder="Birim Fiyat"
                     className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
                   />
@@ -1519,16 +1707,8 @@ export default function KarZararPage() {
                     step="0.01"
                     min="0"
                     value={purchaseForm.totalPriceInput}
-                    onChange={(e) => {
-                      const totalVal = parseFloat(e.target.value) || 0;
-                      const uPrice = purchaseForm.quantity > 0 ? (totalVal / purchaseForm.quantity) : 0;
-                      setPurchaseForm((prev) => ({ 
-                        ...prev, 
-                        totalPriceInput: e.target.value,
-                        unitPrice: Math.round(uPrice * 100) / 100
-                      }));
-                    }}
-                    placeholder="100 TL"
+                    onChange={(e) => handlePurchaseTotalPriceChange(e.target.value)}
+                    placeholder="Toplam Tutar"
                     className="w-full p-2.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 font-black focus:outline-none focus:border-amber-600"
                   />
                 </div>
@@ -1569,7 +1749,7 @@ export default function KarZararPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-stone-600 mb-1">Alış Tarihi (Opsiyonel)</label>
+                  <label className="block font-semibold text-stone-600 mb-1">Alış Tarihi</label>
                   <input
                     type="date"
                     value={purchaseForm.transactionDate}
@@ -1579,7 +1759,7 @@ export default function KarZararPage() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-stone-600 mb-1">Ödeme Şekli (Opsiyonel)</label>
+                  <label className="block font-semibold text-stone-600 mb-1">Ödeme Şekli</label>
                   <select
                     value={purchaseForm.paymentMethod}
                     onChange={(e) => setPurchaseForm((prev) => ({ ...prev, paymentMethod: e.target.value }))}
@@ -1588,10 +1768,32 @@ export default function KarZararPage() {
                     <option value="nakit">Nakit</option>
                     <option value="kredi_karti">Kredi Kartı</option>
                     <option value="havale_eft">Havale / EFT</option>
-                    <option value="veresiye">Veresiye / Açık Hesap</option>
+                    <option value="veresiye">Veresiye / Açık Hesap Borcu</option>
                   </select>
                 </div>
               </div>
+
+              {/* Veresiye Seçildiyse Vade / Ödeme Tarihi Girişi */}
+              {purchaseForm.paymentMethod === 'veresiye' && (
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-2xl space-y-2 animate-in fade-in">
+                  <div className="flex items-center gap-1.5 text-amber-900 font-bold text-xs">
+                    <Clock className="w-4 h-4 text-amber-700" />
+                    <span>Toptancıya Açık Hesap Borcu</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800">
+                    Toptancıya ödeme henüz yapılmadı. Bu tutar <strong>Bekleyen Borçlar</strong> hanesine eklenecektir.
+                  </p>
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">Ödeme Vadesi / Tarihi (Opsiyonel)</label>
+                    <input
+                      type="date"
+                      value={purchaseForm.dueDate}
+                      onChange={(e) => setPurchaseForm((prev) => ({ ...prev, dueDate: e.target.value }))}
+                      className="w-full p-2 bg-white border border-amber-300 rounded-xl text-stone-900 text-xs font-semibold"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Checkboxes for Product Sync */}
               {purchaseForm.productId && (
@@ -1604,7 +1806,7 @@ export default function KarZararPage() {
                       className="w-4 h-4 text-amber-600 rounded"
                     />
                     <span className="font-semibold text-stone-700 text-xs">
-                      Alınan adedi ({purchaseForm.quantity} adet) depo stoğuna ekle
+                      Alınan adedi ({purchaseForm.quantity || 1} adet) depo stoğuna otomatik ekle ve alış maliyetini güncelle
                     </span>
                   </label>
                 </div>
@@ -1615,7 +1817,7 @@ export default function KarZararPage() {
                 <button
                   type="button"
                   onClick={() => setIsPurchaseModalOpen(false)}
-                  className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl"
+                  className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl cursor-pointer"
                 >
                   Vazgeç
                 </button>
@@ -1623,7 +1825,7 @@ export default function KarZararPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-1.5"
+                  className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
                   {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Boxes className="w-4 h-4" />}
                   <span>Alışı Kaydet</span>
@@ -1656,7 +1858,7 @@ export default function KarZararPage() {
               <button
                 type="button"
                 onClick={() => setIsExpenseModalOpen(false)}
-                className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg"
+                className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1683,8 +1885,8 @@ export default function KarZararPage() {
                     step="0.01"
                     min="1"
                     required
-                    value={expenseForm.amount || ''}
-                    onChange={(e) => setExpenseForm((prev) => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                    value={expenseForm.amount}
+                    onChange={(e) => setExpenseForm((prev) => ({ ...prev, amount: e.target.value }))}
                     placeholder="500 TL"
                     className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-bold"
                   />
@@ -1706,7 +1908,7 @@ export default function KarZararPage() {
                 <button
                   type="button"
                   onClick={() => setIsExpenseModalOpen(false)}
-                  className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl"
+                  className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl cursor-pointer"
                 >
                   Vazgeç
                 </button>
@@ -1714,7 +1916,7 @@ export default function KarZararPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-2.5 bg-stone-900 hover:bg-black text-white font-bold rounded-xl shadow-md transition disabled:opacity-50"
+                  className="px-6 py-2.5 bg-stone-900 hover:bg-black text-white font-bold rounded-xl shadow-md transition disabled:opacity-50 cursor-pointer"
                 >
                   Gideri Kaydet
                 </button>

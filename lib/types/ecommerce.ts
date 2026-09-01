@@ -255,7 +255,9 @@ export interface AccountingTransaction {
   customer_phone?: string | null; // Satışta zorunlu
   sale_channel?: SaleChannel | null; // Satışta zorunlu ('magaza' | 'toptan' | 'website')
   supplier_name?: string | null; // Alışta opsiyonel
-  payment_method?: string | null; // Opsiyonel (Nakit, Kredi Kartı, Havale/EFT, Veresiye)
+  payment_method?: string | null; // Opsiyonel (nakit, kart, havale, veresiye)
+  payment_status?: 'paid' | 'pending'; // Ödeme/Tahsilat durumu (paid: Kasada/Ödendi, pending: Açık Hesap / Veresiye)
+  due_date?: string | null; // Veresiye / Açık Hesap Vade veya Tahsilat Tarihi (YYYY-MM-DD)
   document_no?: string | null; // Opsiyonel (Fatura / Fiş No)
   notes?: string | null; // Opsiyonel
   transaction_date: string; // Zorunlu (YYYY-MM-DD)
@@ -269,6 +271,9 @@ export interface ProfitSummary {
   totalCost: number;
   totalExpenses: number;
   netProfit: number;
+  collectedProfit: number; // Kasaya fiilen girmiş tahsil edilmiş net kâr
+  pendingReceivables: number; // Açık hesap (veresiye) bekleyen alacaklar
+  pendingPayables: number; // Açık hesap (veresiye) bekleyen borçlar
   profitMargin: number;
   totalSalesCount: number;
   totalPurchasesCount: number;

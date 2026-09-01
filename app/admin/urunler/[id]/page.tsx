@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -40,6 +40,7 @@ export default function EditProductPage() {
   const [slug, setSlug] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [price, setPrice] = useState<number | string>('');
+  const [costPrice, setCostPrice] = useState<number | string>('');
   const [wholesalePrice, setWholesalePrice] = useState<number | string>('');
   const [stock, setStock] = useState<number | string>('');
   const [sku, setSku] = useState('');
@@ -75,9 +76,10 @@ export default function EditProductPage() {
           setName(prod.name);
           setSlug(prod.slug);
           setCategoryId(prod.category_id || (cats[0]?.id ?? ''));
-          setPrice(prod.price);
+          setPrice(prod.price !== undefined && prod.price !== null ? prod.price : '');
+          setCostPrice(prod.cost_price !== undefined && prod.cost_price !== null ? prod.cost_price : '');
           setWholesalePrice(prod.wholesale_price !== undefined && prod.wholesale_price !== null ? prod.wholesale_price : '');
-          setStock(prod.stock);
+          setStock(prod.stock !== undefined && prod.stock !== null ? prod.stock : '');
           setSku(prod.sku || '');
           setIsPublished(prod.is_published ?? true);
           setShortDescription(prod.short_description || '');
@@ -223,6 +225,7 @@ export default function EditProductPage() {
       slug: slug || slugify(name),
       category_id: categoryId,
       price: Number(price) || 0,
+      cost_price: costPrice !== '' && costPrice !== null ? Number(costPrice) : null,
       wholesale_price: wholesalePrice !== '' && wholesalePrice !== null ? Number(wholesalePrice) : null,
       stock: Number(stock) || 0,
       sku: sku.trim() || null,
@@ -517,9 +520,26 @@ export default function EditProductPage() {
                 required
                 min="0"
                 value={price}
-                onChange={(e) => setPrice(Number(e.target.value))}
+                onChange={(e) => setPrice(e.target.value)}
                 className="w-full text-base font-bold p-3 bg-brand-50 text-brand-900 border border-brand-300 rounded-xl focus:bg-white focus:outline-none"
               />
+            </div>
+
+            {/* Cost Price */}
+            <div>
+              <label className="block text-xs font-semibold text-amber-900 mb-1">
+                Alış / Maliyet Fiyatı (₺ - Kâr Hesabı İçin)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={costPrice}
+                onChange={(e) => setCostPrice(e.target.value)}
+                placeholder="Örn: 120"
+                className="w-full text-sm font-bold p-2.5 bg-amber-50 text-amber-950 border border-amber-300 rounded-xl focus:bg-white focus:outline-none"
+              />
+              <p className="text-[10px] text-stone-400 mt-1">Tahtakale / toptancıdan birim alış maliyetiniz</p>
             </div>
 
             <div>
@@ -530,7 +550,7 @@ export default function EditProductPage() {
                 type="number"
                 min="0"
                 value={wholesalePrice}
-                onChange={(e) => setWholesalePrice(e.target.value === '' ? '' : Number(e.target.value))}
+                onChange={(e) => setWholesalePrice(e.target.value)}
                 placeholder="Örn: 220"
                 className="w-full text-sm font-semibold p-2.5 bg-stone-50 text-stone-800 border border-stone-300 rounded-xl focus:bg-white focus:outline-none"
               />
@@ -543,7 +563,7 @@ export default function EditProductPage() {
                 required
                 min="0"
                 value={stock}
-                onChange={(e) => setStock(Number(e.target.value))}
+                onChange={(e) => setStock(e.target.value)}
                 className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-bold"
               />
             </div>

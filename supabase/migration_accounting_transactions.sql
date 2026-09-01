@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS public.accounting_transactions (
     sale_channel TEXT CHECK (sale_channel IN ('magaza', 'toptan', 'website')),
     supplier_name TEXT,
     payment_method TEXT DEFAULT 'nakit',
+    payment_status TEXT DEFAULT 'paid' NOT NULL,
+    due_date DATE,
     document_no TEXT,
     notes TEXT,
     transaction_date DATE DEFAULT CURRENT_DATE NOT NULL,
@@ -26,6 +28,10 @@ CREATE TABLE IF NOT EXISTS public.accounting_transactions (
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
+
+-- Idempotent column additions if table already exists:
+ALTER TABLE public.accounting_transactions ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'paid' NOT NULL;
+ALTER TABLE public.accounting_transactions ADD COLUMN IF NOT EXISTS due_date DATE;
 
 ALTER TABLE public.accounting_transactions ENABLE ROW LEVEL SECURITY;
 
