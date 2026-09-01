@@ -1727,10 +1727,11 @@ export const DataService = {
 
     // Save to Supabase
     try {
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       const supabase = createClient();
       const payload: any = {
         type: tx.type,
-        product_id: tx.product_id,
+        product_id: tx.product_id && UUID_REGEX.test(tx.product_id) ? tx.product_id : null,
         product_name: tx.product_name,
         quantity: tx.quantity,
         unit_price: tx.unit_price,
@@ -1752,7 +1753,7 @@ export const DataService = {
         updated_at: new Date().toISOString(),
       };
 
-      if (tx.id && !tx.id.startsWith('tx-')) {
+      if (tx.id && UUID_REGEX.test(tx.id)) {
         payload.id = tx.id;
       }
 
