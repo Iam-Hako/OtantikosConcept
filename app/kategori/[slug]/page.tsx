@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
@@ -58,7 +58,7 @@ function CategoryContent() {
     async function loadData() {
       try {
         const [prodList, catList] = await Promise.all([
-          DataService.getProducts(),
+          DataService.getPublicProducts(),
           DataService.getCategories(),
         ]);
         setAllProducts(prodList);
@@ -100,7 +100,7 @@ function CategoryContent() {
       const q = normalizeTurkish(searchQuery);
       list = list.filter((p) => 
         normalizeTurkish(p.name).includes(q) || 
-        normalizeTurkish(p.sku).includes(q) ||
+        normalizeTurkish(p.sku || '').includes(q) ||
         (p.category?.name && normalizeTurkish(p.category.name).includes(q))
       );
     }
@@ -127,8 +127,8 @@ function CategoryContent() {
     return list;
   }, [allProducts, slug, currentCategory, searchQuery, onlyInStock, maxPrice, sortBy]);
 
-  const pageTitle = currentCategory ? currentCategory.name : (searchQuery ? `"${searchQuery}" Arama Sonuçları` : 'Tüm Tahtakale Koleksiyonu');
-  const pageDesc = currentCategory ? currentCategory.description : 'Eminönü Tahtakale atölyelerinden ve doğrudan ithalatçılardan en özel parçalar.';
+  const pageTitle = currentCategory ? currentCategory.name : (searchQuery ? `"${searchQuery}" Arama SonuÃ§larÄ±` : 'TÃ¼m Tahtakale Koleksiyonu');
+  const pageDesc = currentCategory ? currentCategory.description : 'EminÃ¶nÃ¼ Tahtakale atÃ¶lyelerinden ve doÄŸrudan ithalatÃ§Ä±lardan en Ã¶zel parÃ§alar.';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -157,7 +157,7 @@ function CategoryContent() {
             </p>
           </div>
           <div className="text-xs text-stone-500 font-semibold">
-            Toplam <strong className="text-stone-900">{filteredProducts.length}</strong> ürün listeleniyor
+            Toplam <strong className="text-stone-900">{filteredProducts.length}</strong> Ã¼rÃ¼n listeleniyor
           </div>
         </div>
       </div>
@@ -172,7 +172,7 @@ function CategoryContent() {
             className="flex-1 py-2.5 px-4 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl flex items-center justify-center gap-2"
           >
             <SlidersHorizontal className="w-4 h-4" />
-            <span>Filtreleri Göster</span>
+            <span>Filtreleri GÃ¶ster</span>
           </button>
         </div>
 
@@ -181,7 +181,7 @@ function CategoryContent() {
           
           {isMobileFilterOpen && (
             <div className="flex items-center justify-between pb-4 border-b border-stone-200 lg:hidden">
-              <h3 className="font-bold text-sm text-stone-900">Filtreleme Seçenekleri</h3>
+              <h3 className="font-bold text-sm text-stone-900">Filtreleme SeÃ§enekleri</h3>
               <button onClick={() => setIsMobileFilterOpen(false)} className="p-1 text-stone-500">
                 <X className="w-5 h-5" />
               </button>
@@ -201,7 +201,7 @@ function CategoryContent() {
                     !currentCategory ? 'bg-amber-100/80 text-amber-900 font-bold' : 'text-stone-600 hover:bg-stone-100'
                   }`}
                 >
-                  Tüm Ürünler ({allProducts.length})
+                  TÃ¼m ÃœrÃ¼nler ({allProducts.length})
                 </Link>
               </li>
               {categories.map((c) => {
@@ -235,7 +235,7 @@ function CategoryContent() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Örn: gümüş, uçan, mozaik..."
+                placeholder="Ã–rn: gÃ¼mÃ¼ÅŸ, uÃ§an, mozaik..."
                 className="w-full text-xs py-2 pl-8 pr-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-amber-500"
               />
               <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-2.5" />
@@ -262,7 +262,7 @@ function CategoryContent() {
               className="w-full accent-amber-600 cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-stone-400 mt-1">
-              <span>₺0</span>
+              <span>â‚º0</span>
               <span>{formatPrice(maxAvailablePrice)}</span>
             </div>
           </div>
@@ -277,7 +277,7 @@ function CategoryContent() {
                 className="w-4 h-4 text-amber-600 rounded border-stone-300 focus:ring-amber-500"
               />
               <span className="text-xs font-semibold text-stone-800">
-                Yalnızca Stokta Olanlar
+                YalnÄ±zca Stokta Olanlar
               </span>
             </label>
           </div>
@@ -287,7 +287,7 @@ function CategoryContent() {
               onClick={() => setIsMobileFilterOpen(false)}
               className="w-full py-3 bg-amber-600 text-white font-bold text-xs rounded-xl mt-4"
             >
-              Filtreleri Uygula ({filteredProducts.length} Ürün)
+              Filtreleri Uygula ({filteredProducts.length} ÃœrÃ¼n)
             </button>
           )}
         </aside>
@@ -298,21 +298,21 @@ function CategoryContent() {
           {/* Sorting Header */}
           <div className="bg-white p-4 rounded-xl border border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-xs text-stone-600">
-              Sıralama ve görünüm seçenekleri:
+              SÄ±ralama ve gÃ¶rÃ¼nÃ¼m seÃ§enekleri:
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <span className="text-xs text-stone-400 shrink-0">Sırala:</span>
+              <span className="text-xs text-stone-400 shrink-0">SÄ±rala:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
                 className="text-xs bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-stone-800 font-medium focus:outline-none focus:border-amber-500"
               >
-                <option value="featured">Öne Çıkanlar</option>
+                <option value="featured">Ã–ne Ã‡Ä±kanlar</option>
                 <option value="newest">En Yeni Eklenenler</option>
-                <option value="price-asc">Fiyat (Düşükten Yükseğe)</option>
-                <option value="price-desc">Fiyat (Yüksekten Düşüğe)</option>
-                <option value="rating">En Yüksek Puanlılar</option>
+                <option value="price-asc">Fiyat (DÃ¼ÅŸÃ¼kten YÃ¼kseÄŸe)</option>
+                <option value="price-desc">Fiyat (YÃ¼ksekten DÃ¼ÅŸÃ¼ÄŸe)</option>
+                <option value="rating">En YÃ¼ksek PuanlÄ±lar</option>
               </select>
             </div>
           </div>
@@ -321,9 +321,9 @@ function CategoryContent() {
           {filteredProducts.length === 0 ? (
             <div className="bg-white rounded-2xl border border-stone-200 p-12 text-center">
               <Sparkles className="w-10 h-10 text-stone-300 mx-auto mb-3" />
-              <h3 className="text-base font-bold text-stone-900">Aradığınız kriterlere uygun ürün bulunamadı</h3>
+              <h3 className="text-base font-bold text-stone-900">AradÄ±ÄŸÄ±nÄ±z kriterlere uygun Ã¼rÃ¼n bulunamadÄ±</h3>
               <p className="text-xs text-stone-500 mt-1 max-w-sm mx-auto">
-                Filtreleri sıfırlayarak veya farklı bir anahtar kelime aratarak tekrar deneyebilirsiniz.
+                Filtreleri sÄ±fÄ±rlayarak veya farklÄ± bir anahtar kelime aratarak tekrar deneyebilirsiniz.
               </p>
               <button
                 onClick={() => {
@@ -353,8 +353,10 @@ function CategoryContent() {
 
 export default function CategoryPage() {
   return (
-    <Suspense fallback={<div className="p-12 text-center text-xs text-stone-500">Koleksiyon yükleniyor...</div>}>
+    <Suspense fallback={<div className="p-12 text-center text-xs text-stone-500">Koleksiyon yÃ¼kleniyor...</div>}>
       <CategoryContent />
     </Suspense>
   );
 }
+
+

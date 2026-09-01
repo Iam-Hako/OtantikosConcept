@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -14,7 +14,11 @@ import {
   Video, 
   Layers,
   UploadCloud,
-  Loader2
+  Loader2,
+  Globe,
+  Archive,
+  RefreshCw,
+  Barcode
 } from 'lucide-react';
 import { Category, ProductSpecification, ProductVariant, ProductImage, Product } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
@@ -35,9 +39,11 @@ export default function EditProductPage() {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [price, setPrice] = useState<number>(0);
-  const [stock, setStock] = useState<number>(0);
+  const [price, setPrice] = useState<number | string>('');
+  const [wholesalePrice, setWholesalePrice] = useState<number | string>('');
+  const [stock, setStock] = useState<number | string>('');
   const [sku, setSku] = useState('');
+  const [isPublished, setIsPublished] = useState(true);
   const [shortDescription, setShortDescription] = useState('');
   const [description, setDescription] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
@@ -59,35 +65,45 @@ export default function EditProductPage() {
 
   useEffect(() => {
     async function loadData() {
-      const [cats, prod] = await Promise.all([
-        DataService.getCategories(),
-        DataService.getProductById(productId),
-      ]);
+      const cats = await DataService.getCategories();
       setCategories(cats);
-      if (prod) {
-        setProduct(prod);
-        setName(prod.name);
-        setSlug(prod.slug);
-        setCategoryId(prod.category_id || (cats[0]?.id || ''));
-        setPrice(prod.price);
-        setStock(prod.stock);
-        setSku(prod.sku);
-        setShortDescription(prod.short_description || '');
-        setDescription(prod.description || '');
-        setVideoUrl(prod.video_url || '');
-        setIsFeatured(prod.is_featured);
-        setIsNew(prod.is_new);
-        setSpecs(prod.specifications || []);
-        setVariants(prod.variants || []);
-        setImages(prod.images || []);
+
+      if (productId) {
+        const prod = await DataService.getProductById(productId);
+        if (prod) {
+          setProduct(prod);
+          setName(prod.name);
+          setSlug(prod.slug);
+          setCategoryId(prod.category_id || (cats[0]?.id ?? ''));
+          setPrice(prod.price);
+          setWholesalePrice(prod.wholesale_price !== undefined && prod.wholesale_price !== null ? prod.wholesale_price : '');
+          setStock(prod.stock);
+          setSku(prod.sku || '');
+          setIsPublished(prod.is_published ?? true);
+          setShortDescription(prod.short_description || '');
+          setDescription(prod.description || '');
+          setVideoUrl(prod.video_url || '');
+          setIsFeatured(prod.is_featured);
+          setIsNew(prod.is_new);
+          setSpecs(prod.specifications || []);
+          setVariants(prod.variants || []);
+          setImages(prod.images || []);
+        } else {
+          toast.error('Ürün bulunamadı.');
+          router.push('/admin/urunler');
+        }
       }
     }
-    if (productId) {
-      loadData();
-    }
-  }, [productId]);
+    loadData();
+  }, [productId, router]);
 
-  // Spec Builder Helpers
+  const handleGenerateSku = () => {
+    const randomCode = `OTK-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    setSku(randomCode);
+    toast.info(`Otomatik kod üretildi: ${randomCode}`);
+  };
+
+  // Spec Builder
   const addSpecRow = () => {
     setSpecs((prev) => [
       ...prev,
@@ -107,7 +123,7 @@ export default function EditProductPage() {
     setSpecs((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Variant Helpers
+  // Variant Builder
   const addVariantRow = () => {
     setVariants((prev) => [
       ...prev,
@@ -127,7 +143,7 @@ export default function EditProductPage() {
     setVariants((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Gallery & File Upload Helpers
+  // Images
   const handleAddImage = () => {
     if (!newImageUrl.trim()) return;
     const formatted = convertGoogleDriveUrl(newImageUrl.trim());
@@ -174,26 +190,7 @@ export default function EditProductPage() {
     setIsUploadingImage(false);
     if (e.target) e.target.value = '';
     if (successCount > 0) {
-      toast.success(`${successCount} fotoğraf başarıyla yüklendi!`);
-    }
-  };
-
-  const handleVideoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingVideo(true);
-    try {
-      const uploadedUrl = await uploadMediaFile(file);
-      if (uploadedUrl) {
-        setVideoUrl(uploadedUrl);
-        toast.success('Tanıtım videosu başarıyla yüklendi!');
-      }
-    } catch (err: any) {
-      toast.error(`Video yüklenirken hata: ${err.message || 'Bağlantı hatası'}`);
-    } finally {
-      setIsUploadingVideo(false);
-      if (e.target) e.target.value = '';
+      toast.success(`${successCount} fotoğraf Supabase'e yüklendi!`);
     }
   };
 
@@ -212,7 +209,10 @@ export default function EditProductPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      toast.error('Lütfen ürün adını giriniz.');
+      return;
+    }
 
     setIsSaving(true);
     const cleanVideo = videoUrl.trim() ? (convertGoogleDriveVideoUrl(videoUrl.trim()) || videoUrl.trim()) : null;
@@ -222,9 +222,11 @@ export default function EditProductPage() {
       name,
       slug: slug || slugify(name),
       category_id: categoryId,
-      price: Number(price),
-      stock: Number(stock),
-      sku,
+      price: Number(price) || 0,
+      wholesale_price: wholesalePrice !== '' && wholesalePrice !== null ? Number(wholesalePrice) : null,
+      stock: Number(stock) || 0,
+      sku: sku.trim() || null,
+      is_published: isPublished,
       short_description: shortDescription,
       description,
       video_url: cleanVideo,
@@ -234,26 +236,21 @@ export default function EditProductPage() {
       variants: variants.filter((v) => v.value.trim()),
       images: images,
     });
+
     setIsSaving(false);
 
-    if (res.success) {
-      toast.success(`"${name}" güncellendi!`, {
-        description: 'Değişiklikler anında canlı sitede güncellendi.',
-      });
+    if (res.success && res.product) {
+      toast.success(`"${res.product.name}" güncellendi!`);
       router.push('/admin/urunler');
     } else {
-      toast.error(res.error || 'Ürün kaydedilemedi.');
+      toast.error(res.error || 'Ürün güncellenemedi.');
     }
   };
-
-  if (!product) {
-    return <div className="p-8 text-center text-xs text-stone-500">Ürün bilgileri yükleniyor...</div>;
-  }
 
   return (
     <form onSubmit={handleSave} className="max-w-5xl mx-auto space-y-8 pb-16">
       
-      {/* Action Bar */}
+      {/* Top Action Bar */}
       <div className="flex items-center justify-between border-b border-stone-200 pb-4">
         <div className="flex items-center gap-3">
           <Link href="/admin/urunler" className="p-2 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-100">
@@ -261,29 +258,30 @@ export default function EditProductPage() {
           </Link>
           <div>
             <h1 className="text-xl sm:text-2xl font-serif font-black text-stone-900">
-              Ürün Düzenle: {product.name}
+              Ürünü Düzenle: {name || 'Yükleniyor...'}
             </h1>
-            <p className="text-xs text-stone-500">Dinamik özellik tablosunu ve stokları güncelleyin</p>
+            <p className="text-xs text-stone-500">Stok, perakende/toptan fiyat ve yayın durumu güncelleme</p>
           </div>
         </div>
 
         <button
           type="submit"
-          className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2"
+          disabled={isSaving}
+          className="px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 disabled:opacity-60"
         >
-          <Save className="w-4 h-4" />
-          <span>Değişiklikleri Canlıya Kaydet</span>
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          <span>{isSaving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}</span>
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Main 2 Cols */}
+        {/* Left Column: Basic Info & Specs */}
         <div className="lg:col-span-2 space-y-6">
           
           <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
             <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 border-b border-stone-100 pb-2">
-              Temel Bilgiler
+              Temel Ürün Bilgileri
             </h2>
 
             <div>
@@ -293,7 +291,7 @@ export default function EditProductPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 font-bold"
+                className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-brand-600 font-medium"
               />
             </div>
 
@@ -305,16 +303,16 @@ export default function EditProductPage() {
                   required
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
-                  className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono"
+                  className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono text-stone-600"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">Kategori</label>
+                <label className="block text-xs font-semibold text-stone-700 mb-1">Kategori *</label>
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
-                  className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
+                  className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
                 >
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -326,17 +324,17 @@ export default function EditProductPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">Kısa Tanıtım Vurgusu</label>
+              <label className="block text-xs font-semibold text-stone-700 mb-1">Kısa Tanıtım (Vurgu)</label>
               <input
                 type="text"
                 value={shortDescription}
                 onChange={(e) => setShortDescription(e.target.value)}
-                className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
+                className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">Açıklama</label>
+              <label className="block text-xs font-semibold text-stone-700 mb-1">Detaylı Ürün Açıklaması</label>
               <textarea
                 rows={4}
                 value={description}
@@ -346,47 +344,38 @@ export default function EditProductPage() {
             </div>
           </div>
 
-          {/* Spec Builder */}
+          {/* Specs Builder */}
           <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <div>
                 <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-amber-600" />
-                  <span>Ürün Özellik Tablosu (Opsiyonel)</span>
+                  <Sparkles className="w-4 h-4 text-brand-600" />
+                  <span>Ürün Özellik Tablosu</span>
                 </h2>
-                <p className="text-[11px] text-stone-500 mt-0.5">
-                  Ürün sayfasındaki bilgi tablosuna özellik ekleyin (Örn: Malzeme, Ölçü, Garanti). İstemiyorsanız boş bırakabilirsiniz.
-                </p>
               </div>
               <button
                 type="button"
                 onClick={addSpecRow}
-                className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-lg border border-amber-300 transition flex items-center gap-1"
+                className="px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-800 text-xs font-bold rounded-lg border border-brand-300 transition flex items-center gap-1"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>+ Yeni Özellik Ekle</span>
+                <span>+ Yeni Özellik</span>
               </button>
             </div>
-
-            {specs.length === 0 && (
-              <div className="p-4 rounded-xl bg-stone-50 border border-dashed border-stone-200 text-center text-xs text-stone-400">
-                Özel teknik özellik eklenmemiş. Gerekirse yukarıdaki butondan ekleyebilirsiniz.
-              </div>
-            )}
 
             <div className="space-y-2.5">
               {specs.map((spec, index) => (
                 <div key={index} className="flex items-center gap-3 bg-stone-50 p-2.5 rounded-xl border border-stone-200">
                   <input
                     type="text"
-                    placeholder="Özellik Başlığı (Örn: Malzeme)"
+                    placeholder="Örn: Malzeme / Boyut"
                     value={spec.spec_key}
                     onChange={(e) => updateSpecRow(index, e.target.value, spec.spec_value)}
                     className="flex-1 text-xs p-2 bg-white border border-stone-300 rounded-lg font-semibold"
                   />
                   <input
                     type="text"
-                    placeholder="Özellik Değeri (Örn: 316L Çelik)"
+                    placeholder="Örn: 316L Çelik"
                     value={spec.spec_value}
                     onChange={(e) => updateSpecRow(index, spec.spec_key, e.target.value)}
                     className="flex-1 text-xs p-2 bg-white border border-stone-300 rounded-lg"
@@ -394,7 +383,7 @@ export default function EditProductPage() {
                   <button
                     type="button"
                     onClick={() => removeSpecRow(index)}
-                    className="text-stone-400 hover:text-rose-600 p-1.5 transition"
+                    className="text-stone-400 hover:text-rose-600 p-1.5"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -403,33 +392,24 @@ export default function EditProductPage() {
             </div>
           </div>
 
-          {/* Variants */}
+          {/* Variants Builder */}
           <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <div>
                 <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
-                  <Layers className="w-4 h-4 text-amber-600" />
-                  <span>Renk / Beden / Model Seçenekleri (Opsiyonel)</span>
+                  <Layers className="w-4 h-4 text-brand-600" />
+                  <span>Renk / Model Varyantları</span>
                 </h2>
-                <p className="text-[11px] text-stone-500 mt-0.5">
-                  Farklı renk veya beden seçenekleri varsa ekleyin. Tek model ürünler için boş bırakabilirsiniz.
-                </p>
               </div>
               <button
                 type="button"
                 onClick={addVariantRow}
-                className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-lg border border-amber-300 transition flex items-center gap-1"
+                className="px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-800 text-xs font-bold rounded-lg border border-brand-300 transition flex items-center gap-1"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>+ Seçenek Ekle</span>
               </button>
             </div>
-
-            {variants.length === 0 && (
-              <div className="p-4 rounded-xl bg-stone-50 border border-dashed border-stone-200 text-center text-xs text-stone-400">
-                Ayrı renk/beden seçeneği bulunmuyor. Ürün tek model olarak satışta.
-              </div>
-            )}
 
             <div className="space-y-3">
               {variants.map((variant, index) => (
@@ -443,9 +423,8 @@ export default function EditProductPage() {
                       className="w-full text-xs p-2 bg-white border border-stone-300 rounded-lg font-semibold"
                     />
                   </div>
-
                   <div>
-                    <label className="text-[10px] text-stone-400 uppercase font-bold block mb-1">Seçenek Adı</label>
+                    <label className="text-[10px] text-stone-400 uppercase font-bold block mb-1">Değer</label>
                     <input
                       type="text"
                       value={variant.value}
@@ -453,23 +432,20 @@ export default function EditProductPage() {
                       className="w-full text-xs p-2 bg-white border border-stone-300 rounded-lg"
                     />
                   </div>
-
                   <div>
-                    <label className="text-[10px] text-stone-400 uppercase font-bold block mb-1">Varyant Stoğu</label>
+                    <label className="text-[10px] text-stone-400 uppercase font-bold block mb-1">Stok</label>
                     <input
                       type="number"
-                      min="0"
                       value={variant.stock}
                       onChange={(e) => updateVariantRow(index, 'stock', Number(e.target.value))}
                       className="w-full text-xs p-2 bg-white border border-stone-300 rounded-lg text-center font-bold"
                     />
                   </div>
-
-                  <div className="flex items-center justify-between pt-4">
+                  <div className="flex items-center justify-end pt-4">
                     <button
                       type="button"
                       onClick={() => removeVariantRow(index)}
-                      className="text-stone-400 hover:text-rose-600 p-2 transition ml-auto"
+                      className="text-stone-400 hover:text-rose-600 p-2"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -481,29 +457,87 @@ export default function EditProductPage() {
 
         </div>
 
-        {/* 1 Col Sidebar */}
+        {/* Right Column */}
         <div className="space-y-6">
           
+          {/* Publishing Status Toggle */}
+          <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 border-b border-stone-100 pb-2 flex items-center justify-between">
+              <span>Yayınlama Durumu</span>
+              {isPublished ? (
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1">
+                  <Globe className="w-3 h-3" /> Sitede Yayında
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full flex items-center gap-1">
+                  <Archive className="w-3 h-3" /> Sadece Depo Stoğu
+                </span>
+              )}
+            </h2>
+
+            <div 
+              onClick={() => setIsPublished(!isPublished)}
+              className={`p-3.5 rounded-xl border cursor-pointer transition flex items-start gap-3 ${
+                isPublished 
+                  ? 'bg-emerald-50/70 border-emerald-300' 
+                  : 'bg-amber-50/70 border-amber-300'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={isPublished}
+                onChange={() => {}}
+                className="mt-1 w-4 h-4 text-emerald-600 rounded"
+              />
+              <div>
+                <p className="text-xs font-bold text-slate-900">
+                  {isPublished ? 'Web Sitesinde Yayınla' : 'Sadece Depo Stoğu Olarak Sakla'}
+                </p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {isPublished 
+                    ? 'Açık: Ürün online mağazada sergilenir ve müşteriler tarafından satın alınabilir.' 
+                    : 'Kapalı: Ürün web sitesinde gizlenir, sadece depo ve admin panelinizde takip edilir.'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Pricing & Stock */}
           <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
             <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 border-b border-stone-100 pb-2">
-              Fiyat & Stok
+              Fiyat & Depo Stoğu
             </h2>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">Doğrudan Net Fiyat (₺) *</label>
+              <label className="block text-xs font-semibold text-stone-700 mb-1">
+                Perakende Satış Fiyatı (₺) *
+              </label>
               <input
                 type="number"
                 required
-                min="1"
-                step="1"
+                min="0"
                 value={price}
                 onChange={(e) => setPrice(Number(e.target.value))}
-                className="w-full text-sm font-black p-3 bg-amber-50 text-amber-900 border border-amber-300 rounded-xl focus:bg-white focus:outline-none"
+                className="w-full text-base font-bold p-3 bg-brand-50 text-brand-900 border border-brand-300 rounded-xl focus:bg-white focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">Toplam Stok Adedi *</label>
+              <label className="block text-xs font-semibold text-stone-700 mb-1">
+                Toptan Satış Fiyatı (₺ - Opsiyonel)
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={wholesalePrice}
+                onChange={(e) => setWholesalePrice(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="Örn: 220"
+                className="w-full text-sm font-semibold p-2.5 bg-stone-50 text-stone-800 border border-stone-300 rounded-xl focus:bg-white focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-stone-700 mb-1">Toplam Depo Stoğu *</label>
               <input
                 type="number"
                 required
@@ -515,13 +549,24 @@ export default function EditProductPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">SKU Kodu</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-stone-700 flex items-center gap-1">
+                  <Barcode className="w-3.5 h-3.5 text-brand-600" />
+                  <span>Barkod / Stok Kodu</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleGenerateSku}
+                  className="text-[10px] font-bold text-brand-700 hover:text-brand-900 flex items-center gap-0.5"
+                >
+                  <RefreshCw className="w-3 h-3" /> Otomatik Üret
+                </button>
+              </div>
               <input
                 type="text"
-                required
                 value={sku}
                 onChange={(e) => setSku(e.target.value)}
-                className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono"
+                className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono text-stone-700"
               />
             </div>
 
@@ -531,169 +576,114 @@ export default function EditProductPage() {
                   type="checkbox"
                   checked={isFeatured}
                   onChange={(e) => setIsFeatured(e.target.checked)}
-                  className="w-4 h-4 text-amber-600 rounded"
+                  className="w-4 h-4 text-brand-600 rounded"
                 />
-                <span className="font-semibold text-stone-800">Vitrin Ürünü</span>
+                <span className="font-semibold text-stone-700">⭐ Çok Satan / Öne Çıkan</span>
               </label>
-
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={isNew}
                   onChange={(e) => setIsNew(e.target.checked)}
-                  className="w-4 h-4 text-amber-600 rounded"
+                  className="w-4 h-4 text-brand-600 rounded"
                 />
-                <span className="font-semibold text-stone-800">Yeni Ürün</span>
+                <span className="font-semibold text-stone-700">✨ Yeni Koleksiyon</span>
               </label>
             </div>
           </div>
 
-          {/* Images */}
+          {/* Product Images (Supabase Storage) */}
           <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
             <div className="flex items-center justify-between border-b border-stone-100 pb-2">
               <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
-                <ImageIcon className="w-4 h-4 text-amber-600" />
-                <span>Görseller & Kapak</span>
+                <ImageIcon className="w-4 h-4 text-brand-600" />
+                <span>Ürün Fotoğrafları ({images.length})</span>
               </h2>
-              <span className="text-[11px] text-stone-400 font-semibold">{images.length} Fotoğraf</span>
             </div>
 
-            {/* Hidden File Input */}
             <input
-              type="file"
               ref={fileInputRef}
-              onChange={handleImageFileUpload}
-              accept="image/*"
+              type="file"
               multiple
+              accept="image/*"
+              onChange={handleImageFileUpload}
               className="hidden"
             />
-
-            {/* Direct File Upload Button / Dropzone */}
             <button
               type="button"
               disabled={isUploadingImage}
               onClick={() => fileInputRef.current?.click()}
-              className="w-full p-4 rounded-2xl border-2 border-dashed border-amber-300 hover:border-amber-500 bg-amber-50/50 hover:bg-amber-50 transition flex flex-col items-center justify-center gap-1.5 text-stone-700 cursor-pointer disabled:opacity-50"
+              className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-brand-300 bg-brand-50/50 hover:bg-brand-50 text-brand-800 font-bold text-xs flex flex-col items-center justify-center gap-1 transition cursor-pointer disabled:opacity-60"
             >
               {isUploadingImage ? (
                 <>
-                  <Loader2 className="w-6 h-6 text-amber-600 animate-spin" />
-                  <span className="text-xs font-bold text-amber-900">Fotoğraflar Yükleniyor...</span>
+                  <Loader2 className="w-5 h-5 animate-spin text-brand-600" />
+                  <span>Supabase&apos;e Yükleniyor...</span>
                 </>
               ) : (
                 <>
-                  <UploadCloud className="w-6 h-6 text-amber-600" />
-                  <span className="text-xs font-bold text-stone-900">Bilgisayardan Fotoğraf Yükle</span>
-                  <span className="text-[10px] text-stone-500">Tıklayın veya fotoğrafları buraya seçin (Çoklu seçim desteklenir)</span>
+                  <UploadCloud className="w-5 h-5 text-brand-600" />
+                  <span>📁 Cihazdan Yeni Fotoğraf Yükle</span>
                 </>
               )}
             </button>
 
-            {/* Or Add Image by URL */}
-            <div className="pt-2 border-t border-stone-100">
-              <label className="text-[10px] text-stone-400 font-bold block mb-1">veya Bağlantı / Link ile Ekle</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Görsel URL veya bağlantı yapıştırın..."
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                  className="flex-1 text-xs p-2 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddImage}
-                  className="px-3 py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-lg"
-                >
-                  Ekle
-                </button>
-              </div>
-            </div>
-
-            {/* Gallery list */}
-            <div className="space-y-2 pt-2">
-              {images.map((img, i) => (
-                <div key={i} className="flex items-center gap-3 p-2 rounded-xl bg-stone-50 border border-stone-200">
-                  <div className="relative w-12 h-12 rounded-lg bg-stone-200 overflow-hidden shrink-0">
-                    <Image src={img.image_url} alt="" fill className="object-cover" />
-                  </div>
-                  <div className="flex-1 min-w-0 text-xs">
-                    <div className="truncate text-stone-600 text-[10px]">{img.image_url}</div>
-                    {img.is_cover ? (
-                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
-                        ★ Kapak Görseli
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setCoverImage(i)}
-                        className="text-[10px] text-stone-500 hover:text-amber-700 underline"
-                      >
-                        Kapak Yap
-                      </button>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeImage(i)}
-                    className="text-stone-400 hover:text-rose-600 p-1"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Video */}
-          <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-3 shadow-xs">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 border-b border-stone-100 pb-2 flex items-center gap-1.5">
-              <Video className="w-4 h-4 text-amber-600" />
-              <span>Tanıtım Videosu</span>
-            </h2>
-
-            {/* Hidden Video File Input */}
-            <input
-              type="file"
-              ref={videoInputRef}
-              onChange={handleVideoFileUpload}
-              accept="video/*"
-              className="hidden"
-            />
-
-            {/* Direct Video File Upload Button */}
-            <button
-              type="button"
-              disabled={isUploadingVideo}
-              onClick={() => videoInputRef.current?.click()}
-              className="w-full p-3 rounded-xl border border-stone-300 hover:bg-stone-50 transition flex items-center justify-center gap-2 text-xs font-bold text-stone-700 disabled:opacity-50"
-            >
-              {isUploadingVideo ? (
-                <>
-                  <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />
-                  <span>Video Yükleniyor...</span>
-                </>
-              ) : (
-                <>
-                  <UploadCloud className="w-4 h-4 text-amber-600" />
-                  <span>Bilgisayardan Video Yükle (MP4 / WebM)</span>
-                </>
-              )}
-            </button>
-
-            <div>
-              <label className="text-[10px] text-stone-400 font-bold block mb-1">veya YouTube / Video Linki</label>
+            <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="YouTube video linki veya video URL"
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-                className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
+                placeholder="Veya URL yapıştırın..."
+                value={newImageUrl}
+                onChange={(e) => setNewImageUrl(e.target.value)}
+                className="flex-1 text-xs p-2 bg-stone-50 border border-stone-300 rounded-lg"
               />
+              <button
+                type="button"
+                onClick={handleAddImage}
+                className="px-3 py-2 bg-stone-800 text-white text-xs font-bold rounded-lg"
+              >
+                Ekle
+              </button>
             </div>
-            <p className="text-[10px] text-stone-400">
-              Ürün sayfasında video oynatıcı olarak doğrudan oynatılır.
-            </p>
+
+            {images.length > 0 && (
+              <div className="grid grid-cols-3 gap-2.5 pt-2">
+                {images.map((img, index) => (
+                  <div key={index} className="relative group rounded-xl overflow-hidden border border-stone-200 aspect-square bg-stone-100">
+                    <Image
+                      src={img.image_url}
+                      alt={img.alt_text || 'Ürün Görseli'}
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCoverImage(index)}
+                        className={`p-1.5 rounded-lg text-xs font-bold ${
+                          img.is_cover ? 'bg-amber-400 text-stone-900' : 'bg-white/80 text-stone-800'
+                        }`}
+                        title="Kapak Yap"
+                      >
+                        ★
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="p-1.5 rounded-lg bg-rose-600 text-white"
+                        title="Sil"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    {img.is_cover && (
+                      <span className="absolute bottom-1 left-1 bg-amber-500 text-stone-900 text-[9px] font-black px-1.5 py-0.5 rounded">
+                        KAPAK
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
         </div>

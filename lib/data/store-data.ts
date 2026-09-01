@@ -1,4 +1,4 @@
-// Central High-Resilience Data Layer for Otantikos Concept
+﻿// Central High-Resilience Data Layer for Otantikos Concept
 // Connects to Supabase PostgreSQL with automated client-side & local state synchronization
 
 import { 
@@ -17,19 +17,19 @@ import { createClient } from '@/lib/supabase/client';
 export function normalizeTurkish(text: string): string {
   if (!text) return '';
   return text
-    .replace(/İ/g, 'i')
+    .replace(/Ä°/g, 'i')
     .replace(/I/g, 'i')
-    .replace(/ı/g, 'i')
-    .replace(/Ş/g, 's')
-    .replace(/ş/g, 's')
-    .replace(/Ğ/g, 'g')
-    .replace(/ğ/g, 'g')
-    .replace(/Ü/g, 'u')
-    .replace(/ü/g, 'u')
-    .replace(/Ç/g, 'c')
-    .replace(/ç/g, 'c')
-    .replace(/Ö/g, 'o')
-    .replace(/ö/g, 'o')
+    .replace(/Ä±/g, 'i')
+    .replace(/Å/g, 's')
+    .replace(/ÅŸ/g, 's')
+    .replace(/Ä/g, 'g')
+    .replace(/ÄŸ/g, 'g')
+    .replace(/Ãœ/g, 'u')
+    .replace(/Ã¼/g, 'u')
+    .replace(/Ã‡/g, 'c')
+    .replace(/Ã§/g, 'c')
+    .replace(/Ã–/g, 'o')
+    .replace(/Ã¶/g, 'o')
     .toLowerCase()
     .trim();
 }
@@ -123,7 +123,11 @@ export const DataService = {
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        runtimeProducts = data as Product[];
+        runtimeProducts = data.map((p: any) => ({
+          ...p,
+          is_published: p.is_published ?? true,
+          wholesale_price: p.wholesale_price ? Number(p.wholesale_price) : null,
+        })) as Product[];
         
         return runtimeProducts;
       }
@@ -133,6 +137,20 @@ export const DataService = {
 
     const localProds = runtimeProducts;
     return localProds.filter(p => p.is_active);
+  },
+
+  async getPublicProducts(): Promise<Product[]> {
+    const all = await this.getProducts();
+    return all.filter(p => p.is_active && p.is_published !== false);
+  },
+
+  async toggleProductPublish(id: string, isPublished: boolean): Promise<boolean> {
+    const idx = runtimeProducts.findIndex(p => p.id === id);
+    if (idx > -1) {
+      runtimeProducts[idx].is_published = isPublished;
+      runtimeProducts[idx].updated_at = new Date().toISOString();
+    }
+    return true;
   },
 
   async getAllAdminProducts(): Promise<Product[]> {
@@ -150,7 +168,11 @@ export const DataService = {
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        runtimeProducts = data as Product[];
+        runtimeProducts = data.map((p: any) => ({
+          ...p,
+          is_published: p.is_published ?? true,
+          wholesale_price: p.wholesale_price ? Number(p.wholesale_price) : null,
+        })) as Product[];
         
         return runtimeProducts;
       }
@@ -211,14 +233,14 @@ export const DataService = {
     return products.find(p => p.id === id) || null;
   },
 
-  async search(query: string): Promise<Product[]> {
-    const products = await this.getProducts();
-    if (!query.trim()) return products;
+  async search(query: string, onlyPublished: boolean = true): Promise<Product[]> {
+    const products = onlyPublished ? await this.getPublicProducts() : await this.getProducts();
+    if (!query || !query.trim()) return products;
     const q = normalizeTurkish(query);
 
     return products.filter((p) => {
       const nameMatch = normalizeTurkish(p.name).includes(q);
-      const skuMatch = normalizeTurkish(p.sku).includes(q);
+      const skuMatch = p.sku ? normalizeTurkish(p.sku).includes(q) : false;
       const catMatch = p.category?.name ? normalizeTurkish(p.category.name).includes(q) : false;
       const descMatch = p.description ? normalizeTurkish(p.description).includes(q) : false;
       return nameMatch || skuMatch || catMatch || descMatch;
@@ -248,6 +270,10 @@ export const DataService = {
       } as Product;
       localList[existingIdx] = savedProduct;
     } else {
+      const generatedSku = productData.sku && productData.sku.trim()
+        ? productData.sku.trim()
+        : `OTK-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
       savedProduct = {
         id: productData.id || `prod-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         name: productData.name || 'Yeni Ürün',
@@ -255,8 +281,10 @@ export const DataService = {
         description: productData.description || '',
         short_description: productData.short_description || '',
         price: Number(productData.price || 0),
+        wholesale_price: productData.wholesale_price ? Number(productData.wholesale_price) : null,
         stock: Number(productData.stock || 0),
-        sku: productData.sku || `SKU-${Date.now()}`,
+        sku: generatedSku,
+        is_published: productData.is_published ?? true,
         category_id: productData.category_id || null,
         category: resolvedCat,
         is_featured: productData.is_featured ?? false,
@@ -360,21 +388,31 @@ export const DataService = {
     return savedProduct;
   },
 
-  async updateQuickStockAndPrice(productId: string, newStock: number, newPrice: number): Promise<boolean> {
+  async updateQuickStockAndPrice(
+    productId: string, 
+    newStock: number, 
+    newPrice: number, 
+    newWholesalePrice?: number | null, 
+    newIsPublished?: boolean
+  ): Promise<boolean> {
     const localList = runtimeProducts;
     const idx = localList.findIndex(p => p.id === productId);
     if (idx > -1) {
       localList[idx].stock = newStock;
       localList[idx].price = newPrice;
+      if (newWholesalePrice !== undefined) localList[idx].wholesale_price = newWholesalePrice;
+      if (newIsPublished !== undefined) localList[idx].is_published = newIsPublished;
       localList[idx].updated_at = new Date().toISOString();
       runtimeProducts = localList;
-      
     }
 
     try {
       const supabase = createClient();
       if (!productId.startsWith('prod-')) {
-        await supabase.from('products').update({ stock: newStock, price: newPrice }).eq('id', productId);
+        const updatePayload: any = { stock: newStock, price: newPrice };
+        if (newWholesalePrice !== undefined) updatePayload.wholesale_price = newWholesalePrice;
+        if (newIsPublished !== undefined) updatePayload.is_published = newIsPublished;
+        await supabase.from('products').update(updatePayload).eq('id', productId);
       }
     } catch {
       // Ignore
@@ -778,7 +816,7 @@ export const DataService = {
       order_id: req.order_id!,
       order_item_id: req.order_item_id || null,
       user_id: req.user_id || null,
-      reason: req.reason || 'Diğer',
+      reason: req.reason || 'DiÄŸer',
       details: req.details || '',
       status: 'talep_alindi',
       created_at: new Date().toISOString(),
@@ -1288,7 +1326,7 @@ export const DataService = {
       session = {
         id: `chat-${sessionId}`,
         session_id: sessionId,
-        customer_name: customerName || 'Ziyaretçi',
+        customer_name: customerName || 'ZiyaretÃ§i',
         customer_email: customerEmail || null,
         status: 'active',
         created_at: new Date().toISOString(),
@@ -1302,7 +1340,7 @@ export const DataService = {
       session.messages.push(newMsg);
       session.last_message = newMsg;
       session.updated_at = new Date().toISOString();
-      if (customerName && session.customer_name === 'Ziyaretçi') {
+      if (customerName && session.customer_name === 'ZiyaretÃ§i') {
         session.customer_name = customerName;
       }
       if (customerEmail && !session.customer_email) {
@@ -1591,3 +1629,5 @@ export const DataService = {
     return true;
   }
 };
+
+

@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, ShoppingBag, Star, Play, Sparkles } from 'lucide-react';
+import { Heart, ShoppingBag, Star, Play, Sparkles, Tag } from 'lucide-react';
 import { Product } from '@/lib/types/ecommerce';
 import { useCart } from '@/lib/store/cart-store';
 import { useWishlist } from '@/lib/store/wishlist-store';
@@ -108,10 +108,16 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
             </span>
           )}
           {product.is_new && (
-            <span className="px-2 py-0.5 bg-amber-600 text-white text-[10px] sm:text-xs font-bold rounded-full shadow-xs">
+            <span className="px-2 py-0.5 bg-brand-600 text-white text-[10px] sm:text-xs font-bold rounded-full shadow-xs">
               Yeni
             </span>
           )}
+          {product.wholesale_price ? (
+            <span className="px-2 py-0.5 bg-navy-900/90 text-brand-300 text-[10px] sm:text-xs font-bold rounded-full shadow-xs flex items-center gap-1">
+              <Tag className="w-2.5 h-2.5" />
+              <span>Toptan Avantajı</span>
+            </span>
+          ) : null}
           {product.stock > 0 && product.stock <= 5 && (
             <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] sm:text-xs font-bold rounded-full shadow-xs">
               Son {product.stock} Adet
@@ -124,7 +130,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
           )}
         </div>
 
-        {/* Wishlist Button (Min 44x44px Touch Target) */}
+        {/* Wishlist Button */}
         <button
           type="button"
           onClick={handleFavoriteClick}
@@ -138,7 +144,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
       {/* Product Content */}
       <div className="p-2.5 sm:p-4 flex flex-col flex-1 justify-between">
         <div>
-          {/* Category Pill / SKU */}
+          {/* Category Pill / Rating */}
           <div className="flex items-center justify-between text-[10px] sm:text-xs text-stone-400 mb-1">
             <span className="truncate max-w-[70%] font-medium">
               {product.category?.name || 'Otantikos'}
@@ -151,7 +157,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
 
           {/* Product Title */}
           <Link href={`/urun/${product.slug}`}>
-            <h3 className="text-xs sm:text-sm font-bold text-stone-800 line-clamp-2 hover:text-amber-700 transition leading-snug">
+            <h3 className="text-xs sm:text-sm font-bold text-stone-800 line-clamp-2 hover:text-brand-700 transition leading-snug">
               {product.name}
             </h3>
           </Link>
@@ -160,10 +166,15 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
         {/* Price & Action Row */}
         <div className="mt-3 pt-2.5 border-t border-stone-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
-            <div className="text-[10px] text-stone-400 hidden sm:block">Net Fiyat:</div>
-            <div className="text-sm sm:text-base font-black text-amber-700 leading-tight">
+            <div className="text-[10px] text-stone-400 hidden sm:block">Perakende Fiyat:</div>
+            <div className="text-sm sm:text-base font-black text-brand-700 leading-tight">
               {formatPrice(product.price)}
             </div>
+            {product.wholesale_price ? (
+              <div className="text-[11px] font-bold text-slate-600 mt-0.5">
+                Toptan: <span className="text-brand-800">{formatPrice(product.wholesale_price)}</span>
+              </div>
+            ) : null}
           </div>
 
           <button
@@ -172,7 +183,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
             disabled={product.stock <= 0}
             className={`w-full sm:w-auto px-3 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-2xs ${
               product.stock > 0
-                ? 'bg-stone-900 text-white hover:bg-amber-700'
+                ? 'bg-stone-900 text-white hover:bg-brand-700'
                 : 'bg-stone-200 text-stone-400 cursor-not-allowed'
             }`}
           >

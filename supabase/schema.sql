@@ -1,4 +1,4 @@
--- Otantikos Concept Database Schema & Migrations (Audited & Hardened)
+﻿-- Otantikos Concept Database Schema & Migrations (Audited & Hardened)
 -- PostgreSQL Schema for Supabase with RLS, Storage, Realtime, Triggers, and Indexes
 
 -- 1. EXTENSIONS
@@ -68,8 +68,10 @@ CREATE TABLE IF NOT EXISTS public.products (
     description TEXT NOT NULL,
     short_description TEXT,
     price NUMERIC(10, 2) NOT NULL,
+    wholesale_price NUMERIC(10, 2),
     stock INT NOT NULL DEFAULT 0,
-    sku TEXT UNIQUE NOT NULL,
+    sku TEXT UNIQUE,
+    is_published BOOLEAN DEFAULT TRUE NOT NULL,
     video_url TEXT,
     is_featured BOOLEAN DEFAULT FALSE NOT NULL,
     is_new BOOLEAN DEFAULT TRUE NOT NULL,
@@ -259,7 +261,7 @@ CREATE TABLE IF NOT EXISTS public.cart_items (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_cart_items_unique 
 ON public.cart_items (user_id, product_id, COALESCE(variant_id, '00000000-0000-0000-0000-000000000000'::uuid));
 
--- 18. CARGO LABELS (KARGO ETİKETLERİ & ADRES DEFTERİ)
+-- 18. CARGO LABELS (KARGO ETÄ°KETLERÄ° & ADRES DEFTERÄ°)
 CREATE TABLE IF NOT EXISTS public.cargo_labels (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     recipient_name TEXT NOT NULL,
@@ -597,3 +599,4 @@ DO $$ BEGIN
 EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
+

@@ -1,4 +1,4 @@
-// Otantikos Concept TypeScript Definitions
+﻿// Otantikos Concept TypeScript Definitions
 
 export type UserRole = 'customer' | 'admin';
 
@@ -61,9 +61,11 @@ export interface Product {
   slug: string;
   description: string;
   short_description?: string | null;
-  price: number;
-  stock: number;
-  sku: string;
+  price: number; // Perakende Satış Fiyatı
+  wholesale_price?: number | null; // Toptan Satış Fiyatı (Opsiyonel)
+  stock: number; // Toplam Depo Stoğu
+  sku?: string | null; // Barkod / Ürün Kodu (Opsiyonel)
+  is_published: boolean; // Web Sitesinde Satışta mı? (true: Sitede Yayında, false: Sadece Depo Stoğu)
   video_url?: string | null;
   is_featured: boolean;
   is_new: boolean;

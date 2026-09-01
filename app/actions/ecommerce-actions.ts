@@ -1,4 +1,4 @@
-'use server';
+﻿'use server';
 
 import { revalidatePath } from 'next/cache';
 import { DataService } from '@/lib/data/store-data';
@@ -32,7 +32,7 @@ async function verifyAdmin() {
 export async function actionSaveProduct(productData: Partial<Product>) {
   const isAdmin = await verifyAdmin();
   if (!isAdmin) {
-    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+    return { success: false, error: 'Bu iÅŸlem iÃ§in yetkiniz bulunmamaktadÄ±r.' };
   }
 
   const saved = await DataService.saveProduct(productData);
@@ -162,7 +162,7 @@ export async function actionSaveProduct(productData: Partial<Product>) {
 export async function actionDeleteProduct(productId: string) {
   const isAdmin = await verifyAdmin();
   if (!isAdmin) {
-    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+    return { success: false, error: 'Bu iÅŸlem iÃ§in yetkiniz bulunmamaktadÄ±r.' };
   }
 
   try {
@@ -204,10 +204,16 @@ export async function actionDeleteProduct(productId: string) {
   return { success: ok };
 }
 
-export async function actionUpdateQuickStock(productId: string, stock: number, price: number) {
+export async function actionUpdateQuickStock(
+  productId: string, 
+  stock: number, 
+  price: number, 
+  wholesalePrice?: number | null, 
+  isPublished?: boolean
+) {
   const isAdmin = await verifyAdmin();
   if (!isAdmin) {
-    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+    return { success: false, error: 'Bu iÅŸlem iÃ§in yetkiniz bulunmamaktadÄ±r.' };
   }
 
   try {
@@ -220,15 +226,23 @@ export async function actionUpdateQuickStock(productId: string, stock: number, p
     }
 
     if (UUID_REGEX.test(dbId)) {
-      await supabaseAdmin.from('products').update({ stock, price, updated_at: new Date().toISOString() }).eq('id', dbId);
+      const payload: any = { stock: Math.max(0, stock), price: Math.max(0, price), updated_at: new Date().toISOString() };
+      if (wholesalePrice !== undefined) payload.wholesale_price = wholesalePrice;
+      if (isPublished !== undefined) payload.is_published = isPublished;
+
+      await supabaseAdmin.from('products').update(payload).eq('id', dbId);
     } else {
-      await supabaseAdmin.from('products').update({ stock, price, updated_at: new Date().toISOString() }).eq('slug', productId);
+      const payload: any = { stock: Math.max(0, stock), price: Math.max(0, price), updated_at: new Date().toISOString() };
+      if (wholesalePrice !== undefined) payload.wholesale_price = wholesalePrice;
+      if (isPublished !== undefined) payload.is_published = isPublished;
+
+      await supabaseAdmin.from('products').update(payload).eq('slug', productId);
     }
   } catch (err) {
     console.error('Supabase admin quick stock update error:', err);
   }
 
-  const ok = await DataService.updateQuickStockAndPrice(productId, stock, price);
+  const ok = await DataService.updateQuickStockAndPrice(productId, stock, price, wholesalePrice, isPublished);
   revalidatePath('/');
   revalidatePath('/kategori/[slug]', 'page');
   revalidatePath('/admin/hizli-stok');
@@ -239,7 +253,7 @@ export async function actionUpdateQuickStock(productId: string, stock: number, p
 export async function actionSaveCategory(catData: Partial<Category>) {
   const isAdmin = await verifyAdmin();
   if (!isAdmin) {
-    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+    return { success: false, error: 'Bu iÅŸlem iÃ§in yetkiniz bulunmamaktadÄ±r.' };
   }
 
   const saved = await DataService.saveCategory(catData);
@@ -289,7 +303,7 @@ export async function actionSaveCategory(catData: Partial<Category>) {
 export async function actionDeleteCategory(categoryId: string) {
   const isAdmin = await verifyAdmin();
   if (!isAdmin) {
-    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+    return { success: false, error: 'Bu iÅŸlem iÃ§in yetkiniz bulunmamaktadÄ±r.' };
   }
 
   try {
@@ -330,7 +344,7 @@ export async function actionUpdateOrderStatus(
 ) {
   const isAdmin = await verifyAdmin();
   if (!isAdmin) {
-    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+    return { success: false, error: 'Bu iÅŸlem iÃ§in yetkiniz bulunmamaktadÄ±r.' };
   }
 
   try {
@@ -361,7 +375,7 @@ export async function actionUpdateOrderStatus(
 export async function actionUpdateReturnStatus(returnId: string, status: ReturnRequest['status'], adminResponse?: string) {
   const isAdmin = await verifyAdmin();
   if (!isAdmin) {
-    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+    return { success: false, error: 'Bu iÅŸlem iÃ§in yetkiniz bulunmamaktadÄ±r.' };
   }
 
   // Normalize status to valid PostgreSQL enum
@@ -392,7 +406,7 @@ export async function actionUpdateReturnStatus(returnId: string, status: ReturnR
 export async function actionDeleteOrder(orderId: string) {
   const isAdmin = await verifyAdmin();
   if (!isAdmin) {
-    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+    return { success: false, error: 'Bu iÅŸlem iÃ§in yetkiniz bulunmamaktadÄ±r.' };
   }
 
   try {
@@ -458,7 +472,7 @@ export async function actionSaveCargoLabel(labelData: {
 }): Promise<{ success: boolean; data?: CargoLabelData; error?: string }> {
   const isAdmin = await verifyAdmin();
   if (!isAdmin) {
-    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+    return { success: false, error: 'Bu iÅŸlem iÃ§in yetkiniz bulunmamaktadÄ±r.' };
   }
 
   try {
@@ -498,14 +512,14 @@ export async function actionSaveCargoLabel(labelData: {
     revalidatePath('/admin/kargo-etiketi');
     return { success: true, data: result.data };
   } catch (err: any) {
-    return { success: false, error: err?.message || 'Veritabanı kayıt hatası' };
+    return { success: false, error: err?.message || 'VeritabanÄ± kayÄ±t hatasÄ±' };
   }
 }
 
 export async function actionDeleteCargoLabel(id: string): Promise<{ success: boolean; error?: string }> {
   const isAdmin = await verifyAdmin();
   if (!isAdmin) {
-    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+    return { success: false, error: 'Bu iÅŸlem iÃ§in yetkiniz bulunmamaktadÄ±r.' };
   }
 
   try {
@@ -523,7 +537,7 @@ export async function actionDeleteCargoLabel(id: string): Promise<{ success: boo
 export async function actionClearAllCargoLabels(): Promise<{ success: boolean; error?: string }> {
   const isAdmin = await verifyAdmin();
   if (!isAdmin) {
-    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+    return { success: false, error: 'Bu iÅŸlem iÃ§in yetkiniz bulunmamaktadÄ±r.' };
   }
 
   try {
@@ -556,7 +570,7 @@ export async function actionGetUsers(): Promise<{
 }> {
   const currentAdmin = await getCurrentAdminUser();
   if (!currentAdmin) {
-    return { success: false, data: [], error: 'Bu işlem için yönetici yetkisi gereklidir.' };
+    return { success: false, data: [], error: 'Bu iÅŸlem iÃ§in yÃ¶netici yetkisi gereklidir.' };
   }
 
   try {
@@ -576,7 +590,7 @@ export async function actionGetUsers(): Promise<{
       currentUserId: currentAdmin.id
     };
   } catch (err: any) {
-    return { success: false, data: [], error: err?.message || 'Kullanıcılar alınırken hata oluştu.' };
+    return { success: false, data: [], error: err?.message || 'KullanÄ±cÄ±lar alÄ±nÄ±rken hata oluÅŸtu.' };
   }
 }
 
@@ -586,16 +600,16 @@ export async function actionUpdateUserRole(
 ): Promise<{ success: boolean; error?: string }> {
   const currentAdmin = await getCurrentAdminUser();
   if (!currentAdmin) {
-    return { success: false, error: 'Bu işlem için yönetici yetkisi gereklidir.' };
+    return { success: false, error: 'Bu iÅŸlem iÃ§in yÃ¶netici yetkisi gereklidir.' };
   }
 
   // Self-demotion guard
   if (currentAdmin.id === targetUserId && newRole !== 'admin') {
-    return { success: false, error: 'Kendi yöneticilik (admin) yetkinizi kaldıramazsınız.' };
+    return { success: false, error: 'Kendi yÃ¶neticilik (admin) yetkinizi kaldÄ±ramazsÄ±nÄ±z.' };
   }
 
   if (newRole !== 'admin' && newRole !== 'customer') {
-    return { success: false, error: 'Geçersiz yetki türü.' };
+    return { success: false, error: 'GeÃ§ersiz yetki tÃ¼rÃ¼.' };
   }
 
   try {
@@ -611,7 +625,7 @@ export async function actionUpdateUserRole(
       .eq('id', targetUserId);
 
     if (profileErr) {
-      return { success: false, error: 'Profil yetkisi güncellenemedi: ' + profileErr.message };
+      return { success: false, error: 'Profil yetkisi gÃ¼ncellenemedi: ' + profileErr.message };
     }
 
     // 2. Sync Supabase Auth app_metadata
@@ -627,6 +641,32 @@ export async function actionUpdateUserRole(
     revalidatePath('/admin/kullanicilar');
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err?.message || 'Yetki güncelleme sırasında beklenmeyen bir hata oluştu.' };
+    return { success: false, error: err?.message || 'Yetki gÃ¼ncelleme sÄ±rasÄ±nda beklenmeyen bir hata oluÅŸtu.' };
   }
 }
+
+
+export async function actionToggleProductPublish(productId: string, isPublished: boolean) {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) {
+    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+  }
+
+  await DataService.toggleProductPublish(productId, isPublished);
+
+  try {
+    const supabaseAdmin = createAdminClient();
+    await supabaseAdmin
+      .from('products')
+      .update({ is_published: isPublished, updated_at: new Date().toISOString() })
+      .eq('id', productId);
+  } catch (err) {
+    console.warn('Supabase toggle publish sync warning:', err);
+  }
+
+  revalidatePath('/');
+  revalidatePath('/admin/urunler');
+  revalidatePath('/admin/hizli-stok');
+  return { success: true };
+}
+
