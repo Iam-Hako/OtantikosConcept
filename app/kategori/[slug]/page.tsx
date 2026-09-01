@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
@@ -262,7 +262,7 @@ function CategoryContent() {
               className="w-full accent-amber-600 cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-stone-400 mt-1">
-              <span>â‚º0</span>
+              <span>₺0</span>
               <span>{formatPrice(maxAvailablePrice)}</span>
             </div>
           </div>

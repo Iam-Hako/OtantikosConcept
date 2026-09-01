@@ -21,10 +21,10 @@ import { formatPrice } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
 interface RowEditState {
-  stock: number;
-  price: number;
-  costPrice: number | '' | null;
-  wholesalePrice: number | '' | null;
+  stock: number | string;
+  price: number | string;
+  costPrice: number | string | null;
+  wholesalePrice: number | string | null;
   isPublished: boolean;
 }
 
@@ -93,15 +93,15 @@ export default function QuickStockPage() {
 
     if (res.success) {
       toast.success(`"${product.name}" güncellendi!`, {
-        description: `Stok: ${current.stock} | Perakende: ${formatPrice(current.price)} | Alış: ${cPrice ? formatPrice(cPrice) : 'Yok'} | Durum: ${current.isPublished ? 'Yayında' : 'Sadece Depo'}`,
+        description: `Stok: ${current.stock} | Perakende: ${formatPrice(Number(current.price) || 0)} | Alış: ${cPrice ? formatPrice(cPrice) : 'Yok'} | Durum: ${current.isPublished ? 'Yayında' : 'Sadece Depo'}`,
       });
       setProducts((prev) =>
         prev.map((p) =>
           p.id === product.id
             ? {
                 ...p,
-                stock: current.stock,
-                price: current.price,
+                stock: Number(current.stock) || 0,
+                price: Number(current.price) || 0,
                 cost_price: cPrice,
                 wholesale_price: wsPrice,
                 is_published: current.isPublished,
@@ -311,7 +311,7 @@ export default function QuickStockPage() {
                           step="0.1"
                           placeholder="0.00"
                           value={current.costPrice ?? ""}
-                          onChange={(e) => handleFieldChange(product.id, 'costPrice', e.target.value === '' ? '' : Number(e.target.value))}
+                          onChange={(e) => handleFieldChange(product.id, 'costPrice', e.target.value)}
                           className="w-full font-bold text-xs p-2 bg-amber-50/60 border border-amber-300 rounded-lg focus:outline-none focus:border-amber-600 text-amber-950"
                         />
                       </td>
@@ -324,7 +324,7 @@ export default function QuickStockPage() {
                             min="0"
                             step="1"
                             value={current.price}
-                            onChange={(e) => handleFieldChange(product.id, 'price', Number(e.target.value))}
+                            onChange={(e) => handleFieldChange(product.id, 'price', e.target.value)}
                             className="w-full font-bold text-xs p-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-brand-600"
                           />
                         </div>
@@ -338,7 +338,7 @@ export default function QuickStockPage() {
                           step="1"
                           placeholder="Yok"
                           value={current.wholesalePrice ?? ""}
-                          onChange={(e) => handleFieldChange(product.id, 'wholesalePrice', e.target.value === '' ? '' : Number(e.target.value))}
+                          onChange={(e) => handleFieldChange(product.id, 'wholesalePrice', e.target.value)}
                           className="w-full font-semibold text-xs p-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-brand-600 text-brand-900"
                         />
                       </td>
@@ -349,9 +349,9 @@ export default function QuickStockPage() {
                           type="number"
                           min="0"
                           value={current.stock}
-                          onChange={(e) => handleFieldChange(product.id, 'stock', Number(e.target.value))}
+                          onChange={(e) => handleFieldChange(product.id, 'stock', e.target.value)}
                           className={`w-20 font-bold text-xs p-2 rounded-lg border text-center mx-auto focus:outline-none ${
-                            current.stock <= 0
+                            Number(current.stock) <= 0
                               ? 'bg-rose-50 border-rose-300 text-rose-800'
                               : 'bg-white border-stone-300 text-stone-900'
                           }`}

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -619,7 +619,7 @@ export default function ProductDetailPage() {
                       <HelpCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                       <div>
                         <h4 className="text-xs font-bold text-stone-900">{q.question_text}</h4>
-                        <span className="text-[10px] text-stone-400">{q.user_name} â€¢ {new Date(q.created_at).toLocaleDateString('tr-TR')}</span>
+                        <span className="text-[10px] text-stone-400">{q.user_name} • {new Date(q.created_at).toLocaleDateString('tr-TR')}</span>
                       </div>
                     </div>
                     {isOpen ? <ChevronUp className="w-4 h-4 text-stone-500" /> : <ChevronDown className="w-4 h-4 text-stone-500" />}
@@ -821,8 +821,8 @@ export default function ProductDetailPage() {
                 <Bell className="w-5 h-5" />
                 <span>Gelince Haber Ver</span>
               </div>
-              <button onClick={() => setIsStockAlertOpen(false)} className="text-stone-400 hover:text-stone-700">
-                âœ•
+              <button onClick={() => setIsStockAlertOpen(false)} className="p-1 text-stone-400 hover:text-stone-700 text-base font-bold">
+                ✕
               </button>
             </div>
 

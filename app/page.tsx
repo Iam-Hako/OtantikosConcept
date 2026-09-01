@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -95,7 +95,7 @@ export default function HomePage() {
               </div>
               <div>
                 <div className="text-base sm:text-2xl font-black text-amber-400">%100 Net</div>
-                <div className="text-[10px] sm:text-xs text-stone-300 leading-tight">ÅŞeffaf Fiyat Politikası</div>
+                <div className="text-[10px] sm:text-xs text-stone-300 leading-tight">Şeffaf Fiyat Politikası</div>
               </div>
             </div>
           </div>
@@ -121,7 +121,7 @@ export default function HomePage() {
                     href="/kategori/tum-urunler"
                     className="text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded-lg transition"
                   >
-                    Koleksiyonu Gör â”
+                    Koleksiyonu Gör →
                   </Link>
                 </div>
               </div>

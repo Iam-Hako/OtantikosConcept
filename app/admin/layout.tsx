@@ -119,7 +119,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Sidebar */}
         <aside
-          className={`w-64 bg-stone-900 text-stone-300 border-r border-stone-800 p-4 space-y-1.5 shrink-0 z-40 print:hidden ${
+          className={`w-64 bg-stone-900 text-stone-300 border-r border-stone-800 p-4 space-y-1.5 shrink-0 z-40 print:hidden overflow-y-auto max-h-[calc(100vh-3.5rem)] pb-24 ${
             isSidebarOpen ? 'fixed inset-y-0 left-0 top-14 block' : 'hidden lg:block'
           }`}
         >
