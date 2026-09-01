@@ -45,7 +45,8 @@ import { DataService, normalizeTurkish } from '@/lib/data/store-data';
 import { 
   actionSaveAccountingTransaction, 
   actionDeleteAccountingTransaction,
-  actionToggleTransactionPaymentStatus 
+  actionToggleTransactionPaymentStatus,
+  actionSaveProduct 
 } from '@/app/actions/ecommerce-actions';
 import { formatPrice, formatDate } from '@/lib/utils/format';
 import { toast } from 'sonner';
@@ -552,12 +553,34 @@ export default function KarZararPage() {
 
     setIsSubmitting(true);
     try {
+      let linkedProductId = purchaseForm.isNewProductMode ? null : (purchaseForm.productId || null);
+
+      if (purchaseForm.isNewProductMode) {
+        const pName = purchaseForm.productName.trim();
+        const pSlug = `urun-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+        const sPrice = purchaseForm.salePriceInput && Number(purchaseForm.salePriceInput) > 0
+          ? Number(purchaseForm.salePriceInput)
+          : Math.round(finalUnitPrice * 1.5);
+
+        const prodRes = await actionSaveProduct({
+          name: pName,
+          slug: pSlug,
+          category_id: purchaseForm.categoryId || (categories.length > 0 ? categories[0].id : null),
+          price: sPrice,
+          cost_price: finalUnitPrice,
+          stock: qty,
+          is_published: true,
+        });
+
+        if (prodRes.success && prodRes.product?.id) {
+          linkedProductId = prodRes.product.id;
+        }
+      }
+
       const res = await actionSaveAccountingTransaction({
         type: 'purchase',
-        product_id: purchaseForm.isNewProductMode ? null : (purchaseForm.productId || null),
+        product_id: linkedProductId,
         product_name: purchaseForm.productName.trim() || 'Yeni Ürün',
-        category_id: purchaseForm.categoryId || null,
-        sale_price: purchaseForm.salePriceInput ? Number(purchaseForm.salePriceInput) : null,
         quantity: qty,
         unit_price: finalUnitPrice,
         total_amount: totalAmount,
@@ -568,13 +591,13 @@ export default function KarZararPage() {
         document_no: purchaseForm.documentNo.trim() || null,
         notes: purchaseForm.notes.trim() || null,
         transaction_date: purchaseForm.transactionDate || new Date().toISOString().split('T')[0],
-        update_stock: true,
+        update_stock: !purchaseForm.isNewProductMode, // If new product, initial stock is already set in actionSaveProduct!
       });
 
       if (res.success) {
         toast.success(`Alış kaydedildi! ${qty} adet ürün stoğa eklendi.`, {
           description: purchaseForm.isNewProductMode 
-            ? `"${purchaseForm.productName}" kataloğa eklendi ve satışa hazır!`
+            ? `"${purchaseForm.productName}" kataloğa ve stoğa eklendi, hemen satışa hazır!`
             : `Toplam Tutar: ${formatPrice(totalAmount)} (Birim: ${formatPrice(finalUnitPrice)})`
         });
         setIsPurchaseModalOpen(false);
