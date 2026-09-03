@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -15,17 +15,21 @@ import {
   Gift, 
   FileText,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 import { useCart } from '@/lib/store/cart-store';
 import { useAuth } from '@/lib/store/auth-context';
 import { TURKISH_PROVINCES } from '@/lib/data/provinces-and-districts';
 import { DataService } from '@/lib/data/store-data';
-import { generateOrderNumber, formatPrice } from '@/lib/utils/format';
+import { formatPrice } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlError = searchParams?.get('error');
+
   const { user } = useAuth();
   const {
     items,
@@ -41,8 +45,12 @@ export default function CheckoutPage() {
     clearCart,
   } = useCart();
 
-  // Step state
+  // Step & Modal state
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'iyzico' | 'magaza_nakit'>('iyzico');
+  const [isIyzicoModalOpen, setIsIyzicoModalOpen] = useState(false);
+  const [iyzicoHtml, setIyzicoHtml] = useState('');
+  const iyzicoContainerRef = useRef<HTMLDivElement>(null);
 
   // Address & Contact state
   const [fullName, setFullName] = useState(user?.full_name || '');
@@ -66,30 +74,44 @@ export default function CheckoutPage() {
   const [acceptPreInfo, setAcceptPreInfo] = useState(true);
   const [acceptKvkk, setAcceptKvkk] = useState(true);
 
-  // Virtual POS Card state
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardHolder, setCardHolder] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvc, setCvc] = useState('');
+  // Catch URL errors from iyzico callback (e.g. 3D Secure SMS timeout or cancellation)
+  useEffect(() => {
+    if (urlError) {
+      toast.error(decodeURIComponent(urlError), { duration: 6000 });
+    }
+  }, [urlError]);
+
+  // Handle iyzico checkout form script injection when modal opens
+  useEffect(() => {
+    if (isIyzicoModalOpen && iyzicoHtml && iyzicoContainerRef.current) {
+      try {
+        iyzicoContainerRef.current.innerHTML = '';
+        const range = document.createRange();
+        range.selectNode(iyzicoContainerRef.current);
+        const fragment = range.createContextualFragment(iyzicoHtml);
+        iyzicoContainerRef.current.appendChild(fragment);
+      } catch (err) {
+        console.error('iyzico script execution error:', err);
+      }
+    }
+  }, [isIyzicoModalOpen, iyzicoHtml]);
+
+  // If user switches delivery type away from magaza_teslim, force paymentMethod to iyzico
+  useEffect(() => {
+    if (deliveryType !== 'magaza_teslim' && paymentMethod === 'magaza_nakit') {
+      setPaymentMethod('iyzico');
+    }
+  }, [deliveryType, paymentMethod]);
 
   // Active district list based on selected province
   const currentDistricts = TURKISH_PROVINCES.find((p) => p.name === province)?.districts || [];
 
-  // Update district when province changes
   const handleProvinceChange = (newProvince: string) => {
     setProvince(newProvince);
     const found = TURKISH_PROVINCES.find((p) => p.name === newProvince);
     if (found && found.districts.length > 0) {
       setDistrict(found.districts[0]);
     }
-  };
-
-  const handleFillDemoCard = () => {
-    setCardNumber('5400 0000 0000 0000');
-    setCardHolder(fullName || 'Ahmet Yılmaz');
-    setExpiryDate('12/28');
-    setCvc('123');
-    toast.info('Test kredi kartı bilgileri dolduruldu.');
   };
 
   const handleCompleteOrder = async (e: React.FormEvent) => {
@@ -102,7 +124,17 @@ export default function CheckoutPage() {
     }
 
     if (!acceptDistanceSales || !acceptPreInfo || !acceptKvkk) {
-      toast.error('Lütfen yasal sözleşme ve ön bilgilendirme koşullarını onaylayınız.');
+      toast.error('Lütfen Mesafeli Satış Sözleşmesi ve Yasal Onayları kabul ediniz.');
+      return;
+    }
+
+    if (!fullName.trim() || !phone.trim() || !email.trim()) {
+      toast.error('Lütfen ad, soyad, telefon ve e-posta alanlarını doldurunuz.');
+      return;
+    }
+
+    if (deliveryType !== 'magaza_teslim' && !fullAddress.trim()) {
+      toast.error('Lütfen açık teslimat adresinizi giriniz.');
       return;
     }
 
@@ -121,63 +153,93 @@ export default function CheckoutPage() {
         }
       }
 
-      // 2. Build Order Payload
-      // 2. Submit to Server-Side Hardened Checkout API (Enforces Price & Stock Integrity)
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: items.map((i) => ({
-            product_id: i.product.id,
-            variant_id: i.variant?.id || null,
-            quantity: Math.floor(Math.max(1, i.quantity)),
-          })),
-          delivery_type: deliveryType,
-          has_gift_wrap: hasGiftWrap,
-          gift_note: giftNote ? giftNote.trim().slice(0, 500) : '',
-          shipping_address: {
-            full_name: fullName.trim(),
-            phone: phone.trim(),
-            province,
-            district,
-            full_address: deliveryType === 'magaza_teslim' ? 'Tahtakale Eminönü Mağaza Teslim' : fullAddress.trim(),
-            postal_code: postalCode.trim(),
-            courier_note: courierNote.trim().slice(0, 200),
-            invoice_type: invoiceType,
-            identity_number: identityNumber.trim(),
-            company_title: companyTitle.trim(),
-            tax_office: taxOffice.trim(),
-            tax_number: taxNumber.trim(),
-          },
-          billing_address: {
-            full_name: fullName.trim(),
-            phone: phone.trim(),
-            province,
-            district,
-            full_address: deliveryType === 'magaza_teslim' ? 'Tahtakale Eminönü Mağaza Teslim' : fullAddress.trim(),
-            postal_code: postalCode.trim(),
-            invoice_type: invoiceType,
-            identity_number: identityNumber.trim(),
-            company_title: companyTitle.trim(),
-            tax_office: taxOffice.trim(),
-            tax_number: taxNumber.trim(),
-          },
-          user_id: user?.id || null,
-          guest_email: email.trim().toLowerCase(),
-          guest_name: fullName.trim(),
-          guest_phone: phone.trim(),
-        }),
-      });
+      const orderPayloadItems = items.map((i) => ({
+        product_id: i.product.id,
+        variant_id: i.variant?.id || null,
+        quantity: Math.floor(Math.max(1, i.quantity)),
+      }));
 
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || 'Sipariş oluşturulamadı.');
+      const addressData = {
+        full_name: fullName.trim(),
+        phone: phone.trim(),
+        province,
+        district,
+        address_detail: deliveryType === 'magaza_teslim' ? 'Tahtakale Eminönü Mağaza Teslim' : fullAddress.trim(),
+        zip_code: postalCode.trim(),
+        invoice_type: invoiceType,
+        identity_number: identityNumber.trim(),
+        company_title: companyTitle.trim(),
+        tax_office: taxOffice.trim(),
+        tax_number: taxNumber.trim(),
+      };
+
+      // 2A. iyzico Payment Flow
+      if (paymentMethod === 'iyzico') {
+        const response = await fetch('/api/iyzico/initialize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: orderPayloadItems,
+            delivery_type: deliveryType,
+            has_gift_wrap: hasGiftWrap,
+            gift_note: giftNote ? giftNote.trim().slice(0, 500) : '',
+            shipping_address: addressData,
+            billing_address: addressData,
+            user_id: user?.id || null,
+            guest_email: email.trim().toLowerCase(),
+            guest_name: fullName.trim(),
+            guest_phone: phone.trim(),
+            identity_number: identityNumber.trim() || '11111111111',
+          }),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || 'iyzico ödeme formu başlatılamadı.');
+        }
+
+        if (result.checkoutFormContent) {
+          // Open iyzico official responsive payment overlay
+          setIyzicoHtml(result.checkoutFormContent);
+          setIsIyzicoModalOpen(true);
+        } else if (result.paymentPageUrl && !result.isSimulated) {
+          // Direct 3D Secure redirect
+          window.location.href = result.paymentPageUrl;
+        } else {
+          // Instant or Simulated success
+          clearCart();
+          toast.success('Siparişiniz başarıyla alındı!');
+          router.push(`/odeme/basarili?order_number=${result.order_number}&email=${encodeURIComponent(email)}`);
+        }
+      } 
+      // 2B. Direct Store Delivery Cash/POS
+      else {
+        const response = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: orderPayloadItems,
+            delivery_type: 'magaza_teslim',
+            has_gift_wrap: hasGiftWrap,
+            gift_note: giftNote ? giftNote.trim().slice(0, 500) : '',
+            shipping_address: addressData,
+            billing_address: addressData,
+            user_id: user?.id || null,
+            guest_email: email.trim().toLowerCase(),
+            guest_name: fullName.trim(),
+            guest_phone: phone.trim(),
+          }),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || 'Sipariş oluşturulamadı.');
+        }
+
+        clearCart();
+        toast.success('Siparişiniz mağazadan teslim alınmak üzere oluşturuldu!');
+        router.push(`/odeme/basarili?order_number=${result.order_number}&email=${encodeURIComponent(email)}`);
       }
-
-      // 3. Clear Cart and Redirect
-      clearCart();
-      toast.success('Siparişiniz başarıyla alındı!');
-      router.push(`/odeme/basarili?order_number=${result.order_number}&email=${encodeURIComponent(email)}`);
     } catch (err: any) {
       toast.error(err.message || 'Ödeme işlemi sırasında bir hata oluştu.');
     } finally {
@@ -197,275 +259,288 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-24 lg:pb-12">
       
-      {/* Breadcrumbs */}
+      {/* Header & Back Link */}
       <div className="flex items-center justify-between border-b border-stone-200 pb-4">
-        <div className="flex items-center gap-3">
-          <Link href="/sepet" className="p-1.5 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-100">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-serif font-black text-stone-900">
-              Güvenli Ödeme ve Sipariş Onayı
-            </h1>
-            <p className="text-xs text-stone-500">256-Bit SSL korumalı Tahtakale güvenli checkout</p>
-          </div>
+        <Link href="/sepet" className="inline-flex items-center gap-2 text-xs font-semibold text-stone-600 hover:text-amber-700 transition">
+          <ArrowLeft className="w-4 h-4" />
+          <span>Sepete Geri Dön</span>
+        </Link>
+        <div className="flex items-center gap-2 text-xs text-stone-500">
+          <Lock className="w-3.5 h-3.5 text-emerald-600" />
+          <span>256-Bit SSL & iyzico Korumalı Ödeme</span>
         </div>
       </div>
 
       <form onSubmit={handleCompleteOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* Left Column: Forms (8 Cols) */}
-        <div className="lg:col-span-8 space-y-8">
+        {/* Left Column: Form Fields (8 Cols) */}
+        <div className="lg:col-span-8 space-y-6">
           
-          {/* 1. CONTACT & DELIVERY TYPE */}
-          <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-5 shadow-xs">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">1</span>
-                <span>İletişim ve Teslimat Tercihi</span>
-              </h2>
-              {!user && (
-                <Link href="/giris?redirect=/odeme" className="text-xs text-amber-700 font-bold hover:underline">
-                  Giriş Yaparak Devam Et ➔
-                </Link>
-              )}
-            </div>
+          {/* 1. DELIVERY TYPE SELECTOR */}
+          <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">1</span>
+              <span>Teslimat Yöntemi</span>
+            </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label
+                className={`p-4 rounded-xl border-2 cursor-pointer transition flex items-start gap-3 ${
+                  deliveryType === 'kargo'
+                    ? 'border-amber-600 bg-amber-50/50'
+                    : 'border-stone-200 hover:border-stone-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="delivery"
+                  value="kargo"
+                  checked={deliveryType === 'kargo'}
+                  onChange={() => setDeliveryType('kargo')}
+                  className="mt-1 text-amber-600 focus:ring-amber-500"
+                />
+                <div>
+                  <div className="flex items-center gap-1.5 font-bold text-xs text-stone-900">
+                    <Truck className="w-4 h-4 text-amber-700" />
+                    <span>DHL Kargo ile Adrese Teslim</span>
+                  </div>
+                  <p className="text-[11px] text-stone-500 mt-1">
+                    1-3 iş gününde güvenli, sigortalı kapıya teslimat (+₺200,00)
+                  </p>
+                </div>
+              </label>
+
+              <label
+                className={`p-4 rounded-xl border-2 cursor-pointer transition flex items-start gap-3 ${
+                  deliveryType === 'magaza_teslim'
+                    ? 'border-amber-600 bg-amber-50/50'
+                    : 'border-stone-200 hover:border-stone-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="delivery"
+                  value="magaza_teslim"
+                  checked={deliveryType === 'magaza_teslim'}
+                  onChange={() => setDeliveryType('magaza_teslim')}
+                  className="mt-1 text-amber-600 focus:ring-amber-500"
+                />
+                <div>
+                  <div className="flex items-center gap-1.5 font-bold text-xs text-stone-900">
+                    <Store className="w-4 h-4 text-amber-700" />
+                    <span>Tahtakale Mağazadan Teslim (Ücretsiz)</span>
+                  </div>
+                  <p className="text-[11px] text-stone-500 mt-1">
+                    Eminönü şubemizden aynı gün kargo bedelsiz elden teslim alın.
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* 2. CONTACT & SHIPPING ADDRESS */}
+          <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">2</span>
+              <span>İletişim ve Teslimat Bilgileri</span>
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">Adınız Soyadınız *</label>
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">Ad Soyad *</label>
                 <input
                   type="text"
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Örn: Ahmet Yılmaz"
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-500"
+                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-600"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">E-Posta Adresiniz *</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ahmet@example.com"
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">Cep Telefonu *</label>
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">Telefon Numarası *</label>
                 <input
                   type="tel"
                   required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="0532 123 45 67"
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-500"
+                  placeholder="0532 000 00 00"
+                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-600"
                 />
               </div>
-            </div>
 
-            {/* Delivery Type Option */}
-            <div className="pt-2">
-              <label className="block text-xs font-semibold text-stone-700 mb-2">Teslimat Yöntemi:</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label
-                  className={`p-3.5 rounded-xl border-2 cursor-pointer flex items-center gap-3 transition ${
-                    deliveryType === 'kargo' ? 'border-amber-600 bg-amber-50/40' : 'border-stone-200'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="checkout-del"
-                    checked={deliveryType === 'kargo'}
-                    onChange={() => setDeliveryType('kargo')}
-                    className="text-amber-600"
-                  />
-                  <div>
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-stone-900">
-                      <Truck className="w-4 h-4 text-amber-700" />
-                      <span>Standart Kargo Teslimatı</span>
-                    </div>
-                    <span className="text-[10px] text-stone-500">Adresinize sigortalı gönderim</span>
-                  </div>
-                </label>
-
-                <label
-                  className={`p-3.5 rounded-xl border-2 cursor-pointer flex items-center gap-3 transition ${
-                    deliveryType === 'magaza_teslim' ? 'border-amber-600 bg-amber-50/40' : 'border-stone-200'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="checkout-del"
-                    checked={deliveryType === 'magaza_teslim'}
-                    onChange={() => setDeliveryType('magaza_teslim')}
-                    className="text-amber-600"
-                  />
-                  <div>
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-stone-900">
-                      <Store className="w-4 h-4 text-amber-700" />
-                      <span>Eminönü Tahtakale Mağaza Teslim (Ücretsiz)</span>
-                    </div>
-                    <span className="text-[10px] text-stone-500">Şubemizden hemen elden teslim alın</span>
-                  </div>
-                </label>
+              <div className="sm:col-span-2">
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">E-Posta Adresi * (Kargo ve Fatura Takibi İçin)</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="ahmet@ornek.com"
+                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-600"
+                />
               </div>
+
+              {deliveryType === 'kargo' && (
+                <>
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-700 mb-1">İl *</label>
+                    <select
+                      value={province}
+                      onChange={(e) => handleProvinceChange(e.target.value)}
+                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-600"
+                    >
+                      {TURKISH_PROVINCES.map((p) => (
+                        <option key={p.name} value={p.name}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-700 mb-1">İlçe *</label>
+                    <select
+                      value={district}
+                      onChange={(e) => setDistrict(e.target.value)}
+                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-600"
+                    >
+                      {currentDistricts.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-bold text-stone-700 mb-1">Açık Adres (Mahalle, Cadde, Sokak, No, Daire) *</label>
+                    <textarea
+                      required
+                      rows={2}
+                      value={fullAddress}
+                      onChange={(e) => setFullAddress(e.target.value)}
+                      placeholder="Örn: Süleymaniye Mah. Uzunçarşı Cad. No: 187/2G Fatih / İSTANBUL"
+                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-700 mb-1">Posta Kodu</label>
+                    <input
+                      type="text"
+                      value={postalCode}
+                      onChange={(e) => setPostalCode(e.target.value)}
+                      placeholder="34000"
+                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-700 mb-1">Kurye / Teslimat Notu</label>
+                    <input
+                      type="text"
+                      value={courierNote}
+                      onChange={(e) => setCourierNote(e.target.value)}
+                      placeholder="Zile basmayınız, kapıya bırakınız vb."
+                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
+                    />
+                  </div>
+                </>
+              )}
+
+              {deliveryType === 'magaza_teslim' && (
+                <div className="sm:col-span-2 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <Store className="w-4 h-4 text-amber-800" />
+                    <span>Tahtakale Mağazadan Teslim Alma Adresi:</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800">
+                    Süleymaniye Mah. Uzunçarşı Cad. Tamburacı ve Görenli Han No: 187 / 2G Fatih / İSTANBUL
+                  </p>
+                  <p className="text-[10px] text-amber-700">
+                    Mesai Saatleri: Pazartesi - Cumartesi 10:00 - 17:00
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* 2. ADDRESS FORM (81 PROVINCES & DEPENDENT DISTRICTS) */}
-          {deliveryType === 'kargo' && (
-            <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">2</span>
-                <span>Teslimat ve Kargo Adresi (81 İl Doğrulamalı)</span>
-              </h2>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* 81 Provinces Dropdown */}
-                <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">İl Seçiniz *</label>
-                  <select
-                    value={province}
-                    onChange={(e) => handleProvinceChange(e.target.value)}
-                    className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-500"
-                  >
-                    {TURKISH_PROVINCES.map((p) => (
-                      <option key={p.name} value={p.name}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Dynamic Districts Dropdown */}
-                <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">İlçe Seçiniz *</label>
-                  <select
-                    value={district}
-                    onChange={(e) => setDistrict(e.target.value)}
-                    className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-500"
-                  >
-                    {currentDistricts.map((d) => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">Açık Adres (Cadde, Mahalle, Bina No, Daire) *</label>
-                <textarea
-                  required={deliveryType === 'kargo'}
-                  rows={2}
-                  value={fullAddress}
-                  onChange={(e) => setFullAddress(e.target.value)}
-                  placeholder="Örn: Moda Cad. No:14 Daire:5 Caferağa Mah."
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">Posta Kodu</label>
-                  <input
-                    type="text"
-                    value={postalCode}
-                    onChange={(e) => setPostalCode(e.target.value)}
-                    className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">Kurye / Kargo Teslimat Notu</label>
-                  <input
-                    type="text"
-                    value={courierNote}
-                    onChange={(e) => setCourierNote(e.target.value)}
-                    placeholder="Örn: Zili çalmayınız, kapıya bırakınız."
-                    className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 3. INVOICE TYPE (Individual / Corporate) */}
+          {/* 3. INVOICE DETAILS */}
           <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
             <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
               <span className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">3</span>
-              <span>Fatura Bilgileri</span>
+              <span>Fatura Türü ve Bilgileri</span>
             </h2>
 
-            <div className="flex gap-4 text-xs font-semibold">
-              <label className="flex items-center gap-2 cursor-pointer">
+            <div className="flex gap-4 border-b border-stone-100 pb-3">
+              <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
                 <input
                   type="radio"
-                  name="inv-type"
+                  name="invoiceType"
+                  value="individual"
                   checked={invoiceType === 'individual'}
                   onChange={() => setInvoiceType('individual')}
-                  className="text-amber-600"
+                  className="text-amber-600 focus:ring-amber-500"
                 />
                 <span>Bireysel Fatura</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+
+              <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
                 <input
                   type="radio"
-                  name="inv-type"
+                  name="invoiceType"
+                  value="corporate"
                   checked={invoiceType === 'corporate'}
                   onChange={() => setInvoiceType('corporate')}
-                  className="text-amber-600"
+                  className="text-amber-600 focus:ring-amber-500"
                 />
-                <span>Kurumsal Şirket Faturası</span>
+                <span>Kurumsal Fatura (Şirket)</span>
               </label>
             </div>
 
             {invoiceType === 'individual' ? (
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">T.C. Kimlik Numarası (İsteğe bağlı)</label>
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">T.C. Kimlik Numarası (Opsiyonel)</label>
                 <input
                   type="text"
                   maxLength={11}
                   value={identityNumber}
                   onChange={(e) => setIdentityNumber(e.target.value)}
-                  placeholder="11111111110"
-                  className="w-full sm:w-1/2 text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none"
+                  placeholder="11111111111"
+                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg max-w-sm"
                 />
+                <p className="text-[10px] text-stone-400 mt-1">E-faturanız T.C. kimlik numaranıza veya adınıza düzenlenecektir.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">Firma Ünvanı *</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Şirket Resmi Unvanı *</label>
                   <input
                     type="text"
                     required
                     value={companyTitle}
                     onChange={(e) => setCompanyTitle(e.target.value)}
-                    placeholder="Örn: Otantikos Tic. Ltd. Şti."
+                    placeholder="Örn: ABC Ltd. Şti."
                     className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">Vergi Dairesi *</label>
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Vergi Dairesi *</label>
                   <input
                     type="text"
                     required
                     value={taxOffice}
                     onChange={(e) => setTaxOffice(e.target.value)}
-                    placeholder="Fatih V.D."
+                    placeholder="Hocapaşa V.D."
                     className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">Vergi Numarası *</label>
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Vergi Kimlik Numarası (VKN) *</label>
                   <input
                     type="text"
                     required
@@ -480,92 +555,115 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {/* 4. VIRTUAL POS PAYMENT FORM */}
+          {/* 4. PAYMENT METHOD SELECTOR (OFFICIAL IYZICO INTEGRATION) */}
           <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">4</span>
-                <span>Kredi / Banka Kartı ile Güvenli Ödeme</span>
-              </h2>
-              {process.env.NODE_ENV === 'development' && (
-                <button
-                  type="button"
-                  onClick={handleFillDemoCard}
-                  className="text-[11px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200"
+                <span>Ödeme Seçenekleri</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>3D Secure & 256-Bit SSL</span>
+              </div>
+            </h2>
+
+            <div className="space-y-3">
+              {/* Option A: iyzico Gateway */}
+              <label
+                className={`p-4 rounded-xl border-2 cursor-pointer transition block ${
+                  paymentMethod === 'iyzico'
+                    ? 'border-amber-600 bg-amber-50/40'
+                    : 'border-stone-200 hover:border-stone-300'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="iyzico"
+                      checked={paymentMethod === 'iyzico'}
+                      onChange={() => setPaymentMethod('iyzico')}
+                      className="mt-1 text-amber-600 focus:ring-amber-500"
+                    />
+                    <div>
+                      <div className="font-bold text-xs text-stone-900 flex items-center gap-2">
+                        <span>Kredi / Banka Kartı ile Güvenli Öde</span>
+                        <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold">Önerilen</span>
+                      </div>
+                      <p className="text-[11px] text-stone-500 mt-1">
+                        BDDK Lisanslı iyzico Sanal POS altyapısı ile peşin fiyatına taksit ve 3D Secure SMS şifreli tam koruma.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* iyzico horizontal logo */}
+                  <div className="relative h-6 w-28 shrink-0 hidden sm:block">
+                    <Image
+                      src="/images/iyzico/iyzico_ile_ode_colored_horizontal.svg"
+                      alt="iyzico ile Öde"
+                      fill
+                      className="object-contain object-right"
+                    />
+                  </div>
+                </div>
+
+                {/* Sub-card: Verified Logos & Details */}
+                {paymentMethod === 'iyzico' && (
+                  <div className="mt-4 pt-3 border-t border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[11px] text-stone-600">
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Kart bilgileriniz asla saklanmaz, doğrudan bankanıza iletilir.</span>
+                    </div>
+
+                    {/* Official iyzico Cards Band */}
+                    <div className="relative h-6 w-48 shrink-0">
+                      <Image
+                        src="/images/iyzico/logo_band_colored.svg"
+                        alt="iyzico, Visa, MasterCard, Troy"
+                        fill
+                        className="object-contain object-left sm:object-right"
+                      />
+                    </div>
+                  </div>
+                )}
+              </label>
+
+              {/* Option B: Store Cash/POS (Click & Collect only) */}
+              {deliveryType === 'magaza_teslim' && (
+                <label
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition block ${
+                    paymentMethod === 'magaza_nakit'
+                      ? 'border-amber-600 bg-amber-50/40'
+                      : 'border-stone-200 hover:border-stone-300'
+                  }`}
                 >
-                  Test Kartı Bilgilerini Doldur
-                </button>
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="magaza_nakit"
+                      checked={paymentMethod === 'magaza_nakit'}
+                      onChange={() => setPaymentMethod('magaza_nakit')}
+                      className="mt-1 text-amber-600 focus:ring-amber-500"
+                    />
+                    <div>
+                      <div className="font-bold text-xs text-stone-900 flex items-center gap-2">
+                        <Store className="w-4 h-4 text-amber-700" />
+                        <span>Tahtakale Mağazada Elden Ödeme (Nakit / POS)</span>
+                      </div>
+                      <p className="text-[11px] text-stone-500 mt-1">
+                        Siparişinizi Eminönü şubemizden teslim alırken nakit veya kredi kartınız ile ödeyebilirsiniz.
+                      </p>
+                    </div>
+                  </div>
+                </label>
               )}
-            </div>
-
-            <div className="p-4 rounded-xl bg-stone-900 text-white space-y-4 max-w-md">
-              <div className="flex justify-between items-center text-xs text-stone-400 border-b border-stone-800 pb-2.5">
-                <span className="font-bold text-[11px] text-amber-400 flex items-center gap-1">
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>256-Bit SSL • 3D Secure</span>
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-black text-sky-400 bg-stone-800 px-1.5 py-0.5 rounded border border-stone-700">VISA</span>
-                  <span className="text-[10px] font-bold text-red-400 bg-stone-800 px-1.5 py-0.5 rounded border border-stone-700">Mastercard</span>
-                  <span className="text-[10px] font-bold text-teal-400 bg-stone-800 px-1.5 py-0.5 rounded border border-stone-700">Troy</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-stone-400 uppercase tracking-wider mb-1">Kart Üzerindeki İsim</label>
-                <input
-                  type="text"
-                  required
-                  value={cardHolder}
-                  onChange={(e) => setCardHolder(e.target.value)}
-                  placeholder="AD SOYAD"
-                  className="w-full bg-stone-800 text-white text-xs p-2.5 rounded-lg border border-stone-700 focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-stone-400 uppercase tracking-wider mb-1">Kart Numarası</label>
-                <input
-                  type="text"
-                  required
-                  maxLength={19}
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(e.target.value)}
-                  placeholder="**** **** **** ****"
-                  className="w-full bg-stone-800 text-white font-mono text-sm p-2.5 rounded-lg border border-stone-700 focus:outline-none focus:border-amber-400 tracking-wider"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] text-stone-400 uppercase tracking-wider mb-1">Son Kul. (AA/YY)</label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={5}
-                    value={expiryDate}
-                    onChange={(e) => setExpiryDate(e.target.value)}
-                    placeholder="12/28"
-                    className="w-full bg-stone-800 text-white text-xs p-2.5 rounded-lg border border-stone-700 text-center"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-stone-400 uppercase tracking-wider mb-1">CVC / CVV</label>
-                  <input
-                    type="password"
-                    required
-                    maxLength={3}
-                    value={cvc}
-                    onChange={(e) => setCvc(e.target.value)}
-                    placeholder="***"
-                    className="w-full bg-stone-800 text-white text-xs p-2.5 rounded-lg border border-stone-700 text-center"
-                  />
-                </div>
-              </div>
             </div>
           </div>
 
-          {/* 5. MANDATORY LEGAL AGREEMENTS CHECKBOXES */}
+          {/* 5. MANDATORY LEGAL AGREEMENTS CHECKBOXES (IYZICO COMPLIANCE) */}
           <div className="bg-stone-50 rounded-2xl border border-stone-200 p-5 space-y-3 text-xs text-stone-700">
             <h3 className="font-bold text-stone-900 text-xs uppercase tracking-wider">
               Yasal Onaylar ve Sözleşmeler
@@ -685,31 +783,101 @@ export default function CheckoutPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-4 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-xl transition flex items-center justify-center gap-2"
+            className="w-full py-4 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-xl transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
           >
             <Lock className="w-4 h-4" />
-            <span>{isSubmitting ? 'Sipariş İşleniyor...' : 'Siparişi Onayla ve Öde'}</span>
+            <span>
+              {isSubmitting 
+                ? 'Ödeme Başlatılıyor...' 
+                : paymentMethod === 'iyzico' 
+                  ? 'iyzico ile Güvenli Öde' 
+                  : 'Siparişi Onayla'}
+            </span>
           </button>
 
-          <div className="space-y-2 pt-2 border-t border-stone-100">
+          <div className="space-y-3 pt-2 border-t border-stone-100">
             <div className="text-[11px] text-stone-500 text-center flex items-center justify-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
               <span>Sipariş anında stok kilidi aktif edilir</span>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1 text-[10px] text-stone-400">
-              <span className="px-2 py-0.5 rounded bg-stone-100 border border-stone-200 font-bold text-stone-700">256-Bit SSL</span>
-              <span className="px-2 py-0.5 rounded bg-stone-100 border border-stone-200 font-bold text-stone-700">3D Secure</span>
-              <span className="px-2 py-0.5 rounded bg-stone-100 border border-stone-200 font-black text-sky-700">VISA</span>
-              <span className="px-2 py-0.5 rounded bg-stone-100 border border-stone-200 font-bold text-red-700">Mastercard</span>
-              <span className="px-2 py-0.5 rounded bg-stone-100 border border-stone-200 font-bold text-teal-700">Troy</span>
-              <span className="px-2 py-0.5 rounded bg-amber-50 border border-amber-200 font-bold text-amber-800">DHL Kargo</span>
+            {/* Official iyzico, Visa, Mastercard, Troy Band */}
+            <div className="pt-1 flex flex-col items-center gap-1.5">
+              <div className="relative h-7 w-full opacity-90 hover:opacity-100 transition-opacity">
+                <Image
+                  src="/images/iyzico/logo_band_colored.svg"
+                  alt="iyzico, Visa, MasterCard, Troy ile Güvenli Ödeme"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <div className="flex items-center gap-2 text-[10px] text-stone-400">
+                <span>256-Bit SSL</span>
+                <span>•</span>
+                <span>3D Secure</span>
+                <span>•</span>
+                <span>DHL Kargo</span>
+              </div>
             </div>
           </div>
         </div>
 
       </form>
 
+      {/* iyzico Official Checkout Form Modal */}
+      {isIyzicoModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-stone-200 animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 px-6 border-b border-stone-200 bg-stone-50">
+              <div className="flex items-center gap-3">
+                <div className="relative h-6 w-24">
+                  <Image
+                    src="/images/iyzico/iyzico_ile_ode_colored_horizontal.svg"
+                    alt="iyzico"
+                    fill
+                    className="object-contain object-left"
+                  />
+                </div>
+                <span className="text-xs font-bold text-stone-800 border-l border-stone-300 pl-3">
+                  3D Secure Güvenli Ödeme
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsIyzicoModalOpen(false)}
+                className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 rounded-xl transition"
+                aria-label="Kapat"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* iyzico Dynamic Script Mount Container */}
+            <div className="p-4 sm:p-6 max-h-[85vh] overflow-y-auto">
+              <div ref={iyzicoContainerRef} id="iyzipay-checkout-form" className="responsive" />
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 bg-stone-50 border-t border-stone-200 text-center text-[10px] text-stone-500">
+              256-Bit SSL şifreli BDDK lisanslı güvenli ödeme penceresi
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-7xl mx-auto px-4 py-20 text-center text-xs text-stone-500">
+        Ödeme ekranı yükleniyor...
+      </div>
+    }>
+      <CheckoutContent />
+    </Suspense>
   );
 }

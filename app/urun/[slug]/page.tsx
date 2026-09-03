@@ -22,7 +22,8 @@ import {
   Check, 
   Bell,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  CreditCard
 } from 'lucide-react';
 import { Product, ProductVariant, Question, Review } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
@@ -419,9 +420,11 @@ export default function ProductDetailPage() {
                 )}
               </div>
             </div>
-
             <div className="mt-3 pt-3 border-t border-amber-200/60 text-[11px] text-stone-600 flex items-center justify-between">
-              <span>ğŸ’³ Peşin fiyatına taksit seçenekleri mevcuttur</span>
+              <span className="flex items-center gap-1.5 font-medium">
+                <CreditCard className="w-3.5 h-3.5 text-amber-700" />
+                <span>iyzico ile peşin fiyatına taksit imkanı</span>
+              </span>
               <span className="font-bold text-amber-800">Net Fiyat Garantisi</span>
             </div>
           </div>
@@ -480,31 +483,33 @@ export default function ProductDetailPage() {
                 <div className="flex items-center border border-stone-300 rounded-xl bg-white px-2">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-2 text-stone-600 hover:text-amber-700"
+                    disabled={quantity <= 1}
+                    className="p-2 text-stone-600 hover:text-amber-700 disabled:opacity-30 transition"
+                    aria-label="Adet Azalt"
                   >
-                    <Minus className="w-4 h-4" />
+                    <Minus className="w-3.5 h-3.5" />
                   </button>
-                  <span className="w-8 text-center text-xs font-bold text-stone-900">
-                    {quantity}
-                  </span>
+                  <span className="w-8 text-center text-xs font-bold text-stone-900">{quantity}</span>
                   <button
-                    onClick={() => setQuantity(Math.min(currentStock, quantity + 1))}
-                    className="p-2 text-stone-600 hover:text-amber-700"
+                    onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                    disabled={quantity >= product.stock}
+                    className="p-2 text-stone-600 hover:text-amber-700 disabled:opacity-30 transition"
+                    aria-label="Adet Artır"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
-                {/* Submit Button */}
+                {/* Main CTA */}
                 <button
                   onClick={() => addItem(product, selectedVariant, quantity)}
-                  className="flex-1 py-3.5 px-6 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg hover:shadow-amber-600/30 transition flex items-center justify-center gap-2 group"
+                  className="flex-1 py-3.5 px-6 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   <span>Sepete Ekle</span>
                 </button>
 
-                {/* Wishlist Icon */}
+                {/* Wishlist Button */}
                 <button
                   onClick={() => toggleFavorite(product)}
                   className="p-3.5 rounded-xl border border-stone-300 hover:border-rose-400 text-stone-700 hover:text-rose-600 bg-white transition"
@@ -530,24 +535,40 @@ export default function ProductDetailPage() {
             )}
           </div>
 
-          {/* Trust Value Badges */}
-          <div className="grid grid-cols-2 gap-3 pt-4 border-t border-stone-200 text-xs">
-            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white border border-stone-200">
-              <Truck className="w-4 h-4 text-amber-600 shrink-0" />
-              <div>
-                <span className="font-bold text-stone-900 block text-[11px]">Hızlı Sevkiyat</span>
-                <span className="text-[10px] text-stone-500">Eminönü Doğrudan Kargo</span>
+          {/* Trust Value Badges & iyzico Assurance */}
+          <div className="space-y-2.5 pt-4 border-t border-stone-200 text-xs">
+            <div className="p-3 rounded-2xl bg-stone-50 border border-stone-200 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="text-[11px] text-stone-700 font-semibold">iyzico Güvenli Ödeme & 256-Bit SSL</span>
+              </div>
+              <div className="relative h-6 w-32 shrink-0">
+                <Image
+                  src="/images/iyzico/iyzico_ile_ode_colored_horizontal.svg"
+                  alt="iyzico ile Güvenli Öde"
+                  fill
+                  className="object-contain object-right"
+                />
               </div>
             </div>
-            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white border border-stone-200">
-              <RotateCcw className="w-4 h-4 text-amber-600 shrink-0" />
-              <div>
-                <span className="font-bold text-stone-900 block text-[11px]">14 Gün İade</span>
-                <span className="text-[10px] text-stone-500">Kolay RMA Masası</span>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white border border-stone-200">
+                <Truck className="w-4 h-4 text-amber-600 shrink-0" />
+                <div>
+                  <span className="font-bold text-stone-900 block text-[11px]">Hızlı Sevkiyat</span>
+                  <span className="text-[10px] text-stone-500">Eminönü Doğrudan Kargo</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white border border-stone-200">
+                <RotateCcw className="w-4 h-4 text-amber-600 shrink-0" />
+                <div>
+                  <span className="font-bold text-stone-900 block text-[11px]">14 Gün İade</span>
+                  <span className="text-[10px] text-stone-500">Kolay RMA Masası</span>
+                </div>
               </div>
             </div>
           </div>
-
         </div>
       </div>
 

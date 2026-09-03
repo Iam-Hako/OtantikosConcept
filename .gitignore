@@ -17,6 +17,7 @@
 # misc
 .DS_Store
 *.pem
+*.zip
 
 # local persistent fallback data (customer leads & chats)
 /.data/

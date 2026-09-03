@@ -88,7 +88,7 @@ export default function DistanceSellingPage() {
         <div>
           <h3 className="font-bold text-stone-900 text-base border-b border-stone-100 pb-2">MADDE 6 - ÖDEME VE GÜVENLİK</h3>
           <p className="mt-2 text-xs">
-            Ödemeler, 256-Bit SSL güvenlik sertifikası ve 3D Secure korumalı Sanal POS altyapısı üzerinden kredi kartı / banka kartı (Visa, Mastercard, Troy) ile tahsil edilir. ALICI&apos;nın kart bilgileri hiçbir şekilde SATICI sistemlerinde saklanmaz.
+            Ödemeler, BDDK lisanslı <strong>iyzico</strong> Sanal POS altyapısı, 256-Bit SSL güvenlik sertifikası ve 3D Secure koruması üzerinden kredi kartı / banka kartı (Visa, Mastercard, Troy) ile tahsil edilir. ALICI&apos;nın kart bilgileri hiçbir şekilde SATICI sistemlerinde saklanmaz, doğrudan bankaya şifreli olarak iletilir.
           </p>
         </div>
 

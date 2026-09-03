@@ -26,7 +26,7 @@ export default function PrivacyPolicyPage() {
         <div>
           <h3 className="font-bold text-stone-900 text-base border-b border-stone-100 pb-2">2. Ödeme Güvenliği ve Kredi Kartı Gizliliği</h3>
           <p className="mt-2 text-xs">
-            Ödeme esnasında girdiğiniz kredi kartı / banka kartı bilgileri sistemlerimizde kesinlikle kaydedilmez ve saklanmaz. Tüm ödeme işlemleri <strong>256-Bit SSL şifreleme</strong> sertifikası ve <strong>3D Secure</strong> korumalı Sanal POS altyapısı üzerinden doğrudan bankaya iletilir.
+            Ödeme esnasında girdiğiniz kredi kartı / banka kartı bilgileri sistemlerimizde kesinlikle kaydedilmez ve saklanmaz. Tüm ödeme işlemleri BDDK lisanslı <strong>iyzico</strong> Sanal POS altyapısı, <strong>256-Bit SSL şifreleme</strong> sertifikası ve <strong>3D Secure</strong> SMS doğrulama koruması üzerinden doğrudan bankaya iletilir.
           </p>
         </div>
 

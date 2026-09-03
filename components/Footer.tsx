@@ -229,35 +229,40 @@ export default function Footer() {
 
         </div>
 
-        {/* LEGAL IMPRINT & PAYMENT SECURITY BADGES */}
-        <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-stone-500">
-          <div>
-            <p>
-              © 2026 Otantikos Hediyelik Eşya Oyuncak Ticaret Ltd. Şti. Tüm hakları saklıdır.
-            </p>
-          </div>
+        {/* LEGAL IMPRINT & OFFICIAL IYZICO PAYMENT SECURITY BADGES */}
+        <div className="pt-8 border-t border-stone-800/80 space-y-4">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+            <div className="space-y-1 text-center lg:text-left">
+              <p className="text-xs text-stone-400 font-medium">
+                © 2026 Otantikos Hediyelik Eşya Oyuncak Ticaret Limited Şirketi. Tüm hakları saklıdır.
+              </p>
+              <p className="text-[10px] text-stone-400">
+                Vergi Dairesi: Hocapaşa V.D. | VKN: 6491340351 | MERSİS: 0649134035100001 | Ticaret Sicil No: 1146371
+              </p>
+            </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-stone-400">
-            <span className="text-[10px] uppercase tracking-wider font-semibold text-stone-400">Güvenli Ödeme:</span>
-            <div className="px-2.5 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-bold text-amber-400 flex items-center gap-1">
-              <Lock className="w-3 h-3" />
-              <span>256-Bit SSL</span>
-            </div>
-            <div className="px-2.5 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-bold text-stone-300">
-              3D Secure
-            </div>
-            <div className="px-2.5 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-black text-sky-400 tracking-wider">
-              VISA
-            </div>
-            <div className="px-2.5 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-bold text-red-400">
-              Mastercard
-            </div>
-            <div className="px-2.5 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-bold text-teal-400">
-              Troy
-            </div>
-            <div className="px-2.5 py-1 rounded bg-stone-900 border border-stone-800 text-[10px] font-bold text-amber-400 flex items-center gap-1">
-              <Truck className="w-3 h-3" />
-              <span>DHL Kargo</span>
+            {/* Official iyzico, Visa, Mastercard, Troy Logo Band */}
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="flex items-center gap-2 text-[10px] text-stone-400">
+                <div className="px-2.5 py-1.5 rounded-lg bg-stone-900 border border-stone-800 font-bold text-amber-400 flex items-center gap-1.5 shadow-2xs">
+                  <Lock className="w-3 h-3 text-amber-500" />
+                  <span>256-Bit SSL</span>
+                </div>
+                <div className="px-2.5 py-1.5 rounded-lg bg-stone-900 border border-stone-800 font-bold text-stone-300 flex items-center gap-1.5 shadow-2xs">
+                  <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                  <span>3D Secure</span>
+                </div>
+              </div>
+
+              {/* Official iyzico logo band SVG */}
+              <div className="relative h-8 w-64 sm:w-80 opacity-90 hover:opacity-100 transition-opacity">
+                <Image
+                  src="/images/iyzico/logo_band_white.svg"
+                  alt="iyzico, Visa, MasterCard, Troy ile Güvenli Ödeme"
+                  fill
+                  className="object-contain object-center sm:object-right"
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -47,7 +47,32 @@ export default function AboutPage() {
           Gerek perakende gerekse toptan alımlarda dürüstlük, müşteri memnuniyeti ve hızlı servis ilkelerimizden asla taviz vermeden büyümeye devam ediyoruz.
         </p>
 
-        <div className="pt-4 border-t border-stone-200 flex justify-center">
+        {/* Corporate Legal Identifiers for iyzico & Official Compliance */}
+        <div className="bg-stone-50 rounded-2xl p-5 border border-stone-200 text-xs space-y-2 text-stone-700">
+          <h4 className="font-bold text-stone-900 uppercase tracking-wider text-[11px] pb-1 border-b border-stone-200">
+            Resmi Şirket & Sicil Bilgileri
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px]">
+            <div><strong>Ticari Unvan:</strong> Otantikos Hediyelik Eşya Oyuncak Ticaret Ltd. Şti.</div>
+            <div><strong>Vergi Dairesi & VKN:</strong> Hocapaşa V.D. / 6491340351</div>
+            <div><strong>MERSİS No:</strong> 0649134035100001</div>
+            <div><strong>Ticaret Sicil No:</strong> 1146371</div>
+            <div className="sm:col-span-2"><strong>Kayıtlı Adres:</strong> Süleymaniye Mah. Uzunçarşı Cad. Tamburacı ve Görenli Han No: 187 / 2G Fatih / İSTANBUL</div>
+            <div><strong>Telefon / WhatsApp:</strong> +90 (507) 773 77 77</div>
+            <div><strong>E-posta:</strong> aylindurmus54@gmail.com</div>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="relative h-7 w-56 opacity-90">
+            <Image
+              src="/images/iyzico/logo_band_colored.svg"
+              alt="iyzico, Visa, MasterCard, Troy ile Güvenli Ödeme"
+              fill
+              className="object-contain object-left"
+            />
+          </div>
+
           <Link
             href="/kategori/tum-urunler"
             className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition inline-flex items-center gap-2"

@@ -322,6 +322,17 @@ export default function CartPage() {
               <span>14 gün yasal koşulsuz iade ve değişim hakkı</span>
             </div>
           </div>
+
+          <div className="pt-3 border-t border-stone-100 flex items-center justify-center">
+            <div className="relative h-7 w-56 opacity-90 hover:opacity-100 transition-opacity">
+              <Image
+                src="/images/iyzico/logo_band_colored.svg"
+                alt="iyzico, Visa, MasterCard, Troy ile Güvenli Ödeme"
+                fill
+                className="object-contain"
+              />
+            </div>
+          </div>
         </div>
 
       </div>

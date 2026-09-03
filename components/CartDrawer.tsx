@@ -239,9 +239,19 @@ export default function CartDrawer() {
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
               </Link>
 
-              <div className="flex items-center justify-center gap-1.5 text-[11px] text-stone-500 pt-1">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>256-Bit SSL & 3D Secure ile %100 Güvenli Ödeme</span>
+              <div className="space-y-2 pt-1 border-t border-stone-200">
+                <div className="flex items-center justify-center gap-1.5 text-[10px] text-stone-500">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>256-Bit SSL & 3D Secure ile %100 Güvenli Ödeme</span>
+                </div>
+                <div className="relative h-6 w-full opacity-85 hover:opacity-100 transition-opacity">
+                  <Image
+                    src="/images/iyzico/logo_band_colored.svg"
+                    alt="iyzico, Visa, MasterCard, Troy ile Güvenli Ödeme"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
               </div>
             </div>
           )}
