@@ -65,7 +65,10 @@ export default function HomePage() {
             </div>
 
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-black tracking-tight leading-[1.15] text-stone-900">
-              Otantikos Concept&apos;e Hoş Geldiniz
+              Otantikos Concept&apos;e <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-amber-500 to-amber-800">
+                Hoş Geldiniz.
+              </span>
             </h1>
 
             <p className="text-sm sm:text-base text-stone-600 max-w-xl mx-auto lg:mx-0 leading-relaxed font-normal">
