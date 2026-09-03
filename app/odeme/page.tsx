@@ -19,7 +19,11 @@ import {
   X,
   MessageCircle,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Bell,
+  CheckCircle2,
+  Phone,
+  MapPin
 } from 'lucide-react';
 import { useCart } from '@/lib/store/cart-store';
 import { useAuth } from '@/lib/store/auth-context';
@@ -27,6 +31,9 @@ import { TURKISH_PROVINCES } from '@/lib/data/provinces-and-districts';
 import { DataService } from '@/lib/data/store-data';
 import { formatPrice } from '@/lib/utils/format';
 import { toast } from 'sonner';
+
+// Online sales active flag (can be toggled via NEXT_PUBLIC_ONLINE_SALES_ACTIVE in .env.local)
+const isOnlineSalesActive = process.env.NEXT_PUBLIC_ONLINE_SALES_ACTIVE === 'true';
 
 function CheckoutContent() {
   const router = useRouter();
@@ -48,11 +55,14 @@ function CheckoutContent() {
     clearCart,
   } = useCart();
 
+  // Pre-launch email notification state
+  const [notifyEmail, setNotifyEmail] = useState(user?.email || '');
+  const [isNotified, setIsNotified] = useState(false);
+
   // Step & Modal state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'iyzico' | 'magaza_nakit'>('iyzico');
   const [isIyzicoModalOpen, setIsIyzicoModalOpen] = useState(false);
-  const [isPreLaunchModalOpen, setIsPreLaunchModalOpen] = useState(false);
   const [iyzicoHtml, setIyzicoHtml] = useState('');
   const iyzicoContainerRef = useRef<HTMLDivElement>(null);
 
@@ -78,14 +88,14 @@ function CheckoutContent() {
   const [acceptPreInfo, setAcceptPreInfo] = useState(true);
   const [acceptKvkk, setAcceptKvkk] = useState(true);
 
-  // Catch URL errors from iyzico callback (e.g. 3D Secure SMS timeout or cancellation)
+  // Catch URL errors from iyzico callback
   useEffect(() => {
     if (urlError) {
       toast.error(decodeURIComponent(urlError), { duration: 6000 });
     }
   }, [urlError]);
 
-  // Handle iyzico checkout form script injection when modal opens
+  // Handle iyzico checkout form script injection
   useEffect(() => {
     if (isIyzicoModalOpen && iyzicoHtml && iyzicoContainerRef.current) {
       try {
@@ -100,12 +110,23 @@ function CheckoutContent() {
     }
   }, [isIyzicoModalOpen, iyzicoHtml]);
 
-  // If user switches delivery type away from magaza_teslim, force paymentMethod to iyzico
-  useEffect(() => {
-    if (deliveryType !== 'magaza_teslim' && paymentMethod === 'magaza_nakit') {
-      setPaymentMethod('iyzico');
+  // Handle pre-launch email submission
+  const handleNotifySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!notifyEmail.trim() || !notifyEmail.includes('@')) {
+      toast.error('Lütfen geçerli bir e-posta adresi giriniz.');
+      return;
     }
-  }, [deliveryType, paymentMethod]);
+    setIsNotified(true);
+    toast.success('Bildirim kaydınız alındı! Satışlar başladığında ilk size haber vereceğiz.');
+  };
+
+  // Build prefilled WhatsApp message with selected cart items
+  const whatsappCartMessage = encodeURIComponent(
+    `Merhaba Otantikos Concept, sepetimdeki şu ürünler için sipariş vermek istiyorum:\n\n` +
+    items.map((it) => `• ${it.product.name} ${it.variant ? `(${it.variant.value})` : ''} - ${it.quantity} Adet (${formatPrice((it.variant?.price_override ?? it.product.price) * it.quantity)})`).join('\n') +
+    `\n\nAra Toplam: ${formatPrice(subtotal)}\nToplam Tutar: ${formatPrice(total)}\n\nSiparişim için yardımcı olabilir misiniz?`
+  );
 
   // Active district list based on selected province
   const currentDistricts = TURKISH_PROVINCES.find((p) => p.name === province)?.districts || [];
@@ -203,20 +224,17 @@ function CheckoutContent() {
         }
 
         if (result.isPreLaunch) {
-          setIsPreLaunchModalOpen(true);
+          router.push('/yakinda');
           return;
         }
 
         if (result.checkoutFormContent) {
-          // Open iyzico official responsive payment overlay
           setIyzicoHtml(result.checkoutFormContent);
           setIsIyzicoModalOpen(true);
         } else if (result.paymentPageUrl && !result.isSimulated) {
-          // Direct 3D Secure redirect
           window.location.href = result.paymentPageUrl;
         } else {
-          // If neither real form nor redirect is returned, open pre-launch modal
-          setIsPreLaunchModalOpen(true);
+          router.push('/yakinda');
         }
       } 
       // 2B. Direct Store Delivery Cash/POS
@@ -256,15 +274,209 @@ function CheckoutContent() {
 
   if (items.length === 0) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <h2 className="text-xl font-bold text-stone-900 mb-4">Sepetiniz Boş</h2>
-        <Link href="/kategori/tum-urunler" className="px-5 py-2.5 bg-amber-600 text-white text-xs font-bold rounded-lg">
+      <div className="max-w-7xl mx-auto px-4 py-20 text-center space-y-4">
+        <h2 className="text-xl font-bold text-stone-900">Sepetiniz Boş</h2>
+        <p className="text-xs text-stone-500 max-w-sm mx-auto">
+          Sepetinize henüz ürün eklemediniz. Tahtakale özgün koleksiyonumuzu hemen keşfedebilirsiniz.
+        </p>
+        <Link href="/kategori/tum-urunler" className="inline-flex px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition">
           Ürünlere Göz Atın
         </Link>
       </div>
     );
   }
 
+  // =========================================================================
+  // PRE-LAUNCH SCREEN: DISPLAYED WHEN ONLINE SALES ARE PREPARING
+  // =========================================================================
+  if (!isOnlineSalesActive) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8 pb-24 lg:pb-16 text-center">
+        
+        {/* Top Breadcrumb / Back Link */}
+        <div className="flex items-center justify-between border-b border-stone-200 pb-4">
+          <Link href="/sepet" className="inline-flex items-center gap-2 text-xs font-semibold text-stone-600 hover:text-amber-700 transition">
+            <ArrowLeft className="w-4 h-4" />
+            <span>Sepete Geri Dön</span>
+          </Link>
+          <div className="flex items-center gap-2 text-xs text-stone-500">
+            <Lock className="w-3.5 h-3.5 text-emerald-600" />
+            <span>256-Bit SSL & iyzico Sanal POS Hazırlığı</span>
+          </div>
+        </div>
+
+        {/* Hero Announcement */}
+        <div className="space-y-4">
+          <div className="relative w-20 h-20 mx-auto bg-stone-950 rounded-3xl p-3 border border-stone-800 shadow-xl">
+            <Image src="/images/logo.webp" alt="Otantikos Concept" fill className="object-contain p-1.5" />
+          </div>
+
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold">
+            <Clock className="w-3.5 h-3.5 text-amber-700" />
+            <span>Geri Sayım Başladı • Altyapı Hazırlığı Sürüyor</span>
+          </div>
+
+          <h1 className="text-3xl sm:text-4xl font-serif font-black text-stone-900 leading-tight">
+            Online Satışlarımız Çok Yakında Başlıyor!
+          </h1>
+
+          <p className="text-xs sm:text-sm text-stone-600 max-w-xl mx-auto leading-relaxed">
+            Otantikos Concept Eminönü Tahtakale koleksiyonumuz için doğrudan kredi kartı ve <strong>iyzico Sanal POS</strong> satış altyapımız tamamlanmak üzeredir. Çok yakında tüm Türkiye&apos;ye 3D Secure güvenli ödeme ve peşin fiyatına taksitle online sipariş alımına başlıyoruz.
+          </p>
+        </div>
+
+        {/* Official iyzico Logo Band */}
+        <div className="p-4 sm:p-5 bg-stone-50 rounded-3xl border border-stone-200 shadow-2xs max-w-xl mx-auto space-y-2">
+          <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">
+            BDDK Lisanslı iyzico Sanal POS Entegrasyonu
+          </span>
+          <div className="relative h-7 w-60 mx-auto opacity-90">
+            <Image
+              src="/images/iyzico/logo_band_colored.svg"
+              alt="iyzico, Visa, MasterCard, Troy"
+              fill
+              className="object-contain"
+            />
+          </div>
+          <p className="text-[10px] text-stone-400">
+            256-Bit SSL Sertifikası • 3D Secure SMS Koruması • Tüm Banka Kartlarına Taksit İmkanı
+          </p>
+        </div>
+
+        {/* Selected Cart Items Mini Preview (Customer's Cart is Safe!) */}
+        <div className="bg-white rounded-3xl border border-stone-200 p-5 sm:p-6 max-w-xl mx-auto text-left space-y-4 shadow-xs">
+          <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-stone-900 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-600" />
+              <span>Seçtiğiniz Ürünler ({items.length} Kalem)</span>
+            </h3>
+            <span className="text-xs font-black text-amber-700">{formatPrice(total)}</span>
+          </div>
+
+          <div className="divide-y divide-stone-100 max-h-52 overflow-y-auto pr-1">
+            {items.map((i) => {
+              const itemPrice = i.variant?.price_override ?? i.product.price;
+              const cover = i.variant?.image_url || i.product.images?.[0]?.image_url || '/images/logo.webp';
+              return (
+                <div key={`${i.product.id}-${i.variant?.id}`} className="py-2.5 flex items-center justify-between text-xs gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="relative w-9 h-9 rounded-lg bg-stone-100 overflow-hidden shrink-0 border border-stone-200">
+                      <Image src={cover} alt={i.product.name} fill className="object-cover" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-stone-900 truncate">{i.product.name}</div>
+                      <div className="text-[10px] text-stone-400">{i.quantity} Adet {i.variant ? `(${i.variant.value})` : ''}</div>
+                    </div>
+                  </div>
+                  <span className="font-bold text-stone-900 shrink-0">{formatPrice(itemPrice * i.quantity)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Immediate Ordering Actions: WhatsApp & Store */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto text-left">
+          
+          {/* WhatsApp Direct Order Button */}
+          <div className="p-6 bg-emerald-50/80 border border-emerald-200 rounded-3xl space-y-3 shadow-xs flex flex-col justify-between">
+            <div className="space-y-2">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                <MessageCircle className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-stone-900 text-sm">WhatsApp ile Hemen Sipariş Verin</h3>
+              <p className="text-xs text-stone-600 leading-relaxed">
+                Sepetinizdeki ürünleri beklemeden doğrudan WhatsApp sipariş hattımız üzerinden teyit edip satın alabilirsiniz.
+              </p>
+            </div>
+
+            <a
+              href={`https://wa.me/905077737777?text=${whatsappCartMessage}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>WhatsApp'tan Siparişi Gönder</span>
+            </a>
+          </div>
+
+          {/* Physical Store Pickup */}
+          <div className="p-6 bg-amber-50/80 border border-amber-200 rounded-3xl space-y-3 shadow-xs flex flex-col justify-between">
+            <div className="space-y-2">
+              <div className="w-10 h-10 rounded-2xl bg-amber-700 text-white flex items-center justify-center shadow-xs">
+                <Store className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-stone-900 text-sm">Tahtakale Mağazamızdan Teslim Alın</h3>
+              <p className="text-xs text-stone-600 leading-relaxed">
+                Eminönü Süleymaniye Tamburacı ve Görenli Han&apos;daki mağazamızdan elden teslim alabilir ve ödemenizi yapabilirsiniz.
+              </p>
+            </div>
+
+            <Link
+              href="/iletisim"
+              className="w-full py-3.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
+            >
+              <MapPin className="w-4 h-4 text-amber-400" />
+              <span>Mağaza Adresi ve Yol Tarifi</span>
+            </Link>
+          </div>
+
+        </div>
+
+        {/* Notify when sales open */}
+        <div className="p-6 sm:p-8 bg-white rounded-3xl border border-stone-200 shadow-2xs max-w-xl mx-auto space-y-4">
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-stone-900">Satışlar Başladığında İlk Size Haber Verelim</h3>
+            <p className="text-xs text-stone-500">
+              Online kartlı ödeme aktif olduğunda ve açılışa özel tekliflerde anında haberdar olun.
+            </p>
+          </div>
+
+          {isNotified ? (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-800 flex items-center justify-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>E-posta adresiniz kaydedildi. Açılış anında bilgilendirileceksiniz!</span>
+            </div>
+          ) : (
+            <form onSubmit={handleNotifySubmit} className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="email"
+                required
+                value={notifyEmail}
+                onChange={(e) => setNotifyEmail(e.target.value)}
+                placeholder="E-posta adresinizi giriniz..."
+                className="flex-1 text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600"
+              />
+              <button
+                type="submit"
+                className="px-5 py-3 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5 shrink-0"
+              >
+                <Bell className="w-3.5 h-3.5" />
+                <span>Haber Ver</span>
+              </button>
+            </form>
+          )}
+        </div>
+
+        {/* Back to Products */}
+        <div>
+          <Link
+            href="/kategori/tum-urunler"
+            className="inline-flex items-center gap-2 text-xs font-bold text-amber-700 hover:text-amber-800 underline"
+          >
+            <span>Koleksiyonu İncelemeye Devam Et</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // LIVE CHECKOUT FORM (ACTIVE WHEN NEXT_PUBLIC_ONLINE_SALES_ACTIVE IS TRUE)
+  // =========================================================================
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-24 lg:pb-12">
       
@@ -670,7 +882,7 @@ function CheckoutContent() {
             </div>
           </div>
 
-          {/* 5. MANDATORY LEGAL AGREEMENTS CHECKBOXES (IYZICO COMPLIANCE) */}
+          {/* 5. MANDATORY LEGAL AGREEMENTS CHECKBOXES */}
           <div className="bg-stone-50 rounded-2xl border border-stone-200 p-5 space-y-3 text-xs text-stone-700">
             <h3 className="font-bold text-stone-900 text-xs uppercase tracking-wider">
               Yasal Onaylar ve Sözleşmeler
@@ -869,87 +1081,6 @@ function CheckoutContent() {
             <div className="p-3 bg-stone-50 border-t border-stone-200 text-center text-[10px] text-stone-500">
               256-Bit SSL şifreli BDDK lisanslı güvenli ödeme penceresi
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Pre-Launch / Coming Soon Modal */}
-      {isPreLaunchModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-stone-200 p-6 sm:p-8 space-y-6 text-center">
-            
-            <button
-              type="button"
-              onClick={() => setIsPreLaunchModalOpen(false)}
-              className="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-xl transition"
-              aria-label="Kapat"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="space-y-3">
-              <div className="relative w-16 h-16 mx-auto bg-stone-950 rounded-2xl p-2.5 border border-stone-800 shadow-md">
-                <Image src="/images/logo.webp" alt="Otantikos Concept" fill className="object-contain p-1" />
-              </div>
-
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold">
-                <Clock className="w-3.5 h-3.5 text-amber-700" />
-                <span>Online Satışlarımız Çok Yakında Başlıyor!</span>
-              </div>
-
-              <h2 className="text-xl sm:text-2xl font-serif font-black text-stone-900">
-                iyzico Sanal POS Entegrasyonu Hazırlanıyor
-              </h2>
-
-              <p className="text-xs text-stone-600 leading-relaxed max-w-md mx-auto">
-                Otantikos Concept Tahtakale koleksiyonumuz için doğrudan kredi kartı ve iyzico Sanal POS ile satış altyapımız tamamlanmak üzeredir. Çok yakında tüm Türkiye&apos;ye 3D Secure güvenli ödeme ile online satışlarımız başlayacaktır.
-              </p>
-            </div>
-
-            {/* Official iyzico logo band */}
-            <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
-              <div className="relative h-6 w-48 mx-auto opacity-90">
-                <Image
-                  src="/images/iyzico/logo_band_colored.svg"
-                  alt="iyzico, Visa, MasterCard, Troy"
-                  fill
-                  className="object-contain"
-                />
-              </div>
-              <p className="text-[10px] text-stone-500">
-                256-Bit SSL • 3D Secure • Tüm Banka Kartlarına Peşin Fiyatına Taksit
-              </p>
-            </div>
-
-            {/* Immediate Action Buttons */}
-            <div className="space-y-2.5 pt-1">
-              <a
-                href={`https://wa.me/905077737777?text=${encodeURIComponent('Merhaba Otantikos Concept, web sitenizdeki ürünler hakkında bilgi ve sipariş vermek istiyorum.')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span>WhatsApp ile Hemen Sipariş Ver (+90 507 773 77 77)</span>
-              </a>
-
-              <Link
-                href="/yakinda"
-                className="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2"
-              >
-                <span>Açılış ve Bilgilendirme Sayfasını Gör</span>
-                <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-              </Link>
-
-              <button
-                type="button"
-                onClick={() => setIsPreLaunchModalOpen(false)}
-                className="w-full py-2.5 text-stone-500 hover:text-stone-800 text-xs font-semibold transition"
-              >
-                Kataloğu İncelemeye Devam Et
-              </button>
-            </div>
-
           </div>
         </div>
       )}
