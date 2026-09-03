@@ -12,16 +12,57 @@ function OrderSuccessContent() {
   const email = searchParams?.get('email') || '';
 
   useEffect(() => {
-    try {
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
-      });
-    } catch {
-      // Ignore
+    if (orderNumber && !orderNumber.startsWith('sim-')) {
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+      } catch {
+        // Ignore
+      }
     }
-  }, []);
+  }, [orderNumber]);
+
+  if (!orderNumber || orderNumber.startsWith('sim-')) {
+    return (
+      <div className="max-w-xl mx-auto px-4 py-16 text-center space-y-6">
+        <div className="w-16 h-16 bg-amber-100 text-amber-800 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+          <Package className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <span className="text-xs font-bold uppercase tracking-widest text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+            Altyapı Hazırlığı Devam Ediyor
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-serif font-black text-stone-900">
+            Online Satışlarımız Çok Yakında Başlıyor!
+          </h1>
+          <p className="text-xs sm:text-sm text-stone-600 max-w-md mx-auto leading-relaxed">
+            iyzico Sanal POS entegrasyonumuz tamamlanma aşamasındadır. Kredi kartı ile doğrudan sipariş alımlarımız çok yakında başlayacaktır.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <Link
+            href="/yakinda"
+            className="w-full sm:w-auto px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2"
+          >
+            <span>Açılış Bilgilendirmesini Gör</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+          <a
+            href={`https://wa.me/905077737777?text=${encodeURIComponent('Merhaba, ürünleriniz hakkında bilgi ve sipariş vermek istiyorum.')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2"
+          >
+            <span>WhatsApp ile Sipariş Ver</span>
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-8">

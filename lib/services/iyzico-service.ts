@@ -65,6 +65,8 @@ export interface IyzicoInitializeResult {
   checkoutFormContent?: string;
   paymentPageUrl?: string;
   isSimulated?: boolean;
+  isPreLaunch?: boolean;
+  message?: string;
   error?: string;
 }
 
@@ -101,14 +103,12 @@ export async function initializeIyzicoCheckoutForm(
 ): Promise<IyzicoInitializeResult> {
   const client = getIyzipayClient();
 
-  // If no credentials configured, return simulated test response for development
+  // If no credentials configured, return pre-launch response
   if (!client) {
-    console.info('[iyzico] API anahtarları henüz girilmediği için test/simülasyon modunda çalışıyor.');
     return {
       success: true,
-      isSimulated: true,
-      token: `sim-token-${Date.now()}-${params.orderNumber}`,
-      paymentPageUrl: `${params.callbackUrl}?token=sim-token-${Date.now()}&conversationId=${params.orderNumber}&status=success`,
+      isPreLaunch: true,
+      message: 'Online kredi kartı satışlarımız ve iyzico Sanal POS entegrasyonumuz çok yakında aktif olacaktır.',
     };
   }
 

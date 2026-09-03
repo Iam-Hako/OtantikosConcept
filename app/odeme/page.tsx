@@ -16,7 +16,10 @@ import {
   FileText,
   AlertCircle,
   Sparkles,
-  X
+  X,
+  MessageCircle,
+  Clock,
+  ArrowRight
 } from 'lucide-react';
 import { useCart } from '@/lib/store/cart-store';
 import { useAuth } from '@/lib/store/auth-context';
@@ -49,6 +52,7 @@ function CheckoutContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'iyzico' | 'magaza_nakit'>('iyzico');
   const [isIyzicoModalOpen, setIsIyzicoModalOpen] = useState(false);
+  const [isPreLaunchModalOpen, setIsPreLaunchModalOpen] = useState(false);
   const [iyzicoHtml, setIyzicoHtml] = useState('');
   const iyzicoContainerRef = useRef<HTMLDivElement>(null);
 
@@ -198,6 +202,11 @@ function CheckoutContent() {
           throw new Error(result.error || 'iyzico ödeme formu başlatılamadı.');
         }
 
+        if (result.isPreLaunch) {
+          setIsPreLaunchModalOpen(true);
+          return;
+        }
+
         if (result.checkoutFormContent) {
           // Open iyzico official responsive payment overlay
           setIyzicoHtml(result.checkoutFormContent);
@@ -206,10 +215,8 @@ function CheckoutContent() {
           // Direct 3D Secure redirect
           window.location.href = result.paymentPageUrl;
         } else {
-          // Instant or Simulated success
-          clearCart();
-          toast.success('Siparişiniz başarıyla alındı!');
-          router.push(`/odeme/basarili?order_number=${result.order_number}&email=${encodeURIComponent(email)}`);
+          // If neither real form nor redirect is returned, open pre-launch modal
+          setIsPreLaunchModalOpen(true);
         }
       } 
       // 2B. Direct Store Delivery Cash/POS
@@ -862,6 +869,87 @@ function CheckoutContent() {
             <div className="p-3 bg-stone-50 border-t border-stone-200 text-center text-[10px] text-stone-500">
               256-Bit SSL şifreli BDDK lisanslı güvenli ödeme penceresi
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pre-Launch / Coming Soon Modal */}
+      {isPreLaunchModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-stone-200 p-6 sm:p-8 space-y-6 text-center">
+            
+            <button
+              type="button"
+              onClick={() => setIsPreLaunchModalOpen(false)}
+              className="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-xl transition"
+              aria-label="Kapat"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-3">
+              <div className="relative w-16 h-16 mx-auto bg-stone-950 rounded-2xl p-2.5 border border-stone-800 shadow-md">
+                <Image src="/images/logo.webp" alt="Otantikos Concept" fill className="object-contain p-1" />
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold">
+                <Clock className="w-3.5 h-3.5 text-amber-700" />
+                <span>Online Satışlarımız Çok Yakında Başlıyor!</span>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-serif font-black text-stone-900">
+                iyzico Sanal POS Entegrasyonu Hazırlanıyor
+              </h2>
+
+              <p className="text-xs text-stone-600 leading-relaxed max-w-md mx-auto">
+                Otantikos Concept Tahtakale koleksiyonumuz için doğrudan kredi kartı ve iyzico Sanal POS ile satış altyapımız tamamlanmak üzeredir. Çok yakında tüm Türkiye&apos;ye 3D Secure güvenli ödeme ile online satışlarımız başlayacaktır.
+              </p>
+            </div>
+
+            {/* Official iyzico logo band */}
+            <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
+              <div className="relative h-6 w-48 mx-auto opacity-90">
+                <Image
+                  src="/images/iyzico/logo_band_colored.svg"
+                  alt="iyzico, Visa, MasterCard, Troy"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <p className="text-[10px] text-stone-500">
+                256-Bit SSL • 3D Secure • Tüm Banka Kartlarına Peşin Fiyatına Taksit
+              </p>
+            </div>
+
+            {/* Immediate Action Buttons */}
+            <div className="space-y-2.5 pt-1">
+              <a
+                href={`https://wa.me/905077737777?text=${encodeURIComponent('Merhaba Otantikos Concept, web sitenizdeki ürünler hakkında bilgi ve sipariş vermek istiyorum.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>WhatsApp ile Hemen Sipariş Ver (+90 507 773 77 77)</span>
+              </a>
+
+              <Link
+                href="/yakinda"
+                className="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2"
+              >
+                <span>Açılış ve Bilgilendirme Sayfasını Gör</span>
+                <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => setIsPreLaunchModalOpen(false)}
+                className="w-full py-2.5 text-stone-500 hover:text-stone-800 text-xs font-semibold transition"
+              >
+                Kataloğu İncelemeye Devam Et
+              </button>
+            </div>
+
           </div>
         </div>
       )}

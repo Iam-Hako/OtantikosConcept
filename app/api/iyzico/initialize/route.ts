@@ -150,6 +150,14 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
+    if (iyzicoRes.isPreLaunch) {
+      return NextResponse.json({
+        success: true,
+        isPreLaunch: true,
+        message: iyzicoRes.message || 'Online satışlarımız çok yakında başlayacaktır!',
+      });
+    }
+
     return NextResponse.json({
       success: true,
       order_number: order.order_number,
