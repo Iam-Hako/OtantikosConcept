@@ -65,14 +65,11 @@ export default function HomePage() {
             </div>
 
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-black tracking-tight leading-[1.15] text-stone-900">
-              Geleneksel Tahtakale Ruhu, <br />
-              <span className="text-amber-800">
-                Modern Zarafetle Buluşuyor.
-              </span>
+              Otantikos Concept&apos;e Hoş Geldiniz
             </h1>
 
             <p className="text-sm sm:text-base text-stone-600 max-w-xl mx-auto lg:mx-0 leading-relaxed font-normal">
-              İstanbul Tahtakale merkezli özgün hediyelik eşyalar, 316L kararmaz çelik takılar ve trend mekanik ürünlerde doğrudan net fiyat ve toptan satış avantajı.
+              Hediyelik Eşyalar toptan ve perakende satış
             </p>
 
             {/* Action Buttons */}
@@ -95,8 +92,8 @@ export default function HomePage() {
             {/* True Core Value Pillars (No Fake Claims) */}
             <div className="grid grid-cols-3 gap-3 sm:gap-6 pt-6 border-t border-stone-200/70 text-center lg:text-left">
               <div>
-                <div className="text-base sm:text-xl font-black text-stone-900">316L Çelik</div>
-                <div className="text-[11px] text-stone-500 font-medium mt-0.5">Kararmaz & Dayanıklı Takı</div>
+                <div className="text-base sm:text-xl font-black text-stone-900">Özgün Konsept</div>
+                <div className="text-[11px] text-stone-500 font-medium mt-0.5">Hediyelik & Trend Ürünler</div>
               </div>
               <div>
                 <div className="text-base sm:text-xl font-black text-stone-900">DHL Kargo</div>

@@ -46,7 +46,7 @@ export default function CartPage() {
         </div>
         <h1 className="text-2xl font-serif font-black text-stone-900 mb-2">Sepetiniz Henüz Boş</h1>
         <p className="text-xs sm:text-sm text-stone-500 max-w-md mx-auto mb-6">
-          Eminönü Tahtakale'nin eşsiz çelik takı, nostaljik lamba ve trend oyuncak koleksiyonlarını keşfetmek için hemen alışverişe başlayın.
+          Eminönü Tahtakale&apos;nin özgün hediyelik eşya, nostaljik lamba ve trend oyuncak koleksiyonlarını keşfetmek için hemen alışverişe başlayın.
         </p>
         <Link
           href="/kategori/tum-urunler"

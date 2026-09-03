@@ -24,8 +24,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Otantikos Concept | Eminönü Tahtakale Hediyelik Eşya, Çelik Takı & Trend Oyuncaklar',
-  description: 'İstanbul Eminönü Tahtakale merkezli 316L kararmaz çelik takılar, el yapımı mozaik lambalar, trend mekanik oyuncaklar ve özel hediyelik koleksiyonlar. Doğrudan net ve şeffaf fiyatlar.',
+  title: 'Otantikos Concept | Eminönü Tahtakale Hediyelik Eşya & Trend Ürünler',
+  description: 'İstanbul Eminönü Tahtakale merkezli el yapımı mozaik lambalar, trend mekanik oyuncaklar ve özel hediyelik koleksiyonlar. Doğrudan net ve şeffaf fiyatlar.',
   icons: {
     icon: '/images/logo.webp',
     shortcut: '/images/logo.webp',
@@ -34,9 +34,7 @@ export const metadata: Metadata = {
   keywords: [
     'Otantikos Concept',
     'Eminönü Hediyelik',
-    'Tahtakale Takı',
-    '316L Çelik Kolye',
-    'Kararmaz Çelik Bileklik',
+    'Tahtakale Hediyelik',
     'Mozaik Masa Lambası',
     'Trend Uçan Küre',
     'Ahşap Mekanik Maket',
