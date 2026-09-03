@@ -1,9 +1,9 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, ShoppingBag, Star, Play, Sparkles, Tag } from 'lucide-react';
+import { Heart, ShoppingBag, Star, Play, Sparkles, Tag, ArrowRight } from 'lucide-react';
 import { Product } from '@/lib/types/ecommerce';
 import { useCart } from '@/lib/store/cart-store';
 import { useWishlist } from '@/lib/store/wishlist-store';
@@ -58,9 +58,9 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
   };
 
   return (
-    <div className="group bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col h-full">
+    <div className="group bg-white rounded-3xl border border-stone-200/80 overflow-hidden shadow-2xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full ring-1 ring-black/[0.02]">
       {/* Product Image Box */}
-      <div className="relative aspect-square sm:aspect-[4/5] bg-stone-100 overflow-hidden shrink-0">
+      <div className="relative aspect-square sm:aspect-[4/5] bg-stone-100/70 overflow-hidden shrink-0">
         <Link href={`/urun/${product.slug}`} className="block w-full h-full">
           {hasValidImages ? (
             <Image
@@ -69,7 +69,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               priority={priority}
-              className="object-cover group-hover:scale-105 transition-transform duration-500"
+              className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
             />
           ) : hasVideo && isDirectVideo(product.video_url) ? (
             <video
@@ -78,7 +78,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
               muted
               loop
               playsInline
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out pointer-events-none"
             />
           ) : hasVideo ? (
             <div className="relative w-full h-full bg-stone-950 overflow-hidden pointer-events-none">
@@ -93,38 +93,38 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
             </div>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-stone-100 text-stone-400 p-4">
-              <Sparkles className="w-8 h-8 text-stone-300 mb-1" />
+              <Sparkles className="w-8 h-8 text-amber-500/40 mb-1" />
               <span className="text-[11px] font-medium text-stone-500 text-center line-clamp-1">{product.name}</span>
             </div>
           )}
         </Link>
 
-        {/* Badges */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1 z-10 pointer-events-none">
+        {/* Floating Luxury Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
           {hasVideo && hasValidImages && (
-            <span className="px-2 py-0.5 bg-stone-900/80 backdrop-blur-xs text-amber-400 text-[10px] sm:text-xs font-bold rounded-full shadow-xs flex items-center gap-1">
+            <span className="px-2.5 py-0.5 bg-stone-900/85 backdrop-blur-md text-amber-400 text-[10px] font-bold rounded-full shadow-xs flex items-center gap-1">
               <Play className="w-2.5 h-2.5 fill-amber-400" />
               <span>Video</span>
             </span>
           )}
           {product.is_new && (
-            <span className="px-2 py-0.5 bg-brand-600 text-white text-[10px] sm:text-xs font-bold rounded-full shadow-xs">
+            <span className="px-2.5 py-0.5 bg-amber-600 text-white text-[10px] font-bold rounded-full shadow-xs tracking-wider uppercase">
               Yeni
             </span>
           )}
           {product.wholesale_price ? (
-            <span className="px-2 py-0.5 bg-navy-900/90 text-brand-300 text-[10px] sm:text-xs font-bold rounded-full shadow-xs flex items-center gap-1">
-              <Tag className="w-2.5 h-2.5" />
+            <span className="px-2.5 py-0.5 bg-stone-900/90 backdrop-blur-md text-amber-300 text-[10px] font-bold rounded-full shadow-xs flex items-center gap-1">
+              <Tag className="w-2.5 h-2.5 text-amber-400" />
               <span>Toptan Avantajı</span>
             </span>
           ) : null}
           {product.stock > 0 && product.stock <= 5 && (
-            <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] sm:text-xs font-bold rounded-full shadow-xs">
+            <span className="px-2.5 py-0.5 bg-rose-600 text-white text-[10px] font-bold rounded-full shadow-xs">
               Son {product.stock} Adet
             </span>
           )}
           {product.stock <= 0 && (
-            <span className="px-2 py-0.5 bg-stone-800 text-white text-[10px] sm:text-xs font-bold rounded-full shadow-xs">
+            <span className="px-2.5 py-0.5 bg-stone-900/90 backdrop-blur-md text-stone-300 text-[10px] font-bold rounded-full shadow-xs">
               Tükendi
             </span>
           )}
@@ -135,21 +135,21 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
           type="button"
           onClick={handleFavoriteClick}
           aria-label={isFav ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
-          className="absolute top-2 right-2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/95 backdrop-blur-xs flex items-center justify-center text-stone-600 hover:text-rose-600 active:scale-90 transition-all shadow-xs z-10"
+          className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center text-stone-600 hover:text-rose-600 active:scale-90 transition-all shadow-sm z-10 hover:bg-white"
         >
-          <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${isFav ? 'fill-rose-600 text-rose-600' : ''}`} />
+          <Heart className={`w-4 h-4 ${isFav ? 'fill-rose-600 text-rose-600' : ''}`} />
         </button>
       </div>
 
       {/* Product Content */}
-      <div className="p-2.5 sm:p-4 flex flex-col flex-1 justify-between">
+      <div className="p-3.5 sm:p-5 flex flex-col flex-1 justify-between gap-3">
         <div>
-          {/* Category Pill / Rating */}
-          <div className="flex items-center justify-between text-[10px] sm:text-xs text-stone-400 mb-1">
-            <span className="truncate max-w-[70%] font-medium">
-              {product.category?.name || 'Otantikos'}
+          {/* Category Pill */}
+          <div className="flex items-center justify-between text-[11px] text-stone-400 mb-1.5">
+            <span className="truncate max-w-[70%] font-semibold uppercase tracking-wider text-amber-700/90">
+              {product.category?.name || 'Tahtakale Koleksiyonu'}
             </span>
-            <div className="flex items-center gap-0.5 text-amber-500 font-bold">
+            <div className="flex items-center gap-1 text-amber-500 font-bold text-xs">
               <Star className="w-3 h-3 fill-amber-400" />
               <span>{product.rating || 5.0}</span>
             </div>
@@ -157,22 +157,22 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
 
           {/* Product Title */}
           <Link href={`/urun/${product.slug}`}>
-            <h3 className="text-xs sm:text-sm font-bold text-stone-800 line-clamp-2 hover:text-brand-700 transition leading-snug">
+            <h3 className="text-xs sm:text-sm font-bold text-stone-900 line-clamp-2 hover:text-amber-700 transition leading-snug">
               {product.name}
             </h3>
           </Link>
         </div>
 
         {/* Price & Action Row */}
-        <div className="mt-3 pt-2.5 border-t border-stone-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="pt-3 border-t border-stone-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
           <div>
-            <div className="text-[10px] text-stone-400 hidden sm:block">Perakende Fiyat:</div>
-            <div className="text-sm sm:text-base font-black text-brand-700 leading-tight">
+            <div className="text-[10px] uppercase font-bold text-stone-400 tracking-wider hidden sm:block">Fiyat</div>
+            <div className="text-base sm:text-lg font-black text-stone-950 leading-tight">
               {formatPrice(product.price)}
             </div>
             {product.wholesale_price ? (
-              <div className="text-[11px] font-bold text-slate-600 mt-0.5">
-                Toptan: <span className="text-brand-800">{formatPrice(product.wholesale_price)}</span>
+              <div className="text-[11px] font-semibold text-stone-600 mt-0.5">
+                Toptan: <span className="text-amber-800 font-bold">{formatPrice(product.wholesale_price)}</span>
               </div>
             ) : null}
           </div>
@@ -181,9 +181,9 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
             type="button"
             onClick={handleQuickAdd}
             disabled={product.stock <= 0}
-            className={`w-full sm:w-auto px-3 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-2xs ${
+            className={`w-full sm:w-auto px-4 py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-2xs ${
               product.stock > 0
-                ? 'bg-stone-900 text-white hover:bg-brand-700'
+                ? 'bg-stone-900 text-white hover:bg-amber-700'
                 : 'bg-stone-200 text-stone-400 cursor-not-allowed'
             }`}
           >

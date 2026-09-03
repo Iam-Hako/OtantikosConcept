@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -65,7 +65,26 @@ export default function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-brand-100 transition-all">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 transition-all shadow-2xs">
+      {/* Top Announcement Bar */}
+      <div className="bg-stone-950 text-stone-300 text-[11px] py-1.5 px-4 hidden sm:block border-b border-stone-800 tracking-wide">
+        <div className="max-w-7xl mx-auto flex items-center justify-between font-medium">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+            <span className="text-stone-200">Eminönü Tahtakale Doğrudan Sevkiyat • DHL Kargo Güvencesi</span>
+            <span className="text-stone-600">|</span>
+            <span className="text-amber-400 font-bold">Toptan & Perakende Satış</span>
+          </div>
+          <div className="flex items-center gap-4 text-stone-400 text-[11px]">
+            <a href="https://wa.me/905077737777" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition flex items-center gap-1 font-semibold">
+              <span>WhatsApp: +90 (507) 773 77 77</span>
+            </a>
+            <span className="text-stone-700">•</span>
+            <Link href="/iletisim" className="hover:text-amber-400 transition">Mağaza Konumu</Link>
+          </div>
+        </div>
+      </div>
+
       {/* Search Modal Component */}
       <SearchModal 
         isOpen={isSearchModalOpen} 
