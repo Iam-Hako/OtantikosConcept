@@ -208,9 +208,13 @@ export async function initializeIyzicoCheckoutForm(
       };
     } else {
       console.error('[iyzico Direct API Error]', result);
+      let errorMsg = result.errorMessage || 'Ödeme sistemi yanıt vermedi.';
+      if (result.errorCode === '1001' || (typeof errorMsg === 'string' && errorMsg.includes('api bilgileri bulunamadı'))) {
+        errorMsg = 'İyzico API bilgileri doğrulanamadı. İyzico şirket hesabınız henüz onay/canlı aşamasında olabilir veya Güvenlik Anahtarı panelden yenilenmiş olabilir. Lütfen iyzico panelinden hesap durumunuzu ve anahtarları kontrol ediniz.';
+      }
       return {
         success: false,
-        error: result.errorMessage || 'Ödeme sistemi yanıt vermedi.',
+        error: errorMsg,
       };
     }
   } catch (err: any) {
