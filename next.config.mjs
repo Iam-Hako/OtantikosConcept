@@ -45,6 +45,7 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ['lucide-react'],
+    serverComponentsExternalPackages: ['iyzipay'],
   },
   async headers() {
     return [
@@ -77,7 +78,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.google.com https://*.googleapis.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' https: blob:; frame-src 'self' https://drive.google.com https://www.youtube.com https://youtube.com https://player.vimeo.com https://maps.google.com https://www.google.com https://accounts.google.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.google.com https://accounts.google.com;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.google.com https://*.googleapis.com https://accounts.google.com https://*.iyzipay.com https://*.iyzico.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' https: blob:; frame-src 'self' https://drive.google.com https://www.youtube.com https://youtube.com https://player.vimeo.com https://maps.google.com https://www.google.com https://accounts.google.com https://*.iyzipay.com https://*.iyzico.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.google.com https://accounts.google.com https://*.iyzipay.com https://*.iyzico.com;",
           },
         ],
       },

@@ -1,30 +1,15 @@
-import Iyzipay from 'iyzipay';
+import crypto from 'crypto';
 
 // Determine configuration from environment variables
-const apiKey = process.env.IYZICO_API_KEY || '';
-const secretKey = process.env.IYZICO_SECRET_KEY || '';
-const baseUrl = process.env.IYZICO_BASE_URL || (
+const apiKey = (process.env.IYZICO_API_KEY || '').trim();
+const secretKey = (process.env.IYZICO_SECRET_KEY || '').trim();
+const baseUrl = (process.env.IYZICO_BASE_URL || (
   apiKey && !apiKey.startsWith('sandbox-')
     ? 'https://api.iyzipay.com'
     : 'https://sandbox-api.iyzipay.com'
-);
+)).trim().replace(/\/+$/, '');
 
 export const isIyzicoConfigured = Boolean(apiKey && secretKey);
-
-// Singleton Iyzipay Client Instance
-let iyzipayInstance: Iyzipay | null = null;
-
-function getIyzipayClient(): Iyzipay | null {
-  if (!isIyzicoConfigured) return null;
-  if (!iyzipayInstance) {
-    iyzipayInstance = new Iyzipay({
-      apiKey,
-      secretKey,
-      uri: baseUrl,
-    });
-  }
-  return iyzipayInstance;
-}
 
 export interface IyzicoInitializeParams {
   orderNumber: string;
@@ -96,15 +81,44 @@ function formatIyzicoPhone(phone: string): string {
 }
 
 /**
+ * Generates official iyzico V2 HMAC-SHA256 authorization headers.
+ * Native implementation that completely bypasses Node.js fs.readdirSync
+ * and works flawlessly in Vercel Serverless / Lambda environments.
+ */
+function generateIyzicoV2AuthHeaders(uriPath: string, payload: any) {
+  const randomString = Date.now().toString() + Math.random().toString(36).substring(2, 10);
+  const bodyString = typeof payload === 'string' ? payload : JSON.stringify(payload);
+
+  const signature = crypto
+    .createHmac('sha256', secretKey)
+    .update(randomString + uriPath + bodyString)
+    .digest('hex');
+
+  const authorizationParams = [
+    `apiKey:${apiKey}`,
+    `randomKey:${randomString}`,
+    `signature:${signature}`,
+  ];
+
+  const authValue = 'IYZWSv2 ' + Buffer.from(authorizationParams.join('&')).toString('base64');
+
+  return {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'x-iyzi-rnd': randomString,
+    'x-iyzi-client-version': 'iyzipay-node-2.0.69',
+    'Authorization': authValue,
+  };
+}
+
+/**
  * Initialize iyzico Checkout Form (Ödeme Formu Başlatma)
  */
 export async function initializeIyzicoCheckoutForm(
   params: IyzicoInitializeParams
 ): Promise<IyzicoInitializeResult> {
-  const client = getIyzipayClient();
-
   // If no credentials configured, return pre-launch response
-  if (!client) {
+  if (!isIyzicoConfigured) {
     return {
       success: true,
       isPreLaunch: true,
@@ -123,7 +137,7 @@ export async function initializeIyzicoCheckoutForm(
     id: item.id || `item-${idx + 1}`,
     name: item.name ? item.name.slice(0, 100) : 'Ürün',
     category1: item.category || 'Genel',
-    itemType: Iyzipay.BASKET_ITEM_TYPE.PHYSICAL,
+    itemType: 'PHYSICAL',
     price: Number(item.price).toFixed(2),
   }));
 
@@ -134,7 +148,7 @@ export async function initializeIyzicoCheckoutForm(
     gsmNumber: gsmNumber,
     email: params.customerEmail || 'siparis@otantikosconcept.com',
     identityNumber: params.customerIdentityNumber || '11111111111',
-    registrationAddress: params.shippingAddress.addressDetail.slice(0, 250),
+    registrationAddress: (params.shippingAddress.addressDetail || 'Tahtakale Eminönü').slice(0, 250),
     ip: params.userIp || '85.95.230.1',
     city: params.shippingAddress.province || 'İstanbul',
     country: 'Turkey',
@@ -145,7 +159,7 @@ export async function initializeIyzicoCheckoutForm(
     contactName: params.shippingAddress.fullName || params.customerName,
     city: params.shippingAddress.province || 'İstanbul',
     country: 'Turkey',
-    address: params.shippingAddress.addressDetail.slice(0, 250),
+    address: (params.shippingAddress.addressDetail || 'Tahtakale Eminönü').slice(0, 250),
     zipCode: params.shippingAddress.zipCode || '34000',
   };
 
@@ -153,18 +167,18 @@ export async function initializeIyzicoCheckoutForm(
     contactName: params.billingAddress.fullName || params.customerName,
     city: params.billingAddress.province || 'İstanbul',
     country: 'Turkey',
-    address: params.billingAddress.addressDetail.slice(0, 250),
+    address: (params.billingAddress.addressDetail || 'Tahtakale Eminönü').slice(0, 250),
     zipCode: params.billingAddress.zipCode || '34000',
   } : shipping;
 
-  const request: any = {
-    locale: Iyzipay.LOCALE.TR,
+  const requestPayload: any = {
+    locale: 'tr',
     conversationId: params.orderNumber,
     price: formattedPrice,
     paidPrice: formattedPrice,
-    currency: Iyzipay.CURRENCY.TRY,
+    currency: 'TRY',
     basketId: params.orderNumber,
-    paymentGroup: Iyzipay.PAYMENT_GROUP.PRODUCT,
+    paymentGroup: 'PRODUCT',
     callbackUrl: params.callbackUrl,
     enabledInstallments: [1, 2, 3, 6, 9, 12],
     buyer: buyer,
@@ -173,32 +187,39 @@ export async function initializeIyzicoCheckoutForm(
     basketItems: basketItems,
   };
 
-  return new Promise((resolve) => {
-    client.checkoutFormInitialize.create(request, (err: any, result: any) => {
-      if (err) {
-        console.error('[iyzico] checkoutFormInitialize Error:', err);
-        return resolve({
-          success: false,
-          error: err.message || 'iyzico ödeme formu başlatılamadı.',
-        });
-      }
+  const endpointPath = '/payment/iyzipos/checkoutform/initialize/auth/ecom';
 
-      if (result.status === 'success') {
-        return resolve({
-          success: true,
-          token: result.token,
-          checkoutFormContent: result.checkoutFormContent,
-          paymentPageUrl: result.paymentPageUrl,
-        });
-      } else {
-        console.error('[iyzico] checkoutFormInitialize Failed:', result.errorMessage);
-        return resolve({
-          success: false,
-          error: result.errorMessage || 'Ödeme sistemi yanıt vermedi.',
-        });
-      }
+  try {
+    const headers = generateIyzicoV2AuthHeaders(endpointPath, requestPayload);
+    const response = await fetch(`${baseUrl}${endpointPath}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestPayload),
     });
-  });
+
+    const result = await response.json();
+
+    if (result.status === 'success') {
+      return {
+        success: true,
+        token: result.token,
+        checkoutFormContent: result.checkoutFormContent,
+        paymentPageUrl: result.paymentPageUrl,
+      };
+    } else {
+      console.error('[iyzico Direct API Error]', result);
+      return {
+        success: false,
+        error: result.errorMessage || 'Ödeme sistemi yanıt vermedi.',
+      };
+    }
+  } catch (err: any) {
+    console.error('[iyzico Service Exception]', err);
+    return {
+      success: false,
+      error: err.message || 'Ödeme servisine bağlanırken bir hata oluştu.',
+    };
+  }
 }
 
 /**
@@ -208,10 +229,8 @@ export async function retrieveIyzicoPaymentResult(
   token: string,
   conversationId?: string
 ): Promise<IyzicoPaymentResult> {
-  const client = getIyzipayClient();
-
   // Test simulation check
-  if (!client || token.startsWith('sim-token-')) {
+  if (!isIyzicoConfigured || token.startsWith('sim-token-')) {
     return {
       success: true,
       isSimulated: true,
@@ -224,40 +243,46 @@ export async function retrieveIyzicoPaymentResult(
     };
   }
 
-  const request = {
-    locale: Iyzipay.LOCALE.TR,
+  const endpointPath = '/payment/iyzipos/checkoutform/auth/ecom/detail';
+  const requestPayload = {
+    locale: 'tr',
     conversationId: conversationId || '',
     token: token,
   };
 
-  return new Promise((resolve) => {
-    client.checkoutForm.retrieve(request, (err: any, result: any) => {
-      if (err) {
-        console.error('[iyzico] checkoutForm.retrieve Error:', err);
-        return resolve({
-          success: false,
-          error: err.message || 'Ödeme doğrulama hatası.',
-        });
-      }
-
-      if (result.status === 'success' && result.paymentStatus === 'SUCCESS') {
-        return resolve({
-          success: true,
-          orderNumber: result.basketId || result.conversationId,
-          paymentId: result.paymentId,
-          paidPrice: Number(result.paidPrice || result.price),
-          cardType: result.cardType,
-          cardAssociation: result.cardAssociation,
-          cardFamily: result.cardFamily,
-          installment: result.installment,
-        });
-      } else {
-        console.warn('[iyzico] Payment was not successful:', result.errorMessage);
-        return resolve({
-          success: false,
-          error: result.errorMessage || 'Ödeme tamamlanamadı veya iptal edildi.',
-        });
-      }
+  try {
+    const headers = generateIyzicoV2AuthHeaders(endpointPath, requestPayload);
+    const response = await fetch(`${baseUrl}${endpointPath}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestPayload),
     });
-  });
+
+    const result = await response.json();
+
+    if (result.status === 'success' && result.paymentStatus === 'SUCCESS') {
+      return {
+        success: true,
+        orderNumber: result.basketId || result.conversationId,
+        paymentId: result.paymentId,
+        paidPrice: Number(result.paidPrice || result.price),
+        cardType: result.cardType,
+        cardAssociation: result.cardAssociation,
+        cardFamily: result.cardFamily,
+        installment: result.installment,
+      };
+    } else {
+      console.warn('[iyzico] Payment was not successful:', result.errorMessage);
+      return {
+        success: false,
+        error: result.errorMessage || 'Ödeme tamamlanamadı veya iptal edildi.',
+      };
+    }
+  } catch (err: any) {
+    console.error('[iyzico Retrieve Exception]', err);
+    return {
+      success: false,
+      error: err.message || 'Ödeme doğrulama hatası.',
+    };
+  }
 }
