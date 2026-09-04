@@ -4,7 +4,7 @@ import Iyzipay from 'iyzipay';
 const apiKey = process.env.IYZICO_API_KEY || '';
 const secretKey = process.env.IYZICO_SECRET_KEY || '';
 const baseUrl = process.env.IYZICO_BASE_URL || (
-  process.env.NODE_ENV === 'production' && apiKey && !apiKey.startsWith('sandbox-')
+  apiKey && !apiKey.startsWith('sandbox-')
     ? 'https://api.iyzipay.com'
     : 'https://sandbox-api.iyzipay.com'
 );
