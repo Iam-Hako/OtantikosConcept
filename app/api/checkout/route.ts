@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { DataService } from '@/lib/data/store-data';
 import { generateOrderNumber } from '@/lib/utils/format';
+import { calculateDynamicShippingFee } from '@/lib/services/dhl-service';
 
 export async function POST(request: Request) {
   try {
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
       }
 
       const itemTotal = verifiedUnitPrice * item.quantity;
-      calculatedSubtotal += itemTotal;
+      const prodDesi = Number((prod as any).desi || (prod as any).weight_kg) || 1;
 
       verifiedItems.push({
         product_id: prod.id,
@@ -82,12 +83,13 @@ export async function POST(request: Request) {
         price: verifiedUnitPrice,
         quantity: item.quantity,
         total: itemTotal,
+        desi: prodDesi,
       });
     }
 
     // 3. Calculate verified shipping and gift wrap fees
-    const isPickup = delivery_type === 'magaza_teslim' || delivery_type === 'magazadan_teslim' || delivery_type === 'pickup';
-    const verifiedShippingFee = isPickup ? 0 : 200;
+    const dynamicShipping = calculateDynamicShippingFee(verifiedItems, delivery_type);
+    const verifiedShippingFee = dynamicShipping.shippingFee;
     const verifiedGiftWrapFee = has_gift_wrap ? 50 : 0;
     const verifiedTotalAmount = calculatedSubtotal + verifiedShippingFee + verifiedGiftWrapFee;
 
@@ -101,10 +103,11 @@ export async function POST(request: Request) {
       guest_phone: guest_phone || shipping_address.phone,
       total_amount: verifiedTotalAmount,
       shipping_fee: verifiedShippingFee,
+      total_desi: dynamicShipping.totalDesi,
       gift_wrap_fee: verifiedGiftWrapFee,
       has_gift_wrap: Boolean(has_gift_wrap),
       gift_note: gift_note ? String(gift_note).slice(0, 500) : '',
-      delivery_type: isPickup ? 'magaza_teslim' : 'kargo',
+      delivery_type: dynamicShipping.isPickup ? 'magaza_teslim' : 'kargo',
       shipping_address,
       billing_address: billing_address || shipping_address,
       items: verifiedItems,

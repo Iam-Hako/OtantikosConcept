@@ -40,6 +40,7 @@ export default function NewProductPage() {
   const [price, setPrice] = useState<number | string>('');
   const [costPrice, setCostPrice] = useState<number | string>('');
   const [wholesalePrice, setWholesalePrice] = useState<number | string>('');
+  const [desi, setDesi] = useState<number | string>('1');
   const [stock, setStock] = useState<number | string>('');
   const [sku, setSku] = useState('');
   const [isPublished, setIsPublished] = useState(true); // true = Sitede Yayında, false = Sadece Depo Stoğu
@@ -220,6 +221,7 @@ export default function NewProductPage() {
       price: Number(price) || 0,
       cost_price: costPrice !== '' ? Number(costPrice) : null,
       wholesale_price: wholesalePrice ? Number(wholesalePrice) : null,
+      desi: desi !== '' ? Number(desi) : 1,
       stock: Number(stock) || 0,
       sku: sku.trim() || null, // Optional, auto-generated on backend if null
       is_published: isPublished,
@@ -578,6 +580,29 @@ export default function NewProductPage() {
                 className="w-full text-sm font-semibold p-2.5 bg-stone-50 text-stone-800 border border-stone-300 rounded-xl focus:bg-white focus:outline-none"
               />
               <p className="text-[10px] text-stone-400 mt-1">Toplu alım veya B2B müşteriler için geçerli birim fiyat</p>
+            </div>
+
+            {/* Desi / Kargo Hacim Ağırlığı */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-stone-700 flex items-center gap-1">
+                  <span>Kargo Desi Değeri</span>
+                </label>
+                <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded">
+                  DHL eCom Dinamik
+                </span>
+              </div>
+              <input
+                type="number"
+                min="0.1"
+                step="0.1"
+                value={desi}
+                onChange={(e) => setDesi(e.target.value)}
+                className="w-full text-sm font-semibold p-2.5 bg-stone-50 text-stone-800 border border-stone-300 rounded-xl focus:bg-white focus:outline-none"
+              />
+              <p className="text-[10px] text-stone-400 mt-1">
+                Paket desi değeri (DHL resmi tarifesine göre sepette dinamik kargo hesaplanır).
+              </p>
             </div>
 
             {/* Stock Count */}

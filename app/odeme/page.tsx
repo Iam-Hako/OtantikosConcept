@@ -45,6 +45,8 @@ function CheckoutContent() {
     items,
     subtotal,
     shippingFee,
+    totalDesi,
+    billableDesi,
     giftWrapFee,
     hasGiftWrap,
     giftNote,
@@ -976,8 +978,15 @@ function CheckoutContent() {
               </div>
             )}
 
-            <div className="flex justify-between">
-              <span>Kargo Bedeli</span>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-1.5">
+                <span>Kargo Bedeli</span>
+                {billableDesi > 0 && shippingFee > 0 && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-200">
+                    DHL eCom • {billableDesi} Desi
+                  </span>
+                )}
+              </div>
               <span className="font-semibold">
                 {shippingFee === 0 ? <span className="text-emerald-700 font-bold">ÜCRETSİZ</span> : formatPrice(shippingFee)}
               </span>

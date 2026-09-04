@@ -22,6 +22,7 @@ import { Order } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
 import { actionUpdateOrderStatus } from '@/app/actions/ecommerce-actions';
 import { formatPrice, formatDate } from '@/lib/utils/format';
+import { calculateItemsTotalDesi, calculateDhlShippingCost } from '@/lib/services/dhl-service';
 import { toast } from 'sonner';
 
 export default function OrderDetailPage() {
@@ -52,6 +53,9 @@ export default function OrderDetailPage() {
     if (orderId) loadOrder();
   }, [orderId]);
 
+  const orderDesi = order ? (order.total_desi || calculateItemsTotalDesi(order.items || [])) : 1;
+  const dhlEstimate = calculateDhlShippingCost(orderDesi);
+
   const handleCreateDhlShipment = async () => {
     if (!order) return;
     setIsCreatingDhl(true);
@@ -62,6 +66,7 @@ export default function OrderDetailPage() {
         body: JSON.stringify({
           order_id: order.id,
           order_number: order.order_number,
+          weight_kg: orderDesi,
         }),
       });
       const data = await response.json();
@@ -224,6 +229,21 @@ export default function OrderDetailPage() {
                 </a>
               </div>
             )}
+
+            {/* DHL Desi & Contracted Rate Card */}
+            <div className="mt-2.5 p-3 bg-amber-50/80 border border-amber-200/80 rounded-xl text-xs flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-amber-950">DHL eCom Tarife Hesabı:</span>
+                <span className="px-2 py-0.5 bg-white border border-amber-300 rounded font-semibold text-amber-900">
+                  {orderDesi} Desi (Faturalanan: {dhlEstimate.billableDesi} Desi)
+                </span>
+              </div>
+              <div className="text-stone-700">
+                <span>Anlaşmalı Maliyet: </span>
+                <strong className="text-stone-900">₺{dhlEstimate.basePrice.toFixed(2)}</strong>
+                <span className="text-stone-500 text-[11px] ml-1">(+KDV %20: ₺{dhlEstimate.totalWithKdv.toFixed(2)})</span>
+              </div>
+            </div>
           </div>
         </div>
 

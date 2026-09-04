@@ -47,7 +47,7 @@ export default function PreInfoPage() {
               Siparişler, yasal 30 günlük süreyi aşmamak kaydıyla ortalama <strong>1-3 iş günü</strong> içerisinde anlaşmalı kargo firmamız <strong>DHL Kargo</strong>&apos;ya teslim edilir.
             </p>
             <p>
-              Standart kargo bedeli sipariş özetinde gösterildiği üzere sabit 200,00 TL&apos;dir. Mağazadan elden teslim alımlarda kargo ücreti 0,00 TL&apos;dir.
+              Kargo bedeli, sipariş edilen ürünlerin paket desi/hacim ağırlığına göre anlaşmalı kargo firmamız <strong>DHL Kargo</strong> resmi tarifesi doğrultusunda sipariş özetinde dinamik olarak hesaplanarak ALICI&apos;ya sunulur. Mağazadan elden teslim alımlarda kargo ücreti 0,00 TL&apos;dir.
             </p>
           </div>
         </div>

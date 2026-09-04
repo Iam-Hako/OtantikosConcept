@@ -63,7 +63,7 @@ export default function DistanceSellingPage() {
               <strong>4.1. Teslimat Süresi:</strong> Siparişler, yasal 30 günlük süreyi aşmamak kaydıyla ortalama <strong>1-3 iş günü</strong> içerisinde kargoya teslim edilir.
             </p>
             <p>
-              <strong>4.2. Teslimat Şekli ve Kargo:</strong> Ürünler, ALICI&apos;nın sipariş formunda belirttiği teslimat türüne göre anlaşmalı kargo firmamız olan <strong>DHL Kargo</strong> aracılığıyla ALICI&apos;nın adresine veya Eminönü Tahtakale şubemizden elden teslim alınmak üzere hazırlanır. Standart kargo bedeli sipariş özetinde gösterildiği üzere sabit 200,00 TL&apos;dir; mağazadan elden teslim alımlarda kargo ücreti 0,00 TL&apos;dir.
+              <strong>4.2. Teslimat Şekli ve Kargo:</strong> Ürünler, ALICI&apos;nın sipariş formunda belirttiği teslimat türüne göre anlaşmalı kargo firmamız olan <strong>DHL Kargo</strong> aracılığıyla ALICI&apos;nın adresine veya Eminönü Tahtakale şubemizden elden teslim alınmak üzere hazırlanır. Kargo bedeli, sipariş edilen ürünlerin paket desi/hacim ağırlığına göre DHL Kargo resmi tarifesi doğrultusunda sipariş özetinde dinamik olarak hesaplanarak ALICI&apos;ya yansıtılır; mağazadan elden teslim alımlarda kargo ücreti 0,00 TL&apos;dir.
             </p>
           </div>
         </div>

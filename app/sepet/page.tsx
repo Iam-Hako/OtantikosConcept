@@ -26,6 +26,8 @@ export default function CartPage() {
     clearCart,
     subtotal,
     shippingFee,
+    totalDesi,
+    billableDesi,
     giftWrapFee,
     hasGiftWrap,
     setHasGiftWrap,
@@ -287,8 +289,15 @@ export default function CartPage() {
               </div>
             )}
 
-            <div className="flex justify-between">
-              <span>Kargo Ücreti</span>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-1.5">
+                <span>Kargo Ücreti</span>
+                {billableDesi > 0 && shippingFee > 0 && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-200">
+                    DHL eCom • {billableDesi} Desi
+                  </span>
+                )}
+              </div>
               <span className="font-semibold">
                 {shippingFee === 0 ? (
                   <span className="text-emerald-700 font-bold">Ücretsiz</span>

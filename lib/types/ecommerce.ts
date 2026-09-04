@@ -64,6 +64,7 @@ export interface Product {
   price: number; // Perakende Satış Fiyatı
   cost_price?: number | null; // Alış / Tedarik Maliyet Fiyatı (Opsiyonel)
   wholesale_price?: number | null; // Toptan Satış Fiyatı (Opsiyonel)
+  desi?: number | null; // Kargo Desi / Hacim Ağırlığı (DHL Dinamik Hesaplama)
   stock: number; // Toplam Depo Stoğu
   sku?: string | null; // Barkod / Ürün Kodu (Opsiyonel)
   is_published: boolean; // Web Sitesinde Satışta mı? (true: Sitede Yayında, false: Sadece Depo Stoğu)
@@ -113,6 +114,7 @@ export interface OrderItem {
   quantity: number;
   total: number;
   total_price?: number;
+  desi?: number;
   image_url?: string;
 }
 
@@ -126,6 +128,7 @@ export interface Order {
   status: OrderStatus;
   total_amount: number;
   shipping_fee: number;
+  total_desi?: number;
   gift_wrap_fee: number;
   has_gift_wrap: boolean;
   gift_note?: string | null;

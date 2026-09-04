@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Product, ProductVariant, CartItem, DeliveryType } from '@/lib/types/ecommerce';
+import { calculateDynamicShippingFee } from '@/lib/services/dhl-service';
 import { toast } from 'sonner';
 
 interface CartContextType {
@@ -11,6 +12,8 @@ interface CartContextType {
   updateQuantity: (productId: string, quantity: number, variantId?: string | null) => void;
   clearCart: () => void;
   totalItems: number;
+  totalDesi: number;
+  billableDesi: number;
   subtotal: number;
   shippingFee: number;
   giftWrapFee: number;
@@ -33,7 +36,6 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 const CART_STORAGE_KEY = 'otantikos_cart_v2';
 const GIFT_OPTIONS_KEY = 'otantikos_gift_v2';
 const GIFT_WRAP_PRICE = 50.00;
-const STANDARD_SHIPPING_PRICE = 200.00;
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -179,11 +181,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return sum + itemPrice * item.quantity;
   }, 0);
 
-  // Standard shipping (₺49.00) or Tahtakale Store Pick-up (₺0.00)
-  const shippingFee =
-    deliveryType === 'magaza_teslim' || items.length === 0
-      ? 0
-      : STANDARD_SHIPPING_PRICE;
+  // Dinamik DHL Desi Kargo Hesabı (Tahtakale Mağaza Teslim ₺0.00)
+  const { totalDesi, billableDesi, shippingFee } = calculateDynamicShippingFee(items, deliveryType);
 
   const giftWrapFee = hasGiftWrap && items.length > 0 ? GIFT_WRAP_PRICE : 0;
   const total = subtotal + shippingFee + giftWrapFee;
@@ -200,6 +199,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         updateQuantity,
         clearCart,
         totalItems,
+        totalDesi,
+        billableDesi,
         subtotal,
         shippingFee,
         giftWrapFee,

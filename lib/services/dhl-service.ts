@@ -32,6 +32,107 @@ export const OTANTIKOS_SHIPPER_INFO = {
   countryCode: 'TR',
 };
 
+/**
+ * Resmi DHL eCommerce TR Anlaşmalı Desi Fiyat Tarifesi
+ * (Şule Gedik - DHL eCom TR Teklifi: Tüm Türkiye hatları Ş.İçi, Yakın, Kısa, Orta, Uzak tek fiyattır)
+ */
+export interface DhlDesiRate {
+  minDesi: number;
+  maxDesi: number;
+  basePrice: number; // KDV hariç baz fiyat
+}
+
+export const DHL_NEGOTIATED_RATES: DhlDesiRate[] = [
+  { minDesi: 0, maxDesi: 2, basePrice: 116.89 },
+  { minDesi: 3, maxDesi: 5, basePrice: 129.03 },
+  { minDesi: 6, maxDesi: 10, basePrice: 163.64 },
+  { minDesi: 11, maxDesi: 15, basePrice: 204.50 },
+  { minDesi: 16, maxDesi: 20, basePrice: 235.29 },
+  { minDesi: 21, maxDesi: 25, basePrice: 302.08 },
+  { minDesi: 26, maxDesi: 30, basePrice: 362.50 },
+  { minDesi: 31, maxDesi: 35, basePrice: 450.88 },
+  { minDesi: 36, maxDesi: 40, basePrice: 507.01 },
+  { minDesi: 41, maxDesi: 45, basePrice: 605.60 },
+  { minDesi: 46, maxDesi: 50, basePrice: 681.58 },
+];
+
+export const DHL_ADDITIONAL_DESI_RATE = 18.22; // 50 desi üzeri her +1 desi başı
+
+/**
+ * Desi değerine göre DHL net maliyetini ve KDV dahil tutarını hesaplar.
+ * Kargo standartları gereği kesirli desiler yukarı yuvarlanır (örn: 1.2 desi -> 2 desi kademesi).
+ */
+export function calculateDhlShippingCost(desi: number) {
+  const normalizedDesi = Math.max(0.1, Number(desi) || 1);
+  const billableDesi = Math.ceil(normalizedDesi);
+
+  let basePrice = 116.89;
+  if (billableDesi <= 50) {
+    const tier = DHL_NEGOTIATED_RATES.find(
+      (t) => billableDesi >= t.minDesi && billableDesi <= t.maxDesi
+    );
+    basePrice = tier ? tier.basePrice : 116.89;
+  } else {
+    const extraDesi = billableDesi - 50;
+    basePrice = 681.58 + extraDesi * DHL_ADDITIONAL_DESI_RATE;
+  }
+
+  const kdvAmount = Number((basePrice * 0.20).toFixed(2));
+  const totalWithKdv = Number((basePrice + kdvAmount).toFixed(2));
+
+  return {
+    desi: normalizedDesi,
+    billableDesi,
+    basePrice: Number(basePrice.toFixed(2)),
+    kdvAmount,
+    totalWithKdv,
+  };
+}
+
+/**
+ * Sepetteki veya siparişteki ürünlerin toplam desi değerini hesaplar.
+ * Üründe özel desi tanımlı değilse varsayılan olarak 1 desi kabul edilir.
+ */
+export function calculateItemsTotalDesi(
+  items: Array<{ quantity: number; product?: any; desi?: number }>
+): number {
+  if (!items || items.length === 0) return 0;
+  const total = items.reduce((acc, item) => {
+    const itemDesi = Number(item.desi || item.product?.desi || item.product?.weight_kg) || 1;
+    const qty = Number(item.quantity) || 1;
+    return acc + (itemDesi * qty);
+  }, 0);
+  return Number(total.toFixed(2));
+}
+
+/**
+ * Sepet içeriği ve teslimat türüne göre dinamik DHL kargo ücretini hesaplar
+ */
+export function calculateDynamicShippingFee(
+  items: Array<{ quantity: number; product?: any; desi?: number }>,
+  deliveryType: string = 'kargo'
+): { totalDesi: number; billableDesi: number; shippingFee: number; isPickup: boolean } {
+  const isPickup = deliveryType === 'magaza_teslim';
+  if (isPickup || !items || items.length === 0) {
+    return {
+      totalDesi: 0,
+      billableDesi: 0,
+      shippingFee: 0,
+      isPickup: true,
+    };
+  }
+
+  const totalDesi = calculateItemsTotalDesi(items);
+  const cost = calculateDhlShippingCost(totalDesi);
+
+  return {
+    totalDesi,
+    billableDesi: cost.billableDesi,
+    shippingFee: cost.basePrice,
+    isPickup: false,
+  };
+}
+
 export interface DhlCreateShipmentParams {
   orderNumber: string;
   recipientName: string;
