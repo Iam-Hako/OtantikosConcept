@@ -31,10 +31,11 @@ export default function OrderDetailPage() {
 
   const [order, setOrder] = useState<Order | null>(null);
   const [status, setStatus] = useState<Order['status']>('siparis_alindi');
-  const [trackingCarrier, setTrackingCarrier] = useState('Yurtiçi Kargo');
+  const [trackingCarrier, setTrackingCarrier] = useState('DHL Kargo');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isCreatingDhl, setIsCreatingDhl] = useState(false);
 
   useEffect(() => {
     async function loadOrder() {
@@ -43,13 +44,42 @@ export default function OrderDetailPage() {
       if (found) {
         setOrder(found);
         setStatus(found.status);
-        setTrackingCarrier(found.tracking_carrier || 'Yurtiçi Kargo');
+        setTrackingCarrier(found.tracking_carrier || 'DHL Kargo');
         setTrackingNumber(found.tracking_number || '');
         setAdminNotes(found.admin_notes || '');
       }
     }
     if (orderId) loadOrder();
   }, [orderId]);
+
+  const handleCreateDhlShipment = async () => {
+    if (!order) return;
+    setIsCreatingDhl(true);
+    try {
+      const response = await fetch('/api/dhl/create-shipment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: order.id,
+          order_number: order.order_number,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'DHL kargo kodu oluşturulamadı.');
+      }
+      setTrackingNumber(data.tracking_number);
+      setTrackingCarrier('DHL Kargo');
+      setStatus('kargoya_verildi');
+      toast.success('DHL Kargo Takip Kodu Oluşturuldu!', {
+        description: `Takip No: ${data.tracking_number}`,
+      });
+    } catch (err: any) {
+      toast.error(err.message || 'DHL kargo gönderisi oluşturulamadı.');
+    } finally {
+      setIsCreatingDhl(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,8 +180,9 @@ export default function OrderDetailPage() {
             <select
               value={trackingCarrier}
               onChange={(e) => setTrackingCarrier(e.target.value)}
-              className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900"
+              className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-semibold"
             >
+              <option value="DHL Kargo">DHL Kargo (Resmi Anlaşmalı)</option>
               <option value="Yurtiçi Kargo">Yurtiçi Kargo</option>
               <option value="Aras Kargo">Aras Kargo</option>
               <option value="MNG Kargo">MNG Kargo</option>
@@ -162,12 +193,37 @@ export default function OrderDetailPage() {
 
           <div>
             <label className="block text-[11px] font-bold text-stone-700 mb-1">Kargo Takip Numarası</label>
-            <input
-              type="text"
-              value={trackingNumber}
-              onChange={(e) => setTrackingNumber(e.target.value)}
-              className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl font-mono font-bold text-stone-900"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={trackingNumber}
+                onChange={(e) => setTrackingNumber(e.target.value)}
+                className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl font-mono font-bold text-stone-900"
+              />
+              <button
+                type="button"
+                onClick={handleCreateDhlShipment}
+                disabled={isCreatingDhl}
+                className="shrink-0 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
+                title="DHL API ile otomatik gönderi oluştur ve barkod al"
+              >
+                <Truck className="w-4 h-4" />
+                <span>{isCreatingDhl ? 'Hazırlanıyor...' : 'DHL Kodu Al'}</span>
+              </button>
+            </div>
+            {trackingNumber && (
+              <div className="mt-1.5 flex items-center justify-between text-[11px]">
+                <span className="text-stone-500">Taşıyıcı: {trackingCarrier}</span>
+                <a
+                  href={`https://www.dhl.com/tr-tr/home/tracking.html?tracking-id=${encodeURIComponent(trackingNumber)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-amber-700 hover:underline flex items-center gap-1"
+                >
+                  <span>DHL Canlı Takip Sayfasını Aç ↗</span>
+                </a>
+              </div>
+            )}
           </div>
         </div>
 

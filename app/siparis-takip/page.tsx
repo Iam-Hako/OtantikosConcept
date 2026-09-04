@@ -218,18 +218,30 @@ function OrderTrackingContent() {
               </div>
 
               {order.tracking_number && (
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
+                <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <Truck className="w-6 h-6 text-emerald-700 shrink-0" />
+                    <Truck className="w-6 h-6 text-amber-700 shrink-0" />
                     <div>
-                      <h4 className="text-xs font-bold text-emerald-900">
-                        {order.tracking_carrier || 'Yurtiçi Kargo'} ile Sevk Edildi
+                      <h4 className="text-xs font-bold text-amber-950">
+                        {order.tracking_carrier || 'DHL Kargo'} ile Sevk Edildi
                       </h4>
-                      <p className="text-[11px] text-emerald-800">
+                      <p className="text-[11px] text-amber-900">
                         Kargo Takip No: <strong className="font-mono">{order.tracking_number}</strong>
                       </p>
                     </div>
                   </div>
+                  <a
+                    href={
+                      order.tracking_carrier?.toLowerCase().includes('dhl') || order.tracking_number.startsWith('DHL-')
+                        ? `https://www.dhl.com/tr-tr/home/tracking.html?tracking-id=${encodeURIComponent(order.tracking_number)}`
+                        : `https://www.google.com/search?q=${encodeURIComponent((order.tracking_carrier || 'kargo') + ' ' + order.tracking_number)}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
+                  >
+                    <span>Kargoyu Canlı Takip Et ↗</span>
+                  </a>
                 </div>
               )}
 
