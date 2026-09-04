@@ -73,7 +73,7 @@ export default function ComingSoonPage() {
           />
         </div>
         <p className="text-[11px] text-stone-500">
-          256-Bit SSL Sertifikası • 3D Secure SMS Koruması • Tüm Banka Kartlarına Peşin Fiyatına Taksit
+          256-Bit SSL Sertifikası • 3D Secure SMS Koruması • Tüm Banka Kartlarına Taksit Seçenekleri
         </p>
       </div>
 

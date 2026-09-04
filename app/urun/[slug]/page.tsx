@@ -423,7 +423,7 @@ export default function ProductDetailPage() {
             <div className="mt-3 pt-3 border-t border-amber-200/60 text-[11px] text-stone-600 flex items-center justify-between">
               <span className="flex items-center gap-1.5 font-medium">
                 <CreditCard className="w-3.5 h-3.5 text-amber-700" />
-                <span>iyzico ile peşin fiyatına taksit imkanı</span>
+                <span>iyzico ile kartlara taksit seçenekleri</span>
               </span>
               <span className="font-bold text-amber-800">Net Fiyat Garantisi</span>
             </div>

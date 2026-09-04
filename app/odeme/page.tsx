@@ -321,7 +321,7 @@ function CheckoutContent() {
           </h1>
 
           <p className="text-xs sm:text-sm text-stone-600 max-w-xl mx-auto leading-relaxed">
-            Otantikos Concept Eminönü Tahtakale koleksiyonumuz için doğrudan kredi kartı ve <strong>iyzico Sanal POS</strong> satış altyapımız tamamlanmak üzeredir. Çok yakında tüm Türkiye&apos;ye 3D Secure güvenli ödeme ve peşin fiyatına taksitle online sipariş alımına başlıyoruz.
+            Otantikos Concept Eminönü Tahtakale koleksiyonumuz için doğrudan kredi kartı ve <strong>iyzico Sanal POS</strong> satış altyapımız tamamlanmak üzeredir. Çok yakında tüm Türkiye&apos;ye 3D Secure güvenli ödeme ve taksit seçenekleriyle online sipariş alımına başlıyoruz.
           </p>
         </div>
 
@@ -812,7 +812,7 @@ function CheckoutContent() {
                         <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold">Önerilen</span>
                       </div>
                       <p className="text-[11px] text-stone-500 mt-1">
-                        BDDK Lisanslı iyzico Sanal POS altyapısı ile peşin fiyatına taksit ve 3D Secure SMS şifreli tam koruma.
+                        BDDK Lisanslı iyzico Sanal POS altyapısı ile tüm kartlara taksit imkanı ve 3D Secure SMS şifreli tam koruma.
                       </p>
                     </div>
                   </div>
