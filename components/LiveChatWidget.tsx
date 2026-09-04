@@ -400,7 +400,6 @@ export default function LiveChatWidget() {
                     required
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Örn: Ahmet Yılmaz"
                     className="w-full text-base sm:text-xs p-3 bg-white border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-stone-900 transition"
                   />
                 </div>
@@ -412,7 +411,6 @@ export default function LiveChatWidget() {
                     type="email"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    placeholder="ahmet@example.com"
                     className="w-full text-base sm:text-xs p-3 bg-white border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-stone-900 transition"
                   />
                 </div>

@@ -1437,7 +1437,6 @@ export default function KarZararPage() {
                         required
                         value={saleForm.customerName}
                         onChange={(e) => setSaleForm((prev) => ({ ...prev, customerName: e.target.value }))}
-                        placeholder="Örn: Ahmet Yılmaz"
                         className="w-full p-2.5 pl-8 bg-white border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-stone-900 font-semibold"
                       />
                       <User className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-3" />
@@ -1452,7 +1451,6 @@ export default function KarZararPage() {
                         required
                         value={saleForm.customerPhone}
                         onChange={(e) => setSaleForm((prev) => ({ ...prev, customerPhone: e.target.value }))}
-                        placeholder="0532 123 45 67"
                         className="w-full p-2.5 pl-8 bg-white border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-stone-900 font-semibold"
                       />
                       <Phone className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-3" />
@@ -1791,7 +1789,6 @@ export default function KarZararPage() {
                       required
                       value={purchaseForm.productName}
                       onChange={(e) => setPurchaseForm((prev) => ({ ...prev, productName: e.target.value }))}
-                      placeholder="Örn: 316L Kararmaz Çelik Kelepçe Bileklik"
                       className="w-full p-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
                     />
                   </div>
@@ -1818,7 +1815,6 @@ export default function KarZararPage() {
                         step="1"
                         value={purchaseForm.salePriceInput}
                         onChange={(e) => setPurchaseForm((prev) => ({ ...prev, salePriceInput: e.target.value }))}
-                        placeholder="Örn: 350"
                         className="w-full p-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 font-bold"
                       />
                     </div>
@@ -1885,7 +1881,6 @@ export default function KarZararPage() {
                     type="text"
                     value={purchaseForm.supplierName}
                     onChange={(e) => setPurchaseForm((prev) => ({ ...prev, supplierName: e.target.value }))}
-                    placeholder="Örn: Tahtakale İthalatçı"
                     className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-700"
                   />
                 </div>
@@ -1896,7 +1891,6 @@ export default function KarZararPage() {
                     type="text"
                     value={purchaseForm.documentNo}
                     onChange={(e) => setPurchaseForm((prev) => ({ ...prev, documentNo: e.target.value }))}
-                    placeholder="FTR-2026-001"
                     className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-700"
                   />
                 </div>
@@ -2010,7 +2004,6 @@ export default function KarZararPage() {
                   required
                   value={expenseForm.expenseTitle}
                   onChange={(e) => setExpenseForm((prev) => ({ ...prev, expenseTitle: e.target.value }))}
-                  placeholder="Örn: 50 Adet Kargo Kolisi & Ambalaj Masrafı"
                   className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-semibold"
                 />
               </div>

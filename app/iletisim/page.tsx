@@ -196,7 +196,6 @@ export default function ContactPage() {
                       autoComplete="name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Ahmet Yılmaz"
                       className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 text-stone-900 transition"
                     />
                   </div>
@@ -210,7 +209,6 @@ export default function ContactPage() {
                       inputMode="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="ahmet@ornek.com"
                       className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 text-stone-900 transition"
                     />
                   </div>
@@ -222,7 +220,6 @@ export default function ContactPage() {
                     type="text"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
-                    placeholder="Sipariş / Ürün / Toptan Alım vb."
                     className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 text-stone-900 transition"
                   />
                 </div>

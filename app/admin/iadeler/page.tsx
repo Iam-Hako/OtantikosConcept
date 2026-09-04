@@ -165,7 +165,6 @@ export default function AdminReturnsPage() {
                 rows={3}
                 value={adminResponse}
                 onChange={(e) => setAdminResponse(e.target.value)}
-                placeholder="Örn: Talebiniz onaylandı. Lütfen Yurtiçi Kargo 123456 anlaşma kodumuzla karşı ödemeli gönderiniz."
                 className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-stone-900 transition"
               />
             </div>

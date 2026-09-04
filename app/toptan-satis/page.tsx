@@ -79,7 +79,6 @@ export default function WholesalePage() {
                 type="text"
                 required
                 autoComplete="name"
-                placeholder="Örn: Ahmet Yılmaz"
                 value={contactName}
                 onChange={(e) => setContactName(e.target.value)}
                 className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 text-stone-900 transition"
@@ -97,7 +96,6 @@ export default function WholesalePage() {
                 required
                 autoComplete="tel"
                 inputMode="tel"
-                placeholder="Örn: 0532 000 00 00"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 text-stone-900 transition"
@@ -113,7 +111,6 @@ export default function WholesalePage() {
               <input
                 type="text"
                 required
-                placeholder="Örn: Kadıköy / İstanbul (veya açık teslimat adresiniz)"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 text-stone-900 transition"
@@ -128,7 +125,6 @@ export default function WholesalePage() {
               </label>
               <textarea
                 rows={3}
-                placeholder="Örn: Toptan ilgilendiğiniz ürünler, model çeşitleri veya sormak istedikleriniz..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 text-stone-900 transition"

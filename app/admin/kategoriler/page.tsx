@@ -177,7 +177,6 @@ export default function AdminCategoriesPage() {
                     setName(e.target.value);
                     if (!editingId) setSlug(slugify(e.target.value));
                   }}
-                  placeholder="Örn: 316L Çelik Takılar"
                   className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-stone-900 transition"
                 />
               </div>

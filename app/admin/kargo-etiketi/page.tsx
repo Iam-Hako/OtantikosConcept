@@ -480,7 +480,6 @@ function KargoEtiketiContent() {
                   required
                   value={alici}
                   onChange={(e) => setAlici(e.target.value)}
-                  placeholder="ÖRN: AHMET YILMAZ"
                   className="w-full uppercase bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-900 font-semibold focus:outline-none focus:border-amber-600 focus:bg-white"
                 />
               </div>

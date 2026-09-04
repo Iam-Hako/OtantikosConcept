@@ -371,14 +371,12 @@ export default function EditProductPage() {
                 <div key={index} className="flex items-center gap-3 bg-stone-50 p-2.5 rounded-xl border border-stone-200">
                   <input
                     type="text"
-                    placeholder="Örn: Malzeme / Boyut"
                     value={spec.spec_key}
                     onChange={(e) => updateSpecRow(index, e.target.value, spec.spec_value)}
                     className="flex-1 text-xs p-2 bg-white border border-stone-300 rounded-lg font-semibold"
                   />
                   <input
                     type="text"
-                    placeholder="Örn: 316L Çelik"
                     value={spec.spec_value}
                     onChange={(e) => updateSpecRow(index, spec.spec_key, e.target.value)}
                     className="flex-1 text-xs p-2 bg-white border border-stone-300 rounded-lg"
@@ -536,7 +534,6 @@ export default function EditProductPage() {
                 step="0.1"
                 value={costPrice}
                 onChange={(e) => setCostPrice(e.target.value)}
-                placeholder="Örn: 120"
                 className="w-full text-sm font-bold p-2.5 bg-amber-50 text-amber-950 border border-amber-300 rounded-xl focus:bg-white focus:outline-none"
               />
               <p className="text-[10px] text-stone-400 mt-1">Tahtakale / toptancıdan birim alış maliyetiniz</p>
@@ -551,7 +548,6 @@ export default function EditProductPage() {
                 min="0"
                 value={wholesalePrice}
                 onChange={(e) => setWholesalePrice(e.target.value)}
-                placeholder="Örn: 220"
                 className="w-full text-sm font-semibold p-2.5 bg-stone-50 text-stone-800 border border-stone-300 rounded-xl focus:bg-white focus:outline-none"
               />
             </div>

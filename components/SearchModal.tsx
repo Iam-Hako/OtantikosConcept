@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -110,7 +110,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 handleSelectProduct(results[0]);
               }
             }}
-            placeholder="Ürün adı, zanaat taşları, gümüş, takı veya kod arayın..."
+            placeholder="Ürün adı, kategori veya barkod arayın..."
             className="w-full text-base sm:text-lg text-slate-800 placeholder-slate-400 bg-transparent focus:outline-none"
           />
           {isLoading && <Loader2 className="w-5 h-5 text-brand-500 animate-spin shrink-0" />}

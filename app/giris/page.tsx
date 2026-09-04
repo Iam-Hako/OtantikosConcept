@@ -80,7 +80,6 @@ function LoginForm() {
                 inputMode="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="ahmet@ornek.com"
                 className="w-full text-base sm:text-xs p-3 pl-10 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 text-stone-900 transition"
               />
               <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
@@ -96,7 +95,6 @@ function LoginForm() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
                 className="w-full text-base sm:text-xs p-3 pl-10 pr-10 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 text-stone-900 transition"
               />
               <Lock className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />

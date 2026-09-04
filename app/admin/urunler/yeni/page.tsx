@@ -289,7 +289,6 @@ export default function NewProductPage() {
                 required
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="Örn: 316L Kararmaz Çelik İtalyan Kolye"
                 className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-brand-600 font-medium"
               />
             </div>
@@ -328,7 +327,6 @@ export default function NewProductPage() {
                 type="text"
                 value={shortDescription}
                 onChange={(e) => setShortDescription(e.target.value)}
-                placeholder="Örn: Suya, parfüme dayanıklı 316L çelik İtalyan ezme kolye."
                 className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
               />
             </div>
@@ -354,7 +352,7 @@ export default function NewProductPage() {
                   <span>Ürün Özellik Tablosu (Opsiyonel)</span>
                 </h2>
                 <p className="text-[11px] text-stone-500 mt-0.5">
-                  Ürün sayfasındaki bilgi tablosuna özellik ekleyin (Örn: Malzeme, Ölçü, Taş Türü).
+                  Ürün sayfasındaki bilgi tablosuna özellik ekleyin.
                 </p>
               </div>
 
@@ -379,14 +377,12 @@ export default function NewProductPage() {
                 <div key={index} className="flex items-center gap-3 bg-stone-50 p-2.5 rounded-xl border border-stone-200">
                   <input
                     type="text"
-                    placeholder="Örn: Malzeme / Boyut"
                     value={spec.spec_key}
                     onChange={(e) => updateSpecRow(index, e.target.value, spec.spec_value)}
                     className="flex-1 text-xs p-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-brand-600 font-semibold"
                   />
                   <input
                     type="text"
-                    placeholder="Örn: 316L Çelik / 45 cm"
                     value={spec.spec_value}
                     onChange={(e) => updateSpecRow(index, spec.spec_key, e.target.value)}
                     className="flex-1 text-xs p-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-brand-600"
@@ -440,7 +436,6 @@ export default function NewProductPage() {
                     <label className="text-[10px] text-stone-400 uppercase font-bold block mb-1">Varyant Türü</label>
                     <input
                       type="text"
-                      placeholder="Renk / Model"
                       value={variant.name}
                       onChange={(e) => updateVariantRow(index, 'name', e.target.value)}
                       className="w-full text-xs p-2 bg-white border border-stone-300 rounded-lg font-semibold"
@@ -451,7 +446,6 @@ export default function NewProductPage() {
                     <label className="text-[10px] text-stone-400 uppercase font-bold block mb-1">Seçenek Adı</label>
                     <input
                       type="text"
-                      placeholder="Örn: 18K Altın Kaplama"
                       value={variant.value}
                       onChange={(e) => updateVariantRow(index, 'value', e.target.value)}
                       className="w-full text-xs p-2 bg-white border border-stone-300 rounded-lg"
@@ -549,7 +543,6 @@ export default function NewProductPage() {
                 step="1"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                placeholder="Örn: 450"
                 className="w-full text-base font-bold p-3 bg-brand-50 text-brand-900 border border-brand-300 rounded-xl focus:bg-white focus:outline-none"
               />
               <p className="text-[10px] text-stone-400 mt-1">Web sitesindeki standart son kullanıcı fiyatı</p>
@@ -566,7 +559,6 @@ export default function NewProductPage() {
                 step="0.1"
                 value={costPrice}
                 onChange={(e) => setCostPrice(e.target.value)}
-                placeholder="Örn: 120"
                 className="w-full text-sm font-bold p-2.5 bg-amber-50 text-amber-950 border border-amber-300 rounded-xl focus:bg-white focus:outline-none"
               />
               <p className="text-[10px] text-stone-400 mt-1">Tahtakale / toptancıdan birim alış maliyetiniz</p>
@@ -583,7 +575,6 @@ export default function NewProductPage() {
                 step="1"
                 value={wholesalePrice}
                 onChange={(e) => setWholesalePrice(e.target.value)}
-                placeholder="Örn: 220"
                 className="w-full text-sm font-semibold p-2.5 bg-stone-50 text-stone-800 border border-stone-300 rounded-xl focus:bg-white focus:outline-none"
               />
               <p className="text-[10px] text-stone-400 mt-1">Toplu alım veya B2B müşteriler için geçerli birim fiyat</p>
@@ -598,7 +589,6 @@ export default function NewProductPage() {
                 min="0"
                 value={stock}
                 onChange={(e) => setStock(e.target.value)}
-                placeholder="Örn: 50"
                 className="w-full text-base sm:text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-bold"
               />
             </div>

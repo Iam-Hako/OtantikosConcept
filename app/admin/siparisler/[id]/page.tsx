@@ -164,7 +164,6 @@ export default function OrderDetailPage() {
             <label className="block text-[11px] font-bold text-stone-700 mb-1">Kargo Takip Numarası</label>
             <input
               type="text"
-              placeholder="Örn: TK-987654321"
               value={trackingNumber}
               onChange={(e) => setTrackingNumber(e.target.value)}
               className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl font-mono font-bold text-stone-900"
@@ -176,7 +175,6 @@ export default function OrderDetailPage() {
           <label className="block text-[11px] font-bold text-stone-700 mb-1">Yönetici İç Operasyon Notu</label>
           <input
             type="text"
-            placeholder="Örn: Müşteri hediye paketi istedi, hediye kartı eklendi."
             value={adminNotes}
             onChange={(e) => setAdminNotes(e.target.value)}
             className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl text-stone-900"

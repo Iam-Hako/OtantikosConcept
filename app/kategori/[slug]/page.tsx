@@ -235,7 +235,7 @@ function CategoryContent() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Örn: gümüş, uçan, mozaik..."
+                placeholder="Koleksiyonda ara..."
                 className="w-full text-xs py-2 pl-8 pr-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-amber-500"
               />
               <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-2.5" />

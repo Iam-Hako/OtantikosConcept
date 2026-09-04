@@ -73,7 +73,7 @@ function CheckoutContent() {
   const [province, setProvince] = useState('İstanbul');
   const [district, setDistrict] = useState('Fatih (Eminönü/Tahtakale)');
   const [fullAddress, setFullAddress] = useState('');
-  const [postalCode, setPostalCode] = useState('34116');
+  const [postalCode, setPostalCode] = useState('');
   const [courierNote, setCourierNote] = useState('');
 
   // Invoice state
@@ -574,7 +574,6 @@ function CheckoutContent() {
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Örn: Ahmet Yılmaz"
                   className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-600"
                 />
               </div>
@@ -586,7 +585,6 @@ function CheckoutContent() {
                   required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="0532 000 00 00"
                   className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-600"
                 />
               </div>
@@ -598,7 +596,6 @@ function CheckoutContent() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ahmet@ornek.com"
                   className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-600"
                 />
               </div>
@@ -642,7 +639,6 @@ function CheckoutContent() {
                       rows={2}
                       value={fullAddress}
                       onChange={(e) => setFullAddress(e.target.value)}
-                      placeholder="Örn: Süleymaniye Mah. Uzunçarşı Cad. No: 187/2G Fatih / İSTANBUL"
                       className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-600"
                     />
                   </div>
@@ -653,7 +649,6 @@ function CheckoutContent() {
                       type="text"
                       value={postalCode}
                       onChange={(e) => setPostalCode(e.target.value)}
-                      placeholder="34000"
                       className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
                     />
                   </div>
@@ -664,7 +659,6 @@ function CheckoutContent() {
                       type="text"
                       value={courierNote}
                       onChange={(e) => setCourierNote(e.target.value)}
-                      placeholder="Zile basmayınız, kapıya bırakınız vb."
                       className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
                     />
                   </div>
@@ -729,7 +723,6 @@ function CheckoutContent() {
                   maxLength={11}
                   value={identityNumber}
                   onChange={(e) => setIdentityNumber(e.target.value)}
-                  placeholder="11111111111"
                   className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg max-w-sm"
                 />
                 <p className="text-[10px] text-stone-400 mt-1">E-faturanız T.C. kimlik numaranıza veya adınıza düzenlenecektir.</p>
@@ -743,7 +736,6 @@ function CheckoutContent() {
                     required
                     value={companyTitle}
                     onChange={(e) => setCompanyTitle(e.target.value)}
-                    placeholder="Örn: ABC Ltd. Şti."
                     className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
                   />
                 </div>
@@ -754,7 +746,6 @@ function CheckoutContent() {
                     required
                     value={taxOffice}
                     onChange={(e) => setTaxOffice(e.target.value)}
-                    placeholder="Hocapaşa V.D."
                     className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
                   />
                 </div>
@@ -766,7 +757,6 @@ function CheckoutContent() {
                     maxLength={10}
                     value={taxNumber}
                     onChange={(e) => setTaxNumber(e.target.value)}
-                    placeholder="1234567890"
                     className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
                   />
                 </div>

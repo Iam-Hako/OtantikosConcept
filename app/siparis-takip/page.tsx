@@ -102,7 +102,6 @@ function OrderTrackingContent() {
               type="text"
               required
               autoCapitalize="characters"
-              placeholder="Örn: OT-20260824-001"
               value={orderNumber}
               onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
               className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 font-mono text-stone-900 transition"
@@ -115,7 +114,6 @@ function OrderTrackingContent() {
             </label>
             <input
               type="text"
-              placeholder="ahmet@ornek.com veya Ahmet Yılmaz"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600 text-stone-900 transition"
