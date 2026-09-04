@@ -19,6 +19,13 @@ export async function POST(request: Request) {
       guest_phone,
     } = body;
 
+    const isOnlineSalesActive = process.env.NEXT_PUBLIC_ONLINE_SALES_ACTIVE === 'true';
+    if (!isOnlineSalesActive) {
+      return NextResponse.json({
+        error: 'Online sipariş altyapısı geçici olarak devre dışıdır. Siparişleriniz için WhatsApp hattımızdan iletişime geçebilirsiniz.',
+      }, { status: 403 });
+    }
+
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'Sepet boş veya geçersiz format.' }, { status: 400 });
     }

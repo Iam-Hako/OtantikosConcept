@@ -20,6 +20,15 @@ export async function POST(request: Request) {
       identity_number,
     } = body;
 
+    const isOnlineSalesActive = process.env.NEXT_PUBLIC_ONLINE_SALES_ACTIVE === 'true';
+    if (!isOnlineSalesActive) {
+      return NextResponse.json({
+        success: true,
+        isPreLaunch: true,
+        message: 'Online kredi kartı satışlarımız geçici olarak devre dışıdır.',
+      });
+    }
+
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'Sepetiniz boş.' }, { status: 400 });
     }
