@@ -122,7 +122,7 @@ const DEFAULT_STORE_CATEGORIES: Category[] = [
   {
     id: 'cat-dogal-tas',
     name: 'Doğal Taş & Takı',
-    slug: 'tum-urunler',
+    slug: 'dogal-tas-taki',
     description: 'Ametist, akik ve el işçiliği takılar',
     display_order: 2,
     is_active: true,
@@ -131,7 +131,7 @@ const DEFAULT_STORE_CATEGORIES: Category[] = [
   {
     id: 'cat-hediyelik',
     name: 'Hediyelik & Konsept',
-    slug: 'tum-urunler',
+    slug: 'hediyelik-konsept',
     description: 'Özel günler için konsept tasarım ürünler',
     display_order: 3,
     is_active: true,
@@ -140,7 +140,7 @@ const DEFAULT_STORE_CATEGORIES: Category[] = [
   {
     id: 'cat-aksesuar',
     name: 'Aksesuar & Çanta',
-    slug: 'tum-urunler',
+    slug: 'aksesuar-canta',
     description: 'Eminönü vitrini özgün aksesuarlar',
     display_order: 4,
     is_active: true,
@@ -158,7 +158,7 @@ const DEFAULT_STORE_CATEGORIES: Category[] = [
   {
     id: 'cat-vitrin',
     name: 'Öne Çıkan Koleksiyon',
-    slug: 'tum-urunler',
+    slug: 'one-cikan-koleksiyon',
     description: 'En çok ilgi gören seçkin modeller',
     display_order: 6,
     is_active: true,
@@ -522,18 +522,24 @@ export const DataService = {
         .select('*')
         .order('display_order', { ascending: true });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         runtimeCategories = data as Category[];
-        return runtimeCategories;
       }
     } catch {
       // Fallback
     }
 
-    if (!runtimeCategories || runtimeCategories.length === 0) {
-      runtimeCategories = DEFAULT_STORE_CATEGORIES;
+    const merged: Category[] = [...(runtimeCategories || [])];
+    for (const defCat of DEFAULT_STORE_CATEGORIES) {
+      const exists = merged.some(
+        (c) => c.id === defCat.id || c.slug === defCat.slug || c.name.trim().toLowerCase() === defCat.name.trim().toLowerCase()
+      );
+      if (!exists) {
+        merged.push(defCat);
+      }
     }
 
+    runtimeCategories = merged;
     return runtimeCategories;
   },
 

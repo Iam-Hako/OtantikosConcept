@@ -42,7 +42,7 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+      <div className="w-full max-w-[1840px] mx-auto px-4 py-20 text-center">
         <div className="w-20 h-20 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
           <ShoppingBag className="w-10 h-10" />
         </div>
@@ -62,7 +62,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
       {/* Title */}
       <div className="flex items-center justify-between border-b border-stone-200 pb-4">

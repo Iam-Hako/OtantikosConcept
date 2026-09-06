@@ -131,7 +131,7 @@ function CategoryContent() {
   const pageDesc = currentCategory ? currentCategory.description : 'Eminönü Tahtakale atölyelerinden ve doğrudan ithalatçılardan en özel parçalar.';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
       {/* 1. BREADCRUMBS & TITLE */}
       <div className="border-b border-stone-200 pb-6">
@@ -337,7 +337,7 @@ function CategoryContent() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
               {filteredProducts.map((product, idx) => (
                 <ProductCard key={product.id} product={product} priority={idx < 4} />
               ))}

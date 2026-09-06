@@ -68,7 +68,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 transition-all shadow-2xs">
       {/* Top Announcement Bar */}
       <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white text-[11px] py-1.5 px-4 hidden sm:block shadow-xs">
-        <div className="max-w-7xl mx-auto flex items-center justify-between font-bold">
+        <div className="w-full max-w-[1840px] mx-auto flex items-center justify-between font-bold">
           <div className="flex items-center gap-2.5">
             <span className="w-1.5 h-1.5 rounded-full bg-yellow-300 animate-pulse inline-block" />
             <span className="text-white/95">Eminönü Tahtakale Doğrudan Sevkiyat • DHL Kargo Güvencesi</span>
@@ -96,7 +96,7 @@ export default function Navbar() {
       />
 
       {/* MAIN NAVBAR */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20 gap-3 sm:gap-6">
           
           {/* Mobile Menu Trigger & Logo */}
@@ -295,7 +295,7 @@ export default function Navbar() {
 
       {/* TRENDYOL STYLE CATEGORIES NAVIGATION BAR */}
       <nav className="hidden lg:block border-t border-stone-200/80 bg-white shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
           <ul className="flex items-center justify-between text-xs font-bold text-stone-700 py-2.5 gap-2 overflow-x-auto no-scrollbar">
             
             {/* All Categories Link */}

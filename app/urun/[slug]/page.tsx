@@ -173,7 +173,7 @@ export default function ProductDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+      <div className="w-full max-w-[1840px] mx-auto px-4 py-20 text-center">
         <div className="w-12 h-12 border-4 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
         <p className="text-sm font-semibold text-stone-600">Tahtakale ürün detayları yükleniyor...</p>
       </div>
@@ -182,7 +182,7 @@ export default function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+      <div className="w-full max-w-[1840px] mx-auto px-4 py-20 text-center">
         <h2 className="text-2xl font-bold text-stone-900 mb-2">Ürün Bulunamadı</h2>
         <p className="text-xs text-stone-500 mb-6">Aradığınız ürün kaldırılmış veya bağlantı değişmiş olabilir.</p>
         <Link href="/kategori/tum-urunler" className="px-5 py-2.5 bg-amber-600 text-white text-xs font-bold rounded-lg">
@@ -224,7 +224,7 @@ export default function ProductDetailPage() {
     .slice(0, 4);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+    <div className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
       
       {/* 1. BREADCRUMBS */}
       <nav className="text-xs text-stone-500 flex items-center gap-1.5">

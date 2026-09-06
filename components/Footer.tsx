@@ -30,7 +30,7 @@ export default function Footer() {
 
   return (
     <footer className="bg-stone-950 text-stone-300 pt-12 sm:pt-16 pb-24 lg:pb-12 border-t border-stone-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* VALUE PROPOSITIONS & TRUST BADGES - 2x2 on Mobile, 4-col on Desktop */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 pb-12 border-b border-stone-800 text-xs">

@@ -50,7 +50,7 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12 space-y-8 sm:space-y-12 pb-24 lg:pb-12">
+    <div className="w-full max-w-[1840px] mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12 space-y-8 sm:space-y-12 pb-24 lg:pb-12">
       
       <div className="text-center space-y-2">
         <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 inline-block">

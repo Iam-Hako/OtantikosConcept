@@ -331,7 +331,7 @@ function CheckoutContent() {
 
   if (items.length === 0) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center space-y-4">
+      <div className="w-full max-w-[1840px] mx-auto px-4 py-20 text-center space-y-4">
         <h2 className="text-xl font-bold text-stone-900">Sepetiniz Boş</h2>
         <p className="text-xs text-stone-500 max-w-sm mx-auto">
           Sepetinize henüz ürün eklemediniz. Tahtakale özgün koleksiyonumuzu hemen keşfedebilirsiniz.
@@ -535,7 +535,7 @@ function CheckoutContent() {
   // LIVE CHECKOUT FORM (ACTIVE WHEN NEXT_PUBLIC_ONLINE_SALES_ACTIVE IS TRUE)
   // =========================================================================
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-24 lg:pb-12">
+    <div className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-24 lg:pb-12">
       
       {/* Header & Back Link */}
       <div className="flex items-center justify-between border-b border-stone-200 pb-4">
@@ -1251,7 +1251,7 @@ function CheckoutContent() {
 export default function CheckoutPage() {
   return (
     <Suspense fallback={
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center text-xs text-stone-500">
+      <div className="w-full max-w-[1840px] mx-auto px-4 py-20 text-center text-xs text-stone-500">
         Ödeme ekranı yükleniyor...
       </div>
     }>

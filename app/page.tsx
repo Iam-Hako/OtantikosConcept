@@ -235,7 +235,7 @@ export default function HomePage() {
       {/* 1. TRENDYOL STYLE CIRCULAR STORIES / QUICK ACTION BUTTONS   */}
       {/* ============================================================ */}
       <section className="bg-white/95 backdrop-blur-md border-b border-amber-200/50 pt-4 pb-5 shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative group">
+        <div className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8 relative group">
           
           {/* Left Arrow Button */}
           <button
@@ -291,7 +291,7 @@ export default function HomePage() {
       {/* 2. TRENDYOL STYLE "KATEGORİLERİ KEŞFET" (RENKLİ PASTEL KARTLAR) */}
       {/* ============================================================ */}
       {categories.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white/95 backdrop-blur-xs rounded-3xl p-5 sm:p-7 border border-amber-200/60 shadow-lg shadow-orange-950/[0.03] space-y-5 overflow-hidden relative">
             
             {/* Cheerful Rainbow Top Accent Trim */}
@@ -332,7 +332,7 @@ export default function HomePage() {
                 return (
                   <Link
                     key={cat.id}
-                    href={`/kategori/${cat.slug}`}
+                    href={cat.slug === 'toptan-satis' ? '/toptan-satis' : `/kategori/${cat.slug}`}
                     className="group flex flex-col items-center cursor-pointer"
                   >
                     {/* Pastel Rounded Square Container */}
@@ -382,7 +382,7 @@ export default function HomePage() {
       {/* ============================================================ */}
       {/* 3. TRENDYOL STYLE "POPÜLER ÜRÜNLER" VİTRİNİ                  */}
       {/* ============================================================ */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white/95 backdrop-blur-xs rounded-3xl p-5 sm:p-7 border border-amber-200/60 shadow-lg shadow-orange-950/[0.03] space-y-6 overflow-hidden relative">
           
           {/* Cheerful Warm Top Accent Trim */}
@@ -423,9 +423,9 @@ export default function HomePage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-              {displayProducts.slice(0, 8).map((product, idx) => (
-                <ProductCard key={product.id} product={product} priority={idx < 4} />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-6">
+              {displayProducts.slice(0, 12).map((product, idx) => (
+                <ProductCard key={product.id} product={product} priority={idx < 6} />
               ))}
             </div>
           )}
@@ -436,7 +436,7 @@ export default function HomePage() {
       {/* ============================================================ */}
       {/* 5. TAHTAKALE EMİNÖNÜ & DHL GÜVEN ŞERİDİ                       */}
       {/* ============================================================ */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
           <div className="p-5 bg-gradient-to-br from-orange-50/90 via-amber-50/40 to-white rounded-3xl border border-orange-200/90 shadow-2xs hover:border-orange-400 hover:shadow-xl hover:shadow-orange-500/10 hover:-translate-y-1 transition-all duration-300 flex items-start gap-3.5">
@@ -493,7 +493,7 @@ export default function HomePage() {
       {/* ============================================================ */}
       {/* 6. TAHTAKALE EMİNÖNÜ HERITAGE & WHOLESALE BANNER             */}
       {/* ============================================================ */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="rounded-3xl bg-gradient-to-br from-stone-900 via-orange-950/90 to-stone-950 text-white p-8 sm:p-12 lg:p-14 relative overflow-hidden shadow-2xl border border-orange-900/40">
           
           {/* Warm Ambient Glow Effects */}
