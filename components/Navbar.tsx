@@ -67,20 +67,29 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 transition-all shadow-2xs">
       {/* Top Announcement Bar */}
-      <div className="bg-stone-950 text-stone-300 text-[11px] py-1.5 px-4 hidden sm:block border-b border-stone-800 tracking-wide">
-        <div className="max-w-7xl mx-auto flex items-center justify-between font-medium">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-            <span className="text-stone-200">Eminönü Tahtakale Doğrudan Sevkiyat • DHL Kargo Güvencesi</span>
-            <span className="text-stone-600">|</span>
-            <span className="text-amber-400 font-bold">Toptan & Perakende Satış</span>
+      <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white text-[11px] py-1.5 px-4 hidden sm:block shadow-xs">
+        <div className="max-w-7xl mx-auto flex items-center justify-between font-bold">
+          <div className="flex items-center gap-2.5">
+            <span className="bg-white/20 backdrop-blur-xs px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-yellow-300 animate-ping inline-block" />
+              <span>Günün Fırsatı</span>
+            </span>
+            <span className="text-white/95">1500 TL Üzeri ÜCRETSİZ DHL Kargo • Tahtakale Doğrudan Sevkiyat</span>
+            <span className="text-white/40">|</span>
+            <span className="bg-yellow-400 text-stone-950 px-2 py-0.2 rounded text-[10px] font-black">
+              Kupon: OTANTIKOS50
+            </span>
           </div>
-          <div className="flex items-center gap-4 text-stone-400 text-[11px]">
-            <a href="https://wa.me/905077737777" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition flex items-center gap-1 font-semibold">
+          <div className="flex items-center gap-4 text-white/90 text-[11px]">
+            <Link href="/toptan-satis" className="hover:text-yellow-200 transition font-extrabold flex items-center gap-1">
+              <span>Tahtakale Toptan Satış</span>
+            </Link>
+            <span className="text-white/30">•</span>
+            <a href="https://wa.me/905077737777" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-200 transition flex items-center gap-1 font-semibold">
               <span>WhatsApp: +90 (507) 773 77 77</span>
             </a>
-            <span className="text-stone-700">•</span>
-            <Link href="/iletisim" className="hover:text-amber-400 transition">Mağaza Konumu</Link>
+            <span className="text-white/30">•</span>
+            <Link href="/iletisim" className="hover:text-yellow-200 transition">Mağaza Konumu</Link>
           </div>
         </div>
       </div>
@@ -93,20 +102,20 @@ export default function Navbar() {
 
       {/* MAIN NAVBAR */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20 gap-4">
+        <div className="flex items-center justify-between h-16 sm:h-20 gap-3 sm:gap-6">
           
           {/* Mobile Menu Trigger & Logo */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 text-slate-700 hover:text-brand-700 focus:outline-none"
+              className="lg:hidden p-2 text-stone-700 hover:text-orange-600 focus:outline-none"
               aria-label="Menüyü Aç"
             >
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
 
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full overflow-hidden bg-brand-50 border border-brand-200 shrink-0">
+              <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-orange-50 border-2 border-orange-200 shrink-0 shadow-xs group-hover:border-orange-400 transition">
                 <Image
                   src="/images/logo.webp"
                   alt="Otantikos Concept"
@@ -116,95 +125,76 @@ export default function Navbar() {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="font-serif font-black text-lg sm:text-2xl text-slate-900 tracking-tight leading-none group-hover:text-brand-700 transition">
-                  Otantikos
-                </span>
-                <span className="text-[9px] sm:text-[10px] font-bold text-brand-600 tracking-widest uppercase mt-0.5">
-                  CONCEPT
+                <div className="flex items-center gap-1.5">
+                  <span className="font-serif font-black text-xl sm:text-2xl text-stone-900 tracking-tight leading-none group-hover:text-orange-600 transition">
+                    Otantikos
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded bg-orange-600 text-white font-sans text-[8px] font-black uppercase tracking-wider">
+                    PRO
+                  </span>
+                </div>
+                <span className="text-[9px] sm:text-[10px] font-extrabold text-orange-600 tracking-widest uppercase mt-0.5">
+                  CONCEPT • TAHTAKALE
                 </span>
               </div>
             </Link>
           </div>
 
-          {/* SEARCH BAR (CLICK TO OPEN FAST SEARCH ENGINE MODAL) */}
-          <div className="hidden md:flex flex-1 max-w-lg mx-4">
+          {/* TRENDYOL STYLE SEARCH BAR */}
+          <div className="hidden md:flex flex-1 max-w-2xl mx-2">
             <button
               onClick={() => setIsSearchModalOpen(true)}
-              className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 hover:bg-brand-50/70 border border-slate-200 hover:border-brand-300 rounded-full text-slate-500 text-xs sm:text-sm transition group shadow-2xs cursor-pointer"
+              className="w-full flex items-center justify-between p-1.5 pl-4 bg-stone-100/80 hover:bg-orange-50/50 border border-stone-200 hover:border-orange-400 rounded-full text-stone-500 text-xs sm:text-sm transition group shadow-2xs cursor-pointer ring-1 ring-black/[0.02]"
             >
-              <div className="flex items-center gap-2.5">
-                <Search className="w-4 h-4 text-brand-600 group-hover:scale-110 transition" />
-                <span className="text-slate-400 group-hover:text-slate-600">Ürün, doğal taş, kolye veya kod arayın...</span>
+              <div className="flex items-center gap-2.5 text-stone-400 group-hover:text-stone-700">
+                <span className="text-xs sm:text-sm font-medium">Ürün, doğal taş, kalemlik veya kategori arayın...</span>
               </div>
-              <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-mono text-slate-400 bg-white border border-slate-200 rounded-md">
-                Ctrl K
-              </kbd>
+              <div className="flex items-center gap-2">
+                <kbd className="hidden lg:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-mono text-stone-400 bg-white border border-stone-200 rounded-md">
+                  Ctrl K
+                </kbd>
+                <div className="w-8 h-8 rounded-full bg-orange-500 group-hover:bg-orange-600 text-white flex items-center justify-center shadow-sm transition">
+                  <Search className="w-4 h-4" />
+                </div>
+              </div>
             </button>
           </div>
 
           {/* RIGHT ACTION BUTTONS */}
-          <div className="flex items-center gap-1 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             
             {/* Mobile Search Icon */}
             <button
               onClick={() => setIsSearchModalOpen(true)}
-              className="md:hidden p-2 text-slate-700 hover:text-brand-700 hover:bg-brand-50 rounded-full transition"
+              className="md:hidden p-2 text-stone-700 hover:text-orange-600 hover:bg-orange-50 rounded-full transition"
               aria-label="Arama"
             >
               <Search className="w-5 h-5" />
-            </button>
-
-            {/* Wishlist Icon */}
-            <Link
-              href="/favorilerim"
-              className="relative p-2 text-slate-700 hover:text-brand-700 hover:bg-brand-50 rounded-full transition"
-              aria-label="Favorilerim"
-            >
-              <Heart className="w-5 h-5" />
-              {totalFavorites > 0 && (
-                <span className="absolute 0 top-0.5 right-0.5 bg-rose-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                  {totalFavorites}
-                </span>
-              )}
-            </Link>
-
-            {/* Cart Drawer Trigger */}
-            <button
-              onClick={openDrawer}
-              className="relative p-2 text-slate-700 hover:text-brand-700 hover:bg-brand-50 rounded-full transition"
-              aria-label="Sepetim"
-            >
-              <ShoppingBag className="w-5 h-5" />
-              {totalItems > 0 && (
-                <span className="absolute 0 top-0.5 right-0.5 bg-brand-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-scale">
-                  {totalItems}
-                </span>
-              )}
             </button>
 
             {/* User Dropdown */}
             <div className="relative" ref={userDropdownRef}>
               <button
                 onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                className="flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-2 text-xs font-semibold text-slate-700 hover:bg-brand-50 rounded-full sm:rounded-xl transition border border-transparent hover:border-brand-200"
+                className="flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-2 text-xs font-bold text-stone-700 hover:text-orange-600 hover:bg-orange-50/70 rounded-full sm:rounded-xl transition border border-transparent hover:border-orange-200"
               >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center font-bold text-xs">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-stone-100 text-stone-700 group-hover:text-orange-600 flex items-center justify-center font-bold text-xs">
                   {user ? (user.full_name?.[0] || user.email?.[0] || 'U').toUpperCase() : <User className="w-4 h-4" />}
                 </div>
-                <span className="hidden sm:inline max-w-[100px] truncate">
-                  {user ? (user.full_name?.split(' ')[0] || user.email?.split('@')[0]) : 'Giriş'}
+                <span className="hidden sm:inline max-w-[90px] truncate">
+                  {user ? (user.full_name?.split(' ')[0] || user.email?.split('@')[0]) : 'Giriş Yap'}
                 </span>
-                <ChevronDown className="w-3 h-3 text-slate-400 hidden sm:inline" />
+                <ChevronDown className="w-3 h-3 text-stone-400 hidden sm:inline" />
               </button>
 
               {/* Dropdown Menu */}
               {isUserDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-scale-in">
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-stone-100 py-2 z-50 animate-scale-in">
                   {user ? (
                     <>
-                      <div className="px-4 py-2 border-b border-slate-100">
-                        <p className="text-xs text-slate-400">Giriş Yapıldı</p>
-                        <p className="text-xs font-bold text-slate-900 truncate">{user.email}</p>
+                      <div className="px-4 py-2 border-b border-stone-100">
+                        <p className="text-xs text-stone-400">Giriş Yapıldı</p>
+                        <p className="text-xs font-bold text-stone-900 truncate">{user.email}</p>
                         {isAdmin && (
                           <span className="inline-block mt-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full">
                             ⭐ Yönetici (Admin)
@@ -214,30 +204,30 @@ export default function Navbar() {
                       <Link
                         href="/hesabim"
                         onClick={() => setIsUserDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-slate-700 hover:bg-brand-50 hover:text-brand-700 font-medium transition"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-stone-700 hover:bg-orange-50 hover:text-orange-600 font-medium transition"
                       >
-                        <User className="w-4 h-4 text-slate-400" />
+                        <User className="w-4 h-4 text-stone-400" />
                         <span>Siparişlerim & Bilgilerim</span>
                       </Link>
                       <Link
                         href="/siparis-takip"
                         onClick={() => setIsUserDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-slate-700 hover:bg-brand-50 hover:text-brand-700 font-medium transition"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-stone-700 hover:bg-orange-50 hover:text-orange-600 font-medium transition"
                       >
-                        <Truck className="w-4 h-4 text-slate-400" />
+                        <Truck className="w-4 h-4 text-stone-400" />
                         <span>Kargo Takibi</span>
                       </Link>
                       {isAdmin && (
                         <Link
                           href="/admin"
                           onClick={() => setIsUserDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-brand-700 font-bold bg-brand-50/80 hover:bg-brand-100 transition"
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-orange-700 font-bold bg-orange-50 hover:bg-orange-100 transition"
                         >
-                          <Settings className="w-4 h-4 text-brand-600" />
+                          <Settings className="w-4 h-4 text-orange-600" />
                           <span>Admin Yönetim Paneli</span>
                         </Link>
                       )}
-                      <div className="border-t border-slate-100 my-1"></div>
+                      <div className="border-t border-stone-100 my-1"></div>
                       <button
                         onClick={() => {
                           logout();
@@ -251,11 +241,11 @@ export default function Navbar() {
                     </>
                   ) : (
                     <>
-                      <div className="px-4 py-2 border-b border-slate-100 text-center">
+                      <div className="px-4 py-2 border-b border-stone-100 text-center">
                         <Link
                           href="/giris"
                           onClick={() => setIsUserDropdownOpen(false)}
-                          className="block w-full py-2 px-4 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl transition shadow-xs"
+                          className="block w-full py-2 px-4 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl transition shadow-xs"
                         >
                           Giriş Yap / Kayıt Ol
                         </Link>
@@ -263,9 +253,9 @@ export default function Navbar() {
                       <Link
                         href="/siparis-takip"
                         onClick={() => setIsUserDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-slate-700 hover:bg-brand-50 hover:text-brand-700 transition"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-stone-700 hover:bg-orange-50 hover:text-orange-600 transition"
                       >
-                        <Package className="w-4 h-4 text-brand-600" />
+                        <Package className="w-4 h-4 text-orange-600" />
                         <span>Misafir Sipariş Takibi</span>
                       </Link>
                     </>
@@ -274,57 +264,124 @@ export default function Navbar() {
               )}
             </div>
 
+            {/* Wishlist Icon */}
+            <Link
+              href="/favorilerim"
+              className="relative flex items-center gap-1 p-2 sm:px-3 sm:py-2 text-stone-700 hover:text-rose-600 hover:bg-rose-50/70 rounded-full sm:rounded-xl transition border border-transparent hover:border-rose-200"
+              aria-label="Favorilerim"
+            >
+              <Heart className="w-5 h-5" />
+              <span className="hidden sm:inline text-xs font-bold">Favorilerim</span>
+              {totalFavorites > 0 && (
+                <span className="absolute -top-1 -right-1 sm:top-1 sm:right-1 bg-rose-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+                  {totalFavorites}
+                </span>
+              )}
+            </Link>
+
+            {/* Trendyol Style Cart Trigger */}
+            <button
+              onClick={openDrawer}
+              className="relative flex items-center gap-2 p-2 sm:px-3.5 sm:py-2 bg-stone-900 hover:bg-orange-600 text-white rounded-full sm:rounded-xl transition shadow-xs group"
+              aria-label="Sepetim"
+            >
+              <div className="relative">
+                <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-2 -right-2.5 bg-orange-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-stone-900 animate-scale">
+                    {totalItems}
+                  </span>
+                )}
+              </div>
+              <span className="hidden sm:inline text-xs font-black">Sepetim</span>
+            </button>
+
           </div>
 
         </div>
       </div>
 
-      {/* CATEGORIES NAVIGATION BAR */}
-      <nav className="hidden lg:block border-t border-brand-100 bg-brand-50/40">
+      {/* TRENDYOL STYLE CATEGORIES NAVIGATION BAR */}
+      <nav className="hidden lg:block border-t border-stone-200/80 bg-white shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <ul className="flex items-center justify-between text-xs font-bold text-slate-700 py-2.5">
+          <ul className="flex items-center justify-between text-xs font-bold text-stone-700 py-2.5 gap-2 overflow-x-auto no-scrollbar">
+            
+            {/* All Categories Dropdown Trigger */}
             <li>
               <Link 
                 href="/kategori/tum-urunler" 
-                className="hover:text-brand-700 transition py-1"
+                className="hover:text-orange-600 transition py-1 flex items-center gap-1.5 text-stone-900 font-extrabold border-b-2 border-transparent hover:border-orange-500"
               >
-                Tüm Ürünler
+                <span>Tüm Ürünler</span>
+                <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-tighter">
+                  YENİ
+                </span>
               </Link>
             </li>
+
             {categories.map((category) => (
               <li key={category.id}>
                 <Link
                   href={`/kategori/${category.slug}`}
-                  className="hover:text-brand-700 transition py-1"
+                  className="hover:text-orange-600 transition py-1 border-b-2 border-transparent hover:border-orange-500 whitespace-nowrap"
                 >
                   {category.name}
                 </Link>
               </li>
             ))}
+
+            {/* Vibrant Campaign Tabs */}
+            <li>
+              <Link 
+                href="/kategori/tum-urunler?filter=cok-satanlar" 
+                className="hover:text-orange-600 transition py-1 flex items-center gap-1 text-orange-600 font-extrabold border-b-2 border-transparent hover:border-orange-500"
+              >
+                <span>🔥 Çok Satanlar</span>
+                <span className="bg-orange-100 text-orange-700 text-[9px] font-black px-1.5 py-0.2 rounded-full">
+                  FIRSAT
+                </span>
+              </Link>
+            </li>
+
+            <li>
+              <Link 
+                href="/kategori/tum-urunler?filter=flas-urunler" 
+                className="hover:text-rose-600 transition py-1 flex items-center gap-1 text-rose-600 font-extrabold border-b-2 border-transparent hover:border-rose-500"
+              >
+                <span>⚡ Flaş İndirimler</span>
+                <span className="bg-rose-100 text-rose-700 text-[9px] font-black px-1.5 py-0.2 rounded-full animate-pulse">
+                  %50
+                </span>
+              </Link>
+            </li>
+
             <li>
               <Link 
                 href="/toptan-satis" 
-                className="text-brand-700 hover:text-brand-900 transition py-1 flex items-center gap-1 font-extrabold"
+                className="text-emerald-700 hover:text-emerald-800 transition py-1 flex items-center gap-1 font-black bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200"
               >
-                ✨ Toptan Satış
+                <span>📦 Tahtakale Toptan</span>
               </Link>
             </li>
+
             <li>
               <Link 
                 href="/hakkimizda" 
-                className="text-slate-500 hover:text-brand-700 transition py-1"
+                className="text-stone-500 hover:text-orange-600 transition py-1"
               >
                 Hakkımızda
               </Link>
             </li>
+
             <li>
               <Link 
                 href="/iletisim" 
-                className="text-slate-500 hover:text-brand-700 transition py-1"
+                className="text-stone-500 hover:text-orange-600 transition py-1"
               >
                 İletişim & Konum
               </Link>
             </li>
+
           </ul>
         </div>
       </nav>
