@@ -13,6 +13,21 @@ export interface UserProfile {
   updated_at?: string;
 }
 
+export interface UserAddress {
+  id: string;
+  user_id: string;
+  title: string; // e.g. "Evim", "İş Yeri", "Yazlık"
+  full_name: string;
+  phone: string;
+  province: string;
+  district: string;
+  neighborhood?: string;
+  address_detail: string;
+  postal_code?: string;
+  is_default?: boolean;
+  created_at: string;
+}
+
 export interface Category {
   id: string;
   name: string;

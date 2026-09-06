@@ -40,7 +40,7 @@ const STORY_ITEMS = [
     id: 'story-kirtasiye',
     title: 'Kırtasiye',
     icon: Tag,
-    href: '/kategori/kirtasiye-urunleri',
+    href: '/kategori/k-rtasiye-r-nleri',
     ringGradient: 'from-blue-500 via-cyan-500 to-teal-500',
     bgGradient: 'from-blue-50 to-cyan-50',
     iconColor: 'text-blue-600',
@@ -212,89 +212,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ============================================================ */}
-      {/* 2. VIBRANT TAHTAKALE EMİNÖNÜ VITRINE HERO BANNER             */}
-      {/* ============================================================ */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white shadow-xl p-6 sm:p-10 lg:p-12 border border-orange-500/40">
-          {/* Subtle Ambient Glow */}
-          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-yellow-400/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-1/3 -ml-20 -mb-20 w-80 h-80 bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-12">
-            
-            {/* Left Content */}
-            <div className="flex-1 text-center lg:text-left space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-yellow-200 text-xs font-black border border-white/25 shadow-xs">
-                <Sparkles className="w-4 h-4 text-yellow-300" />
-                <span>Eminönü Tahtakale Doğrudan Satış & Toptan Merkezi</span>
-              </div>
-
-              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-serif font-black tracking-tight text-white leading-tight">
-                Otantikos Concept&apos;e <br />
-                <span className="text-yellow-300">Hoş Geldiniz</span>
-              </h1>
-
-              <p className="text-xs sm:text-sm text-orange-100 max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed">
-                Hediyelik eşyalar, kırtasiye ürünleri, doğal taşlar ve konsept tasarımlar. Şeffaf net liste fiyatları ve Tahtakale şubemizden doğrudan sevkiyat.
-              </p>
-
-              {/* Action Buttons */}
-              <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-3">
-                <Link
-                  href="/kategori/tum-urunler"
-                  className="px-6 py-3.5 bg-white hover:bg-yellow-50 text-orange-700 font-extrabold text-xs sm:text-sm rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-                >
-                  <ShoppingBag className="w-4 h-4 text-orange-600" />
-                  <span>Koleksiyonu İncele</span>
-                </Link>
-
-                <Link
-                  href="/toptan-satis"
-                  className="px-6 py-3.5 bg-orange-800/80 hover:bg-orange-800 text-white font-bold text-xs sm:text-sm rounded-xl border border-white/30 backdrop-blur-xs transition"
-                >
-                  Tahtakale Toptan Talep
-                </Link>
-              </div>
-            </div>
-
-            {/* Right Value Box */}
-            <div className="w-full lg:w-80 bg-stone-950/60 backdrop-blur-md rounded-2xl p-5 sm:p-6 border border-white/20 shadow-2xl space-y-4 shrink-0">
-              <div className="text-xs font-black text-yellow-300 uppercase tracking-wider flex items-center gap-2">
-                <Award className="w-4 h-4 text-yellow-400" />
-                <span>Otantikos Güvencesi</span>
-              </div>
-
-              <div className="space-y-3 text-xs text-stone-200">
-                <div className="flex items-start gap-2.5">
-                  <Truck className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-white block">DHL Kargo Gönderimi</span>
-                    <span className="text-[11px] text-stone-300">Özel korumalı paketleme ile 1-3 iş gününde sevkiyat.</span>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5">
-                  <Store className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-white block">Tahtakale Elden Teslim</span>
-                    <span className="text-[11px] text-stone-300">Süleymaniye Eminönü mağazamızdan ücretsiz teslimat.</span>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5">
-                  <ShieldCheck className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-white block">Net & Şeffaf Fiyat</span>
-                    <span className="text-[11px] text-stone-300">Şişirilmiş sahte indirimler yok; doğrudan gerçek liste fiyatları.</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
 
       {/* ============================================================ */}
       {/* 3. TRENDYOL STYLE "POPÜLER ÜRÜNLER" VİTRİNİ                  */}

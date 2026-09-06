@@ -124,9 +124,6 @@ export default function Navbar() {
                   <span className="font-serif font-black text-xl sm:text-2xl text-stone-900 tracking-tight leading-none group-hover:text-orange-600 transition">
                     Otantikos
                   </span>
-                  <span className="px-1.5 py-0.5 rounded bg-orange-600 text-white font-sans text-[8px] font-black uppercase tracking-wider">
-                    PRO
-                  </span>
                 </div>
                 <span className="text-[9px] sm:text-[10px] font-extrabold text-orange-600 tracking-widest uppercase mt-0.5">
                   CONCEPT • TAHTAKALE

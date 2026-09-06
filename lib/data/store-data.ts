@@ -13,7 +13,8 @@ import {
   WholesaleRequest,
   AccountingTransaction,
   ProfitSummary,
-  ProductProfitStat
+  ProductProfitStat,
+  UserAddress
 } from '@/lib/types/ecommerce';
 import { createClient } from '@/lib/supabase/client';
 
@@ -70,6 +71,7 @@ let runtimeReviews: Review[] = [];
 let runtimeChatSessions: LiveChatSession[] = [];
 let runtimeWholesale: WholesaleRequest[] = [];
 let runtimeTransactions: AccountingTransaction[] = [];
+let runtimeAddresses: UserAddress[] = [];
 
 export function deduplicateLiveChatMessages(messages: LiveChatMessage[]): LiveChatMessage[] {
   if (!Array.isArray(messages)) return [];
@@ -2050,6 +2052,171 @@ export const DataService = {
         };
       })
       .sort((a, b) => b.netProfit - a.netProfit);
+  },
+
+  // ==========================================
+  // 10. USER DELIVERY ADDRESSES
+  // ==========================================
+  async getUserAddresses(userId: string): Promise<UserAddress[]> {
+    if (!userId) return [];
+
+    // Client-side local persistence backup
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(`otantikos_saved_addresses_${userId}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            runtimeAddresses = parsed;
+          }
+        }
+      } catch {
+        // Ignore
+      }
+    }
+
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('user_addresses')
+        .select('*')
+        .eq('user_id', userId)
+        .order('is_default', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        runtimeAddresses = data as UserAddress[];
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(`otantikos_saved_addresses_${userId}`, JSON.stringify(runtimeAddresses));
+          } catch {}
+        }
+        return runtimeAddresses;
+      }
+    } catch {
+      // Fallback
+    }
+
+    return runtimeAddresses.filter((a) => a.user_id === userId);
+  },
+
+  async saveUserAddress(addr: Partial<UserAddress>): Promise<UserAddress> {
+    const list = runtimeAddresses;
+    const now = new Date().toISOString();
+    const isFirst = !list.some((a) => a.user_id === addr.user_id);
+    const isDefault = addr.is_default ?? isFirst;
+
+    let saved: UserAddress;
+    const existingIdx = list.findIndex((a) => a.id === addr.id);
+
+    if (existingIdx > -1) {
+      saved = {
+        ...list[existingIdx],
+        ...addr,
+        is_default: isDefault,
+      } as UserAddress;
+      list[existingIdx] = saved;
+    } else {
+      saved = {
+        id: addr.id || `addr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        user_id: addr.user_id || 'guest',
+        title: addr.title || 'Ev Adresim',
+        full_name: addr.full_name || '',
+        phone: addr.phone || '',
+        province: addr.province || 'İstanbul',
+        district: addr.district || 'Fatih',
+        neighborhood: addr.neighborhood || '',
+        address_detail: addr.address_detail || '',
+        postal_code: addr.postal_code || '',
+        is_default: isDefault,
+        created_at: now,
+      };
+      list.unshift(saved);
+    }
+
+    // If marked default, unmark other addresses for same user
+    if (saved.is_default) {
+      list.forEach((a) => {
+        if (a.id !== saved.id && a.user_id === saved.user_id) {
+          a.is_default = false;
+        }
+      });
+    }
+
+    runtimeAddresses = list;
+
+    if (typeof window !== 'undefined' && saved.user_id) {
+      try {
+        const userList = list.filter((a) => a.user_id === saved.user_id);
+        localStorage.setItem(`otantikos_saved_addresses_${saved.user_id}`, JSON.stringify(userList));
+      } catch {}
+    }
+
+    try {
+      const supabase = createClient();
+      const isCustomId = saved.id.startsWith('addr-');
+      await supabase.from('user_addresses').upsert({
+        id: isCustomId ? undefined : saved.id,
+        user_id: saved.user_id,
+        title: saved.title,
+        full_name: saved.full_name,
+        phone: saved.phone,
+        province: saved.province,
+        district: saved.district,
+        neighborhood: saved.neighborhood,
+        address_detail: saved.address_detail,
+        postal_code: saved.postal_code,
+        is_default: saved.is_default,
+      });
+    } catch {
+      // Local fallback
+    }
+
+    return saved;
+  },
+
+  async deleteUserAddress(addressId: string, userId?: string): Promise<boolean> {
+    runtimeAddresses = runtimeAddresses.filter((a) => a.id !== addressId);
+
+    if (typeof window !== 'undefined' && userId) {
+      try {
+        const userList = runtimeAddresses.filter((a) => a.user_id === userId);
+        localStorage.setItem(`otantikos_saved_addresses_${userId}`, JSON.stringify(userList));
+      } catch {}
+    }
+
+    try {
+      const supabase = createClient();
+      await supabase.from('user_addresses').delete().eq('id', addressId);
+    } catch {
+      // Ignore
+    }
+
+    return true;
+  },
+
+  async setDefaultUserAddress(userId: string, addressId: string): Promise<boolean> {
+    runtimeAddresses.forEach((a) => {
+      if (a.user_id === userId) {
+        a.is_default = a.id === addressId;
+      }
+    });
+
+    if (typeof window !== 'undefined' && userId) {
+      try {
+        const userList = runtimeAddresses.filter((a) => a.user_id === userId);
+        localStorage.setItem(`otantikos_saved_addresses_${userId}`, JSON.stringify(userList));
+      } catch {}
+    }
+
+    try {
+      const supabase = createClient();
+      await supabase.from('user_addresses').update({ is_default: false }).eq('user_id', userId);
+      await supabase.from('user_addresses').update({ is_default: true }).eq('id', addressId);
+    } catch {
+      // Ignore
+    }
+
+    return true;
   }
 };
 

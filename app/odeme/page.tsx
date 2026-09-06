@@ -29,6 +29,7 @@ import { useCart } from '@/lib/store/cart-store';
 import { useAuth } from '@/lib/store/auth-context';
 import { TURKISH_PROVINCES } from '@/lib/data/provinces-and-districts';
 import { DataService } from '@/lib/data/store-data';
+import { UserAddress } from '@/lib/types/ecommerce';
 import { formatPrice } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
@@ -77,6 +78,28 @@ function CheckoutContent() {
   const [fullAddress, setFullAddress] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [courierNote, setCourierNote] = useState('');
+  const [savedAddresses, setSavedAddresses] = useState<UserAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadAddresses() {
+      try {
+        const addrs = await DataService.getUserAddresses(user?.id || 'guest');
+        setSavedAddresses(addrs);
+        if (addrs.length > 0) {
+          const defaultAddr = addrs.find((a) => a.is_default) || addrs[0];
+          setSelectedAddressId(defaultAddr.id);
+          setFullName(defaultAddr.full_name);
+          setPhone(defaultAddr.phone);
+          setProvince(defaultAddr.province);
+          setDistrict(defaultAddr.district);
+          setFullAddress(defaultAddr.address_detail);
+          setPostalCode(defaultAddr.postal_code || '');
+        }
+      } catch {}
+    }
+    loadAddresses();
+  }, [user?.id]);
 
   // Invoice state
   const [invoiceType, setInvoiceType] = useState<'individual' | 'corporate'>('individual');
@@ -567,6 +590,41 @@ function CheckoutContent() {
               <span className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">2</span>
               <span>İletişim ve Teslimat Bilgileri</span>
             </h2>
+
+            {/* Saved Address Quick Select */}
+            {savedAddresses.length > 0 && deliveryType === 'kargo' && (
+              <div className="p-3.5 bg-orange-50/80 rounded-xl border border-orange-200 space-y-2">
+                <span className="text-[11px] font-bold text-orange-950 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-orange-600" />
+                  <span>Kayıtlı Profil Adreslerinizden Seçin:</span>
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {savedAddresses.map((addr) => (
+                    <button
+                      key={addr.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedAddressId(addr.id);
+                        setFullName(addr.full_name);
+                        setPhone(addr.phone);
+                        setProvince(addr.province);
+                        setDistrict(addr.district);
+                        setFullAddress(addr.address_detail);
+                        setPostalCode(addr.postal_code || '');
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
+                        selectedAddressId === addr.id
+                          ? 'bg-orange-600 text-white border-orange-600 shadow-xs'
+                          : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'
+                      }`}
+                    >
+                      <span>{addr.title}</span>
+                      <span className="text-[10px] opacity-80 font-normal">({addr.district} / {addr.province})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
