@@ -63,7 +63,6 @@ if (typeof window !== 'undefined') {
 
 // In-Memory Runtime Store (Ephemeral memory only - 0 localStorage usage)
 let runtimeProducts: Product[] = [];
-let runtimeCategories: Category[] = [];
 let runtimeOrders: Order[] = [];
 let runtimeReturns: ReturnRequest[] = [];
 let runtimeQuestions: Question[] = [];
@@ -109,7 +108,7 @@ export function deduplicateLiveChatMessages(messages: LiveChatMessage[]): LiveCh
   return result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 }
 
-const DEFAULT_STORE_CATEGORIES: Category[] = [
+export const DEFAULT_STORE_CATEGORIES: Category[] = [
   {
     id: 'cat-kirtasiye',
     name: 'Kırtasiye Ürünleri',
@@ -165,6 +164,8 @@ const DEFAULT_STORE_CATEGORIES: Category[] = [
     created_at: '2026-01-01T00:00:00.000Z',
   },
 ];
+
+let runtimeCategories: Category[] = [...DEFAULT_STORE_CATEGORIES];
 
 export const DataService = {
   // ==========================================

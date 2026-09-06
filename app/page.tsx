@@ -22,7 +22,7 @@ import {
   FileText
 } from 'lucide-react';
 import { Product, Category } from '@/lib/types/ecommerce';
-import { DataService } from '@/lib/data/store-data';
+import { DataService, DEFAULT_STORE_CATEGORIES } from '@/lib/data/store-data';
 import ProductCard from '@/components/ProductCard';
 
 // 10 Genuine Circular Quick Navigation & Category Bubbles (No Fake Labels)
@@ -167,7 +167,7 @@ const PASTEL_THEMES = [
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(DEFAULT_STORE_CATEGORIES);
   const [isLoading, setIsLoading] = useState(true);
 
   // Story scroll container ref
@@ -414,12 +414,22 @@ export default function HomePage() {
           </div>
 
           {/* Products Grid */}
-          {displayProducts.length === 0 ? (
+          {isLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-6 animate-pulse">
+              {[...Array(6)].map((_, idx) => (
+                <div key={idx} className="bg-white rounded-2xl border border-stone-200 p-3 space-y-3 shadow-2xs">
+                  <div className="aspect-square w-full bg-stone-100 rounded-xl" />
+                  <div className="h-3 bg-stone-200 rounded-md w-3/4" />
+                  <div className="h-4 bg-orange-100/70 rounded-md w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : displayProducts.length === 0 ? (
             <div className="text-center py-16 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
               <ShoppingBag className="w-10 h-10 text-stone-400 mx-auto" />
-              <h3 className="text-sm font-bold text-stone-800">Katalog Yükleniyor</h3>
+              <h3 className="text-sm font-bold text-stone-800">Ürünler Hazırlanıyor</h3>
               <p className="text-xs text-stone-500 max-w-sm mx-auto">
-                Ürünler hazırlanıyor...
+                Koleksiyonumuz güncelleniyor, lütfen daha sonra tekrar kontrol edin.
               </p>
             </div>
           ) : (
