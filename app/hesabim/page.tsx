@@ -187,7 +187,10 @@ export default function AccountPage() {
       details: returnDetails,
     });
 
-    setReturns((prev) => [newRet, ...prev]);
+    setReturns((prev) => {
+      const filtered = prev.filter((r) => r.id !== newRet.id && !r.id.startsWith('ret-'));
+      return [newRet, ...filtered];
+    });
     setIsReturnModalOpen(false);
     setReturnDetails('');
     toast.success('İade / Değişim talebiniz başarıyla oluşturuldu!', {

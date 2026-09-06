@@ -937,7 +937,13 @@ export const DataService = {
         });
         if (res.ok) {
           const data = await res.json();
-          if (data?.return_request) return data.return_request;
+          if (data?.return_request) {
+            const idx = runtimeReturns.findIndex((r) => r.id === newReturn.id);
+            if (idx > -1) {
+              runtimeReturns[idx] = data.return_request;
+            }
+            return data.return_request;
+          }
         }
       } catch {
         // Fallback
