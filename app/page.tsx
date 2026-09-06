@@ -229,12 +229,12 @@ export default function HomePage() {
   const displayProducts = featuredProducts.length > 0 ? featuredProducts : products;
 
   return (
-    <div className="space-y-8 sm:space-y-12 pb-20 bg-stone-50/50">
+    <div className="space-y-8 sm:space-y-12 pb-20 relative bg-dots-pattern">
       
       {/* ============================================================ */}
       {/* 1. TRENDYOL STYLE CIRCULAR STORIES / QUICK ACTION BUTTONS   */}
       {/* ============================================================ */}
-      <section className="bg-white border-b border-stone-200/70 pt-4 pb-5 shadow-2xs">
+      <section className="bg-white/95 backdrop-blur-md border-b border-amber-200/50 pt-4 pb-5 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative group">
           
           {/* Left Arrow Button */}
@@ -292,12 +292,15 @@ export default function HomePage() {
       {/* ============================================================ */}
       {categories.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-3xl p-5 sm:p-7 border border-stone-200/90 shadow-2xs space-y-5">
+          <div className="bg-white/95 backdrop-blur-xs rounded-3xl p-5 sm:p-7 border border-amber-200/60 shadow-lg shadow-orange-950/[0.03] space-y-5 overflow-hidden relative">
             
+            {/* Cheerful Rainbow Top Accent Trim */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-400 via-purple-400 via-amber-400 to-orange-400" />
+
             {/* Header Row */}
-            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100 pt-1">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shadow-xs">
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
@@ -380,10 +383,13 @@ export default function HomePage() {
       {/* 3. TRENDYOL STYLE "POPÜLER ÜRÜNLER" VİTRİNİ                  */}
       {/* ============================================================ */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-3xl p-5 sm:p-7 border border-stone-200/90 shadow-sm">
+        <div className="bg-white/95 backdrop-blur-xs rounded-3xl p-5 sm:p-7 border border-amber-200/60 shadow-lg shadow-orange-950/[0.03] space-y-6 overflow-hidden relative">
           
+          {/* Cheerful Warm Top Accent Trim */}
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-400 via-amber-400 to-rose-400" />
+
           {/* Header Row */}
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-stone-100">
+          <div className="flex items-center justify-between pb-4 border-b border-stone-100 pt-1">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-xs">
                 <ShoppingBag className="w-5 h-5" />
@@ -433,49 +439,49 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
-          <div className="p-5 bg-white rounded-2xl border border-stone-200/90 shadow-2xs flex items-start gap-3.5 hover:border-orange-400 transition">
-            <div className="w-11 h-11 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
+          <div className="p-5 bg-gradient-to-br from-orange-50/90 via-amber-50/40 to-white rounded-3xl border border-orange-200/90 shadow-2xs hover:border-orange-400 hover:shadow-xl hover:shadow-orange-500/10 hover:-translate-y-1 transition-all duration-300 flex items-start gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-xs">
               <Truck className="w-5 h-5" />
             </div>
             <div>
               <h4 className="text-xs font-black text-stone-900">Hızlı Sevkiyat & DHL</h4>
-              <p className="text-[11px] text-stone-500 mt-1 leading-snug">
+              <p className="text-[11px] text-stone-600 mt-1 leading-snug">
                 Siparişleriniz güvenli ve korumalı paketleme ile 1-3 iş gününde kargoya verilir.
               </p>
             </div>
           </div>
 
-          <div className="p-5 bg-white rounded-2xl border border-stone-200/90 shadow-2xs flex items-start gap-3.5 hover:border-orange-400 transition">
-            <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+          <div className="p-5 bg-gradient-to-br from-amber-50/90 via-yellow-50/40 to-white rounded-3xl border border-amber-200/90 shadow-2xs hover:border-amber-400 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 transition-all duration-300 flex items-start gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
               <Store className="w-5 h-5" />
             </div>
             <div>
               <h4 className="text-xs font-black text-stone-900">Mağazadan Elden Teslim</h4>
-              <p className="text-[11px] text-stone-500 mt-1 leading-snug">
+              <p className="text-[11px] text-stone-600 mt-1 leading-snug">
                 Tahtakale Eminönü fiziki şubemizden kargo bedelsiz elden teslim alabilirsiniz.
               </p>
             </div>
           </div>
 
-          <div className="p-5 bg-white rounded-2xl border border-stone-200/90 shadow-2xs flex items-start gap-3.5 hover:border-orange-400 transition">
-            <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+          <div className="p-5 bg-gradient-to-br from-emerald-50/90 via-teal-50/40 to-white rounded-3xl border border-emerald-200/90 shadow-2xs hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 transition-all duration-300 flex items-start gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
               <h4 className="text-xs font-black text-stone-900">Net & Şeffaf Fiyat</h4>
-              <p className="text-[11px] text-stone-500 mt-1 leading-snug">
+              <p className="text-[11px] text-stone-600 mt-1 leading-snug">
                 Yanıltıcı sahte indirimler yok; perakende ve toptanda doğrudan net liste fiyatları.
               </p>
             </div>
           </div>
 
-          <div className="p-5 bg-white rounded-2xl border border-stone-200/90 shadow-2xs flex items-start gap-3.5 hover:border-orange-400 transition">
-            <div className="w-11 h-11 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+          <div className="p-5 bg-gradient-to-br from-blue-50/90 via-sky-50/40 to-white rounded-3xl border border-blue-200/90 shadow-2xs hover:border-blue-400 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 transition-all duration-300 flex items-start gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
               <MessageCircle className="w-5 h-5" />
             </div>
             <div>
               <h4 className="text-xs font-black text-stone-900">WhatsApp Canlı Destek</h4>
-              <p className="text-[11px] text-stone-500 mt-1 leading-snug">
+              <p className="text-[11px] text-stone-600 mt-1 leading-snug">
                 Toptan alımlar ve özel siparişleriniz için WhatsApp hattımızdan doğrudan iletişim.
               </p>
             </div>
@@ -488,8 +494,12 @@ export default function HomePage() {
       {/* 6. TAHTAKALE EMİNÖNÜ HERITAGE & WHOLESALE BANNER             */}
       {/* ============================================================ */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-3xl bg-gradient-to-br from-stone-900 via-stone-950 to-stone-900 text-white p-8 sm:p-12 lg:p-14 relative overflow-hidden shadow-2xl border border-stone-800">
+        <div className="rounded-3xl bg-gradient-to-br from-stone-900 via-orange-950/90 to-stone-950 text-white p-8 sm:p-12 lg:p-14 relative overflow-hidden shadow-2xl border border-orange-900/40">
           
+          {/* Warm Ambient Glow Effects */}
+          <div className="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-orange-500/20 blur-3xl pointer-events-none" />
+          <div className="absolute top-0 right-1/4 w-60 h-60 rounded-full bg-amber-500/15 blur-3xl pointer-events-none" />
+
           <div className="relative z-10 max-w-2xl space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-400/30 text-orange-300 text-xs font-bold">
               <Award className="w-3.5 h-3.5 text-orange-400" />

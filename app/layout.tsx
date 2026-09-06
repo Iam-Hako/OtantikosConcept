@@ -49,7 +49,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr" className="scroll-smooth">
-      <body className="flex flex-col min-h-screen font-sans bg-stone-50 text-stone-900 overflow-x-hidden w-full max-w-full antialiased">
+      <body className="flex flex-col min-h-screen font-sans text-stone-900 overflow-x-hidden w-full max-w-full antialiased relative">
+        {/* Luminous Ambient Background Glows (Cıvıl Cıvıl Luminous Atmosphere) */}
+        <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden select-none">
+          <div className="absolute -top-28 -right-24 w-[26rem] h-[26rem] rounded-full bg-orange-300/25 blur-3xl" />
+          <div className="absolute top-1/4 -left-32 w-[30rem] h-[30rem] rounded-full bg-pink-300/20 blur-3xl" />
+          <div className="absolute top-2/3 -right-24 w-[28rem] h-[28rem] rounded-full bg-amber-300/25 blur-3xl" />
+          <div className="absolute -bottom-28 left-1/4 w-[30rem] h-[30rem] rounded-full bg-purple-300/20 blur-3xl" />
+        </div>
+
         <AuthProvider>
           <WishlistProvider>
             <CartProvider>
