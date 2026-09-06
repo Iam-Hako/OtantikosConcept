@@ -119,6 +119,52 @@ const STORY_ITEMS = [
   },
 ];
 
+// Vibrant Pastel Palette for Trendyol Style Category Discovery Cards
+const PASTEL_THEMES = [
+  {
+    bg: 'bg-rose-100/80 hover:bg-rose-200/90',
+    border: 'border-rose-200/90 hover:border-rose-400',
+    badge: 'bg-rose-500 text-white',
+    iconColor: 'text-rose-600',
+    icon: Tag,
+  },
+  {
+    bg: 'bg-purple-100/80 hover:bg-purple-200/90',
+    border: 'border-purple-200/90 hover:border-purple-400',
+    badge: 'bg-purple-500 text-white',
+    iconColor: 'text-purple-600',
+    icon: Gem,
+  },
+  {
+    bg: 'bg-sky-100/80 hover:bg-sky-200/90',
+    border: 'border-sky-200/90 hover:border-sky-400',
+    badge: 'bg-sky-500 text-white',
+    iconColor: 'text-sky-600',
+    icon: Gift,
+  },
+  {
+    bg: 'bg-amber-100/80 hover:bg-amber-200/90',
+    border: 'border-amber-200/90 hover:border-amber-400',
+    badge: 'bg-amber-500 text-white',
+    iconColor: 'text-amber-700',
+    icon: ShoppingBag,
+  },
+  {
+    bg: 'bg-orange-100/80 hover:bg-orange-200/90',
+    border: 'border-orange-200/90 hover:border-orange-400',
+    badge: 'bg-orange-500 text-white',
+    iconColor: 'text-orange-600',
+    icon: Package,
+  },
+  {
+    bg: 'bg-emerald-100/80 hover:bg-emerald-200/90',
+    border: 'border-emerald-200/90 hover:border-emerald-400',
+    badge: 'bg-emerald-500 text-white',
+    iconColor: 'text-emerald-600',
+    icon: Sparkles,
+  },
+];
+
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -150,11 +196,40 @@ export default function HomePage() {
     }
   };
 
+  const getCategoryPhoto = (cat: Category) => {
+    const cName = (cat.name || '').toLowerCase();
+    const cSlug = (cat.slug || '').toLowerCase();
+
+    const matched = products.find((p) => {
+      if (p.category_id && p.category_id === cat.id) return true;
+      if (p.category && (p.category.id === cat.id || p.category.slug === cat.slug)) return true;
+      const pName = (p.name || '').toLowerCase();
+      if (cSlug.includes('k-rtasiye') || cName.includes('kırtasiye') || cName.includes('kirtasiye')) {
+        return pName.includes('kırtasiye') || pName.includes('defter') || pName.includes('kalem') || pName.includes('notluk');
+      }
+      if (cName.includes('taş') || cName.includes('takı')) {
+        return pName.includes('taş') || pName.includes('kolye') || pName.includes('bileklik') || pName.includes('ametist') || pName.includes('akik') || pName.includes('kuvars');
+      }
+      if (cName.includes('hediye')) {
+        return pName.includes('hediye') || pName.includes('set');
+      }
+      if (cName.includes('çanta') || cName.includes('aksesuar')) {
+        return pName.includes('çanta') || pName.includes('aksesuar');
+      }
+      return false;
+    });
+
+    const validImages = (matched?.images || []).filter(
+      (img) => img.image_url && img.image_url !== '/images/logo.webp' && !img.image_url.endsWith('logo.webp')
+    );
+    return validImages.find((img) => img.is_cover)?.image_url || validImages[0]?.image_url || (cat.image_url && cat.image_url !== '/images/logo.webp' ? cat.image_url : null);
+  };
+
   const featuredProducts = products.filter((p) => p.is_featured);
   const displayProducts = featuredProducts.length > 0 ? featuredProducts : products;
 
   return (
-    <div className="space-y-10 sm:space-y-14 pb-20 bg-stone-50/50">
+    <div className="space-y-8 sm:space-y-12 pb-20 bg-stone-50/50">
       
       {/* ============================================================ */}
       {/* 1. TRENDYOL STYLE CIRCULAR STORIES / QUICK ACTION BUTTONS   */}
@@ -212,6 +287,94 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ============================================================ */}
+      {/* 2. TRENDYOL STYLE "KATEGORİLERİ KEŞFET" (RENKLİ PASTEL KARTLAR) */}
+      {/* ============================================================ */}
+      {categories.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-3xl p-5 sm:p-7 border border-stone-200/90 shadow-2xs space-y-5">
+            
+            {/* Header Row */}
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-xl font-black text-stone-900 tracking-tight">
+                    Kategorileri Keşfet
+                  </h2>
+                  <p className="text-[11px] text-stone-400 font-medium hidden sm:block">
+                    Eminönü Tahtakale vitrinimizden renkli koleksiyonlar
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                href="/kategori/tum-urunler"
+                className="text-xs sm:text-sm font-extrabold text-orange-600 hover:text-orange-700 flex items-center gap-1 group py-1"
+              >
+                <span>Tüm Kategoriler</span>
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+
+            {/* Pastel Square Categories Grid (Trendyol Style) */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
+              {categories.map((cat, idx) => {
+                const theme = PASTEL_THEMES[idx % PASTEL_THEMES.length];
+                const IconComp = theme.icon;
+                const photo = getCategoryPhoto(cat);
+
+                return (
+                  <Link
+                    key={cat.id}
+                    href={`/kategori/${cat.slug}`}
+                    className="group flex flex-col items-center cursor-pointer"
+                  >
+                    {/* Pastel Rounded Square Container */}
+                    <div className={`relative w-full aspect-square rounded-2xl sm:rounded-3xl ${theme.bg} ${theme.border} border p-3 flex items-center justify-center overflow-hidden shadow-2xs group-hover:shadow-md group-hover:-translate-y-1 transition-all duration-300`}>
+                      
+                      {/* Top Right Mini Star Badge */}
+                      <span className={`absolute top-2 right-2 w-5 h-5 rounded-full ${theme.badge} flex items-center justify-center text-[10px] font-black shadow-xs z-10`}>
+                        ★
+                      </span>
+
+                      {/* Centered Image or Stylized Icon */}
+                      {photo ? (
+                        <div className="relative w-full h-full">
+                          <Image
+                            src={photo}
+                            alt={cat.name}
+                            fill
+                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
+                            className="object-contain p-1 group-hover:scale-110 transition-transform duration-300"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/90 backdrop-blur-xs shadow-xs border border-white/60 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                          <IconComp className={`w-6 h-6 sm:w-7 sm:h-7 ${theme.iconColor}`} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Title & Action Label Below Box */}
+                    <div className="text-center mt-2.5 w-full px-1">
+                      <h3 className="text-xs sm:text-sm font-bold text-stone-900 group-hover:text-orange-600 transition-colors line-clamp-1">
+                        {cat.name}
+                      </h3>
+                      <span className="text-[10px] font-semibold text-orange-600 group-hover:text-orange-700 block mt-0.5">
+                        Keşfet &rsaquo;
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+
+          </div>
+        </section>
+      )}
 
       {/* ============================================================ */}
       {/* 3. TRENDYOL STYLE "POPÜLER ÜRÜNLER" VİTRİNİ                  */}
@@ -263,59 +426,6 @@ export default function HomePage() {
 
         </div>
       </section>
-
-      {/* ============================================================ */}
-      {/* 4. KATEGORİLERİ KEŞFET (CANLI & RENKLİ KARTLAR)              */}
-      {/* ============================================================ */}
-      {categories.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-3xl p-5 sm:p-7 border border-stone-200/90 shadow-sm space-y-6">
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg sm:text-2xl font-black text-stone-900 tracking-tight">
-                  Kategorileri Keşfet
-                </h2>
-                <p className="text-[11px] text-stone-500 font-medium">
-                  Tahtakale Eminönü koleksiyonları
-                </p>
-              </div>
-              <Link
-                href="/kategori/tum-urunler"
-                className="text-xs sm:text-sm font-extrabold text-orange-600 hover:text-orange-700 flex items-center gap-1 group"
-              >
-                <span>Tüm Kategoriler</span>
-                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {categories.map((cat) => (
-                <Link
-                  key={cat.id}
-                  href={`/kategori/${cat.slug}`}
-                  className="group relative rounded-2xl sm:rounded-3xl overflow-hidden border border-stone-200/80 bg-gradient-to-br from-stone-50 to-orange-50/40 hover:bg-white hover:border-orange-300 p-4 sm:p-5 flex flex-col justify-between shadow-2xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 min-h-[120px]"
-                >
-                  <div>
-                    <span className="text-[9px] uppercase font-bold tracking-wider text-orange-700 bg-orange-100/80 px-2 py-0.5 rounded-full inline-block mb-2">
-                      Kategori
-                    </span>
-                    <h3 className="text-sm font-bold text-stone-900 group-hover:text-orange-600 transition-colors">
-                      {cat.name}
-                    </h3>
-                  </div>
-
-                  <div className="mt-3 pt-2 border-t border-stone-200/60 flex items-center justify-between text-xs font-bold text-stone-600 group-hover:text-orange-600 transition-colors">
-                    <span>Ürünleri Gör</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform text-orange-500" />
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-          </div>
-        </section>
-      )}
 
       {/* ============================================================ */}
       {/* 5. TAHTAKALE EMİNÖNÜ & DHL GÜVEN ŞERİDİ                       */}

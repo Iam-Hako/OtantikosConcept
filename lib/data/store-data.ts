@@ -109,6 +109,63 @@ export function deduplicateLiveChatMessages(messages: LiveChatMessage[]): LiveCh
   return result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 }
 
+const DEFAULT_STORE_CATEGORIES: Category[] = [
+  {
+    id: 'cat-kirtasiye',
+    name: 'Kırtasiye Ürünleri',
+    slug: 'k-rtasiye-r-nleri',
+    description: 'Defterler, tasarım kalemler ve masaüstü ürünleri',
+    display_order: 1,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'cat-dogal-tas',
+    name: 'Doğal Taş & Takı',
+    slug: 'tum-urunler',
+    description: 'Ametist, akik ve el işçiliği takılar',
+    display_order: 2,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'cat-hediyelik',
+    name: 'Hediyelik & Konsept',
+    slug: 'tum-urunler',
+    description: 'Özel günler için konsept tasarım ürünler',
+    display_order: 3,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'cat-aksesuar',
+    name: 'Aksesuar & Çanta',
+    slug: 'tum-urunler',
+    description: 'Eminönü vitrini özgün aksesuarlar',
+    display_order: 4,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'cat-toptan',
+    name: 'Tahtakale Toptan',
+    slug: 'toptan-satis',
+    description: 'İşletmeler için koli bazlı toptan alım',
+    display_order: 5,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'cat-vitrin',
+    name: 'Öne Çıkan Koleksiyon',
+    slug: 'tum-urunler',
+    description: 'En çok ilgi gören seçkin modeller',
+    display_order: 6,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+  },
+];
+
 export const DataService = {
   // ==========================================
   // 1. PRODUCTS & CATALOG
@@ -465,13 +522,16 @@ export const DataService = {
         .select('*')
         .order('display_order', { ascending: true });
 
-      if (!error && data) {
+      if (!error && data && data.length > 0) {
         runtimeCategories = data as Category[];
-        
         return runtimeCategories;
       }
     } catch {
       // Fallback
+    }
+
+    if (!runtimeCategories || runtimeCategories.length === 0) {
+      runtimeCategories = DEFAULT_STORE_CATEGORIES;
     }
 
     return runtimeCategories;
