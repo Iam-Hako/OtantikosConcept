@@ -125,6 +125,51 @@ export async function POST(request: Request) {
     const forwarded = request.headers.get('x-forwarded-for');
     const ip = forwarded ? forwarded.split(',')[0].trim() : '85.95.230.1';
 
+    // Build basket breakdown items for iyzico (Sum MUST EXACTLY equal verifiedTotalAmount)
+    const iyzicoBasketItems: Array<{ id: string; name: string; category?: string; price: number }> = [];
+
+    // 1. Expand verified product items by their quantity
+    verifiedItems.forEach((it, idx) => {
+      const unitPrice = Number(it.price);
+      for (let q = 1; q <= it.quantity; q++) {
+        iyzicoBasketItems.push({
+          id: `${it.product_id}-${q}`,
+          name: it.variant_name ? `${it.product_name} (${it.variant_name})` : it.product_name,
+          category: 'Kırtasiye & Hediyelik',
+          price: unitPrice,
+        });
+      }
+    });
+
+    // 2. Add shipping fee as a basket item if applicable
+    if (verifiedShippingFee > 0) {
+      iyzicoBasketItems.push({
+        id: 'shipping-fee',
+        name: `DHL Kargo Taşıma Bedeli (${dynamicShipping.totalDesi} Desi)`,
+        category: 'Kargo',
+        price: verifiedShippingFee,
+      });
+    }
+
+    // 3. Add gift wrap fee as a basket item if selected
+    if (verifiedGiftWrapFee > 0) {
+      iyzicoBasketItems.push({
+        id: 'gift-wrap-fee',
+        name: 'Özel Hediye Paketi Hizmeti',
+        category: 'Hizmet',
+        price: verifiedGiftWrapFee,
+      });
+    }
+
+    // Ensure floating-point sum exactly matches totalAmount to 2 decimal places
+    const sumBreakdown = iyzicoBasketItems.reduce((acc, it) => acc + Number(Number(it.price).toFixed(2)), 0);
+    const roundingDiff = Number((verifiedTotalAmount - sumBreakdown).toFixed(2));
+    if (Math.abs(roundingDiff) > 0.001 && iyzicoBasketItems.length > 0) {
+      iyzicoBasketItems[iyzicoBasketItems.length - 1].price = Number(
+        (iyzicoBasketItems[iyzicoBasketItems.length - 1].price + roundingDiff).toFixed(2)
+      );
+    }
+
     // Initialize iyzico Checkout Form
     const iyzicoRes = await initializeIyzicoCheckoutForm({
       orderNumber,
@@ -149,11 +194,7 @@ export async function POST(request: Request) {
         district: billing_address.district || shipping_address.district,
         zipCode: billing_address.zip_code || '34000',
       } : undefined,
-      items: verifiedItems.map((it) => ({
-        id: it.product_id,
-        name: it.product_name,
-        price: it.price,
-      })),
+      items: iyzicoBasketItems,
       callbackUrl,
       userIp: ip,
     });

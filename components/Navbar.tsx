@@ -70,15 +70,10 @@ export default function Navbar() {
       <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white text-[11px] py-1.5 px-4 hidden sm:block shadow-xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between font-bold">
           <div className="flex items-center gap-2.5">
-            <span className="bg-white/20 backdrop-blur-xs px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-yellow-300 animate-ping inline-block" />
-              <span>Günün Fırsatı</span>
-            </span>
-            <span className="text-white/95">1500 TL Üzeri ÜCRETSİZ DHL Kargo • Tahtakale Doğrudan Sevkiyat</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-yellow-300 animate-pulse inline-block" />
+            <span className="text-white/95">Eminönü Tahtakale Doğrudan Sevkiyat • DHL Kargo Güvencesi</span>
             <span className="text-white/40">|</span>
-            <span className="bg-yellow-400 text-stone-950 px-2 py-0.2 rounded text-[10px] font-black">
-              Kupon: OTANTIKOS50
-            </span>
+            <span className="text-yellow-200 font-extrabold">Toptan & Perakende Satış</span>
           </div>
           <div className="flex items-center gap-4 text-white/90 text-[11px]">
             <Link href="/toptan-satis" className="hover:text-yellow-200 transition font-extrabold flex items-center gap-1">
@@ -306,16 +301,13 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <ul className="flex items-center justify-between text-xs font-bold text-stone-700 py-2.5 gap-2 overflow-x-auto no-scrollbar">
             
-            {/* All Categories Dropdown Trigger */}
+            {/* All Categories Link */}
             <li>
               <Link 
                 href="/kategori/tum-urunler" 
-                className="hover:text-orange-600 transition py-1 flex items-center gap-1.5 text-stone-900 font-extrabold border-b-2 border-transparent hover:border-orange-500"
+                className="hover:text-orange-600 transition py-1 text-stone-900 font-extrabold border-b-2 border-transparent hover:border-orange-500 whitespace-nowrap"
               >
-                <span>Tüm Ürünler</span>
-                <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-tighter">
-                  YENİ
-                </span>
+                Tüm Ürünler
               </Link>
             </li>
 
@@ -330,28 +322,12 @@ export default function Navbar() {
               </li>
             ))}
 
-            {/* Vibrant Campaign Tabs */}
             <li>
               <Link 
-                href="/kategori/tum-urunler?filter=cok-satanlar" 
-                className="hover:text-orange-600 transition py-1 flex items-center gap-1 text-orange-600 font-extrabold border-b-2 border-transparent hover:border-orange-500"
+                href="/kategori/tum-urunler" 
+                className="hover:text-orange-600 transition py-1 text-orange-600 font-extrabold border-b-2 border-transparent hover:border-orange-500 whitespace-nowrap"
               >
-                <span>🔥 Çok Satanlar</span>
-                <span className="bg-orange-100 text-orange-700 text-[9px] font-black px-1.5 py-0.2 rounded-full">
-                  FIRSAT
-                </span>
-              </Link>
-            </li>
-
-            <li>
-              <Link 
-                href="/kategori/tum-urunler?filter=flas-urunler" 
-                className="hover:text-rose-600 transition py-1 flex items-center gap-1 text-rose-600 font-extrabold border-b-2 border-transparent hover:border-rose-500"
-              >
-                <span>⚡ Flaş İndirimler</span>
-                <span className="bg-rose-100 text-rose-700 text-[9px] font-black px-1.5 py-0.2 rounded-full animate-pulse">
-                  %50
-                </span>
+                Haftanın Vitrini
               </Link>
             </li>
 
