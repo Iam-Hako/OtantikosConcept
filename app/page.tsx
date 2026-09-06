@@ -22,7 +22,7 @@ import {
   FileText
 } from 'lucide-react';
 import { Product, Category } from '@/lib/types/ecommerce';
-import { DataService, DEFAULT_STORE_CATEGORIES } from '@/lib/data/store-data';
+import { DataService } from '@/lib/data/store-data';
 import ProductCard from '@/components/ProductCard';
 
 // 10 Genuine Circular Quick Navigation & Category Bubbles (No Fake Labels)
@@ -44,24 +44,6 @@ const STORY_ITEMS = [
     ringGradient: 'from-blue-500 via-cyan-500 to-teal-500',
     bgGradient: 'from-blue-50 to-cyan-50',
     iconColor: 'text-blue-600',
-  },
-  {
-    id: 'story-hediyelik',
-    title: 'Hediyelik',
-    icon: Gift,
-    href: '/kategori/tum-urunler',
-    ringGradient: 'from-pink-500 via-rose-500 to-red-500',
-    bgGradient: 'from-pink-50 to-rose-50',
-    iconColor: 'text-pink-600',
-  },
-  {
-    id: 'story-dogal-tas',
-    title: 'Doğal Taş & Takı',
-    icon: Gem,
-    href: '/kategori/tum-urunler',
-    ringGradient: 'from-purple-500 via-violet-500 to-indigo-500',
-    bgGradient: 'from-purple-50 to-indigo-50',
-    iconColor: 'text-purple-600',
   },
   {
     id: 'story-toptan',
@@ -167,7 +149,7 @@ const PASTEL_THEMES = [
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>(DEFAULT_STORE_CATEGORIES);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Story scroll container ref
@@ -204,19 +186,8 @@ export default function HomePage() {
       if (p.category_id && p.category_id === cat.id) return true;
       if (p.category && (p.category.id === cat.id || p.category.slug === cat.slug)) return true;
       const pName = (p.name || '').toLowerCase();
-      if (cSlug.includes('k-rtasiye') || cName.includes('kırtasiye') || cName.includes('kirtasiye')) {
-        return pName.includes('kırtasiye') || pName.includes('defter') || pName.includes('kalem') || pName.includes('notluk');
-      }
-      if (cName.includes('taş') || cName.includes('takı')) {
-        return pName.includes('taş') || pName.includes('kolye') || pName.includes('bileklik') || pName.includes('ametist') || pName.includes('akik') || pName.includes('kuvars');
-      }
-      if (cName.includes('hediye')) {
-        return pName.includes('hediye') || pName.includes('set');
-      }
-      if (cName.includes('çanta') || cName.includes('aksesuar')) {
-        return pName.includes('çanta') || pName.includes('aksesuar');
-      }
-      return false;
+      const cNameClean = cName.replace(/[^a-zA-Z0-9çğıöşüÇĞİÖŞÜ]/g, '');
+      return cNameClean.length > 2 && pName.includes(cNameClean);
     });
 
     const validImages = (matched?.images || []).filter(
@@ -322,8 +293,8 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {/* Pastel Square Categories Grid (Trendyol Style) */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
+            {/* Category Cards (Flex/Grid that sizes naturally for any category count) */}
+            <div className="flex flex-wrap items-center gap-3 sm:gap-5">
               {categories.map((cat, idx) => {
                 const theme = PASTEL_THEMES[idx % PASTEL_THEMES.length];
                 const IconComp = theme.icon;
@@ -333,7 +304,7 @@ export default function HomePage() {
                   <Link
                     key={cat.id}
                     href={cat.slug === 'toptan-satis' ? '/toptan-satis' : `/kategori/${cat.slug}`}
-                    className="group flex flex-col items-center cursor-pointer"
+                    className="group flex flex-col items-center cursor-pointer w-32 sm:w-40 shrink-0"
                   >
                     {/* Pastel Rounded Square Container */}
                     <div className={`relative w-full aspect-square rounded-2xl sm:rounded-3xl ${theme.bg} ${theme.border} border p-3 flex items-center justify-center overflow-hidden shadow-2xs group-hover:shadow-md group-hover:-translate-y-1 transition-all duration-300`}>

@@ -118,51 +118,6 @@ export const DEFAULT_STORE_CATEGORIES: Category[] = [
     is_active: true,
     created_at: '2026-01-01T00:00:00.000Z',
   },
-  {
-    id: 'cat-dogal-tas',
-    name: 'Doğal Taş & Takı',
-    slug: 'dogal-tas-taki',
-    description: 'Ametist, akik ve el işçiliği takılar',
-    display_order: 2,
-    is_active: true,
-    created_at: '2026-01-01T00:00:00.000Z',
-  },
-  {
-    id: 'cat-hediyelik',
-    name: 'Hediyelik & Konsept',
-    slug: 'hediyelik-konsept',
-    description: 'Özel günler için konsept tasarım ürünler',
-    display_order: 3,
-    is_active: true,
-    created_at: '2026-01-01T00:00:00.000Z',
-  },
-  {
-    id: 'cat-aksesuar',
-    name: 'Aksesuar & Çanta',
-    slug: 'aksesuar-canta',
-    description: 'Eminönü vitrini özgün aksesuarlar',
-    display_order: 4,
-    is_active: true,
-    created_at: '2026-01-01T00:00:00.000Z',
-  },
-  {
-    id: 'cat-toptan',
-    name: 'Tahtakale Toptan',
-    slug: 'toptan-satis',
-    description: 'İşletmeler için koli bazlı toptan alım',
-    display_order: 5,
-    is_active: true,
-    created_at: '2026-01-01T00:00:00.000Z',
-  },
-  {
-    id: 'cat-vitrin',
-    name: 'Öne Çıkan Koleksiyon',
-    slug: 'one-cikan-koleksiyon',
-    description: 'En çok ilgi gören seçkin modeller',
-    display_order: 6,
-    is_active: true,
-    created_at: '2026-01-01T00:00:00.000Z',
-  },
 ];
 
 let runtimeCategories: Category[] = [...DEFAULT_STORE_CATEGORIES];
@@ -523,24 +478,19 @@ export const DataService = {
         .select('*')
         .order('display_order', { ascending: true });
 
-      if (!error && data) {
+      if (!error && data && data.length > 0) {
         runtimeCategories = data as Category[];
+        return runtimeCategories;
       }
     } catch {
       // Fallback
     }
 
-    const merged: Category[] = [...(runtimeCategories || [])];
-    for (const defCat of DEFAULT_STORE_CATEGORIES) {
-      const exists = merged.some(
-        (c) => c.id === defCat.id || c.slug === defCat.slug || c.name.trim().toLowerCase() === defCat.name.trim().toLowerCase()
-      );
-      if (!exists) {
-        merged.push(defCat);
-      }
+    if (runtimeCategories && runtimeCategories.length > 0) {
+      return runtimeCategories;
     }
 
-    runtimeCategories = merged;
+    runtimeCategories = [...DEFAULT_STORE_CATEGORIES];
     return runtimeCategories;
   },
 

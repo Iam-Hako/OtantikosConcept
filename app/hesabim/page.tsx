@@ -200,7 +200,7 @@ export default function AccountPage() {
   };
 
   return (
-    <div className="w-full max-w-[1840px] mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8 pb-24 lg:pb-12">
+    <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8 pb-24 lg:pb-12">
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200 pb-4 sm:pb-6">
@@ -217,21 +217,13 @@ export default function AccountPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className="px-4 py-2.5 bg-orange-600 hover:bg-orange-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-2xs transition min-h-[40px] flex items-center"
-            >
-              ⚙️ Admin Paneli
-            </Link>
-          )}
           {user && (
             <button
               onClick={logout}
               className="px-3.5 py-2.5 border border-stone-300 text-stone-700 hover:text-rose-600 hover:bg-rose-50 active:scale-95 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 min-h-[40px] cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
-              <span>Çıkış</span>
+              <span>Çıkış Yap</span>
             </button>
           )}
         </div>
