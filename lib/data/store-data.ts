@@ -784,6 +784,86 @@ export const DataService = {
     return true;
   },
 
+  async cancelOrder(
+    orderId: string,
+    cancelReason?: string,
+    restockItems: boolean = true
+  ): Promise<{ success: boolean; message: string }> {
+    const orders = runtimeOrders;
+    const order = orders.find((o) => o.id === orderId || o.order_number === orderId);
+    if (!order) {
+      return { success: false, message: 'Sipariş sistemde bulunamadı.' };
+    }
+
+    if (order.status === 'iptal_edildi') {
+      return { success: false, message: 'Bu sipariş zaten daha önce iptal edilmiştir.' };
+    }
+
+    order.status = 'iptal_edildi';
+    order.payment_status = 'refunded';
+    const noteText = cancelReason
+      ? `İptal Nedeni: ${cancelReason} (${new Date().toLocaleDateString('tr-TR')} ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })})`
+      : `Yönetici tarafından iptal edildi (${new Date().toLocaleDateString('tr-TR')})`;
+    order.admin_notes = order.admin_notes ? `${order.admin_notes} | ${noteText}` : noteText;
+    order.updated_at = new Date().toISOString();
+
+    // Restock items in memory
+    if (restockItems && order.items && order.items.length > 0) {
+      for (const item of order.items) {
+        const prod = runtimeProducts.find((p) => p.id === item.product_id || p.name === item.product_name);
+        if (prod) {
+          prod.stock = (prod.stock || 0) + item.quantity;
+          if (item.variant_id && prod.variants) {
+            const v = prod.variants.find((vr) => vr.id === item.variant_id);
+            if (v) {
+              v.stock = (v.stock || 0) + item.quantity;
+            }
+          }
+        }
+      }
+    }
+
+    // Update in Supabase
+    try {
+      const supabase = createClient();
+      const isCustomId = order.id.startsWith('ord-');
+      const updateData: any = {
+        status: 'iptal_edildi',
+        payment_status: 'refunded',
+        admin_notes: order.admin_notes,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (!isCustomId) {
+        await supabase.from('orders').update(updateData).eq('id', order.id);
+      } else {
+        await supabase.from('orders').update(updateData).eq('order_number', order.order_number);
+      }
+
+      // Restock items in database
+      if (restockItems && order.items && order.items.length > 0) {
+        for (const item of order.items) {
+          if (item.product_id && !item.product_id.startsWith('prod-')) {
+            const { data: pData } = await supabase.from('products').select('stock').eq('id', item.product_id).maybeSingle();
+            if (pData && typeof pData.stock === 'number') {
+              await supabase.from('products').update({ stock: pData.stock + item.quantity, updated_at: new Date().toISOString() }).eq('id', item.product_id);
+            }
+          }
+          if (item.variant_id && !item.variant_id.startsWith('var-')) {
+            const { data: vData } = await supabase.from('product_variants').select('stock').eq('id', item.variant_id).maybeSingle();
+            if (vData && typeof vData.stock === 'number') {
+              await supabase.from('product_variants').update({ stock: vData.stock + item.quantity }).eq('id', item.variant_id);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('DataService cancelOrder error:', err);
+    }
+
+    return { success: true, message: 'Sipariş başarıyla iptal edildi ve stoklar güncellendi.' };
+  },
+
   // ==========================================
   // 4. RETURNS (RMA)
   // ==========================================

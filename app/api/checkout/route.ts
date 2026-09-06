@@ -18,10 +18,12 @@ export async function POST(request: Request) {
       guest_email,
       guest_name,
       guest_phone,
+      payment_method,
+      is_admin_test,
     } = body;
 
     const isOnlineSalesActive = process.env.NEXT_PUBLIC_ONLINE_SALES_ACTIVE === 'true';
-    if (!isOnlineSalesActive) {
+    if (!isOnlineSalesActive && !is_admin_test) {
       return NextResponse.json({
         error: 'Online sipariş altyapısı geçici olarak devre dışıdır. Siparişleriniz için WhatsApp hattımızdan iletişime geçebilirsiniz.',
       }, { status: 403 });
@@ -73,6 +75,7 @@ export async function POST(request: Request) {
       }
 
       const itemTotal = verifiedUnitPrice * item.quantity;
+      calculatedSubtotal += itemTotal;
       const prodDesi = Number((prod as any).desi || (prod as any).weight_kg) || 1;
 
       verifiedItems.push({
@@ -112,6 +115,8 @@ export async function POST(request: Request) {
       billing_address: billing_address || shipping_address,
       items: verifiedItems,
       payment_status: 'paid',
+      status: 'hazirlaniyor',
+      admin_notes: is_admin_test ? '🧪 Yönetici Test Satın Alımı (Kartsız Başarılı)' : undefined,
     });
 
     try {

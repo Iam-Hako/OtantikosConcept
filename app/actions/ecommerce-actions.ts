@@ -390,6 +390,26 @@ export async function actionUpdateOrderStatus(
   return { success: ok };
 }
 
+export async function actionCancelOrder(
+  orderId: string,
+  reason?: string,
+  restockItems: boolean = true
+) {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) {
+    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+  }
+
+  const result = await DataService.cancelOrder(orderId, reason, restockItems);
+  revalidatePath('/siparis-takip');
+  revalidatePath('/hesabim');
+  revalidatePath('/admin/siparisler');
+  revalidatePath(`/admin/siparisler/${orderId}`);
+  revalidatePath('/admin/urunler');
+  revalidatePath('/admin/hizli-stok');
+  return result;
+}
+
 export async function actionUpdateReturnStatus(returnId: string, status: ReturnRequest['status'], adminResponse?: string) {
   const isAdmin = await verifyAdmin();
   if (!isAdmin) {

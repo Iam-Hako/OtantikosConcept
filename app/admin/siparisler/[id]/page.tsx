@@ -16,11 +16,13 @@ import {
   FileText, 
   CheckCircle2,
   Clock,
-  Tag
+  Tag,
+  XCircle,
+  AlertTriangle
 } from 'lucide-react';
 import { Order } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
-import { actionUpdateOrderStatus } from '@/app/actions/ecommerce-actions';
+import { actionUpdateOrderStatus, actionCancelOrder } from '@/app/actions/ecommerce-actions';
 import { formatPrice, formatDate } from '@/lib/utils/format';
 import { calculateItemsTotalDesi, calculateDhlShippingCost } from '@/lib/services/dhl-service';
 import { toast } from 'sonner';
@@ -37,6 +39,12 @@ export default function OrderDetailPage() {
   const [adminNotes, setAdminNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isCreatingDhl, setIsCreatingDhl] = useState(false);
+
+  // Cancellation State
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [restockOnCancel, setRestockOnCancel] = useState(true);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     async function loadOrder() {
@@ -109,6 +117,39 @@ export default function OrderDetailPage() {
     }
   };
 
+  const handleConfirmCancel = async () => {
+    if (!order) return;
+    setIsCancelling(true);
+    try {
+      const res = await actionCancelOrder(order.id, cancelReason, restockOnCancel);
+      if (res.success) {
+        setStatus('iptal_edildi');
+        setOrder((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: 'iptal_edildi',
+                payment_status: 'refunded',
+                admin_notes: cancelReason
+                  ? `${prev.admin_notes ? prev.admin_notes + ' | ' : ''}İptal Nedeni: ${cancelReason}`
+                  : prev.admin_notes,
+              }
+            : null
+        );
+        setIsCancelModalOpen(false);
+        toast.success(`Sipariş #${order.order_number} başarıyla iptal edildi!`, {
+          description: restockOnCancel ? 'Ürün stokları depoya otomatik olarak geri yüklendi.' : undefined,
+        });
+      } else {
+        toast.error((res as any).error || (res as any).message || 'Sipariş iptal edilemedi.');
+      }
+    } catch {
+      toast.error('İptal işlemi sırasında bir hata oluştu.');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -131,7 +172,13 @@ export default function OrderDetailPage() {
               <h1 className="text-lg sm:text-xl font-serif font-black text-stone-900">
                 Sipariş #{order.order_number}
               </h1>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 capitalize">
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-xs font-bold capitalize ${
+                  status === 'iptal_edildi'
+                    ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                    : 'bg-amber-100 text-amber-900'
+                }`}
+              >
                 {status.replace('_', ' ')}
               </span>
             </div>
@@ -139,7 +186,23 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {status !== 'iptal_edildi' && (
+            <button
+              type="button"
+              onClick={() => {
+                setCancelReason('');
+                setRestockOnCancel(true);
+                setIsCancelModalOpen(true);
+              }}
+              className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 active:scale-95 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 min-h-[40px] cursor-pointer"
+              title="Siparişi İptal Et"
+            >
+              <XCircle className="w-4 h-4 text-rose-600" />
+              <span>Siparişi İptal Et</span>
+            </button>
+          )}
+
           <Link
             href={`/admin/kargo-etiketi?alici=${encodeURIComponent(order.shipping_address?.full_name || '')}&tel=${encodeURIComponent(order.shipping_address?.phone || '')}&adres=${encodeURIComponent((order.shipping_address?.full_address || `${order.shipping_address?.district || ''} / ${order.shipping_address?.province || ''}`).trim())}&order=${encodeURIComponent(order.order_number)}`}
             className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-1.5 min-h-[40px]"
@@ -157,6 +220,20 @@ export default function OrderDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* Cancelled Alert Banner */}
+      {status === 'iptal_edildi' && (
+        <div className="p-4 bg-rose-50 border-2 border-rose-200 rounded-2xl flex items-center gap-3 text-rose-900 no-print">
+          <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+          <div className="text-xs">
+            <strong className="block font-bold">Bu sipariş iptal edilmiştir.</strong>
+            <span>Ödeme durumu iade edilmiş ve ilgili ürün adetleri depoya geri yüklenmiştir.</span>
+            {order.admin_notes && (
+              <p className="mt-1 font-mono text-[11px] text-rose-700">{order.admin_notes}</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Admin Order Control Form (hidden on print) */}
       <form onSubmit={handleSave} className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-2xs space-y-4 no-print">
@@ -387,6 +464,113 @@ export default function OrderDetailPage() {
         </div>
 
       </div>
+
+      {/* CANCELLATION CONFIRMATION MODAL */}
+      {isCancelModalOpen && (
+        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4 no-print">
+          <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4">
+            
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4 text-rose-600" />
+                </div>
+                <h3 className="font-black text-sm text-stone-900">Siparişi İptal Et</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCancelModalOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3 bg-stone-50 rounded-xl space-y-1.5 text-xs text-stone-700">
+              <div className="flex justify-between">
+                <span className="text-stone-400">Sipariş No:</span>
+                <strong className="font-mono text-stone-900">{order.order_number}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-stone-400">Müşteri:</span>
+                <span className="font-semibold text-stone-900">{order.shipping_address?.full_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-stone-400">Tutar:</span>
+                <strong className="text-orange-700">{formatPrice(order.total_amount)}</strong>
+              </div>
+            </div>
+
+            {/* Quick Reason Presets */}
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold text-stone-700">İptal Nedeni</label>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  'Müşteri Talebi / Vazgeçti',
+                  'Yönetici Test Siparişi',
+                  'Hatalı Sipariş',
+                  'Stok Yetersizliği',
+                ].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setCancelReason(preset)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition border cursor-pointer ${
+                      cancelReason === preset
+                        ? 'bg-rose-600 text-white border-rose-600'
+                        : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Özel iptal açıklaması yazabilirsiniz..."
+                className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none"
+              />
+            </div>
+
+            {/* Restock Checkbox */}
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="detailRestockCheckbox"
+                checked={restockOnCancel}
+                onChange={(e) => setRestockOnCancel(e.target.checked)}
+                className="w-4 h-4 text-orange-600 rounded border-stone-300 focus:ring-orange-500 cursor-pointer"
+              />
+              <label htmlFor="detailRestockCheckbox" className="text-xs font-semibold text-stone-800 cursor-pointer select-none">
+                Siparişteki ürün adetlerini depoya otomatik geri yükle (Stok İadesi)
+              </label>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="pt-2 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsCancelModalOpen(false)}
+                className="w-1/3 py-2.5 border border-stone-300 hover:bg-stone-50 text-stone-700 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Vazgeç
+              </button>
+              <button
+                type="button"
+                disabled={isCancelling}
+                onClick={handleConfirmCancel}
+                className="w-2/3 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <XCircle className="w-4 h-4" />
+                <span>{isCancelling ? 'İptal Ediliyor...' : 'Siparişi İptal Et'}</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
