@@ -98,9 +98,14 @@ export default function AdminCategoriesPage() {
 
   const handleDelete = async (id: string, catName: string) => {
     if (confirm(`"${catName}" kategorisini silmek istediğinize emin misiniz?`)) {
+      const isKirtasiye = id === 'cat-kirtasiye' || id === 'k-rtasiye-r-nleri' || catName.toLowerCase().includes('kırtasiye');
       const res = await actionDeleteCategory(id);
       if (res.success) {
-        setCategories((prev) => prev.filter((c) => c.id !== id && c.slug !== id));
+        setCategories((prev) => prev.filter((c) => {
+          if (c.id === id || c.slug === id) return false;
+          if (isKirtasiye && (c.id === 'cat-kirtasiye' || c.slug === 'k-rtasiye-r-nleri' || c.name.toLowerCase().includes('kırtasiye'))) return false;
+          return true;
+        }));
         toast.success('Kategori silindi.');
         await loadCategories();
       } else {

@@ -67,7 +67,7 @@ export default function AdminBannersPage() {
   const [imageUrl, setImageUrl] = useState('');
   const [mobileImageUrl, setMobileImageUrl] = useState('');
   const [buttonText, setButtonText] = useState('Hemen Keşfet');
-  const [buttonUrl, setButtonUrl] = useState('/kategori/k-rtasiye-r-nleri');
+  const [buttonUrl, setButtonUrl] = useState('/kategori/tum-urunler');
   const [bgGradient, setBgGradient] = useState(GRADIENT_PRESETS[0].value);
   const [displayOrder, setDisplayOrder] = useState(1);
   const [isActive, setIsActive] = useState(true);
@@ -99,7 +99,7 @@ export default function AdminBannersPage() {
     setImageUrl('/images/miniso_otantikos_banner.jpg');
     setMobileImageUrl('/images/miniso_otantikos_banner_mobile.jpg?v=20260909_1');
     setButtonText('Hemen Keşfet');
-    setButtonUrl('/kategori/k-rtasiye-r-nleri');
+    setButtonUrl('/kategori/tum-urunler');
     setBgGradient(GRADIENT_PRESETS[0].value);
     setDisplayOrder(banners.length + 1);
     setIsActive(true);
@@ -114,7 +114,7 @@ export default function AdminBannersPage() {
     setImageUrl(banner.image_url);
     setMobileImageUrl(banner.mobile_image_url || '');
     setButtonText(banner.button_text || 'Hemen Keşfet');
-    setButtonUrl(banner.button_url || '/kategori/k-rtasiye-r-nleri');
+    setButtonUrl(banner.button_url || '/kategori/tum-urunler');
     setBgGradient(banner.bg_gradient || GRADIENT_PRESETS[0].value);
     setDisplayOrder(banner.display_order);
     setIsActive(banner.is_active);
@@ -178,7 +178,7 @@ export default function AdminBannersPage() {
         image_url: imageUrl.trim(),
         mobile_image_url: mobileImageUrl.trim() || null,
         button_text: buttonText.trim() || 'Hemen Keşfet',
-        button_url: buttonUrl.trim() || '/kategori/k-rtasiye-r-nleri',
+        button_url: buttonUrl.trim() || '/kategori/tum-urunler',
         bg_gradient: bgGradient,
         display_order: Number(displayOrder) || 1,
         is_active: isActive,
@@ -671,7 +671,7 @@ export default function AdminBannersPage() {
                     type="text"
                     value={buttonUrl}
                     onChange={(e) => setButtonUrl(e.target.value)}
-                    placeholder="Örn: /kategori/k-rtasiye-r-nleri"
+                    placeholder="Örn: /kategori/tum-urunler"
                     className="w-full text-xs p-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-orange-500 text-stone-900 transition"
                   />
                 </div>

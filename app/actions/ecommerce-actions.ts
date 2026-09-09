@@ -325,12 +325,18 @@ export async function actionDeleteCategory(categoryId: string) {
     return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
   }
 
+  const isKirtasiye = categoryId === 'cat-kirtasiye' || categoryId === 'k-rtasiye-r-nleri';
+
   try {
     const supabaseAdmin = createAdminClient();
     let dbId = categoryId;
     const isUuid = UUID_REGEX.test(categoryId);
     if (!isUuid) {
-      const { data: cat } = await supabaseAdmin.from('categories').select('id').eq('slug', categoryId).maybeSingle();
+      const { data: cat } = await supabaseAdmin
+        .from('categories')
+        .select('id')
+        .or(`id.eq.${categoryId},slug.eq.${categoryId},slug.eq.k-rtasiye-r-nleri`)
+        .maybeSingle();
       if (cat?.id) dbId = cat.id;
     }
 
@@ -339,8 +345,18 @@ export async function actionDeleteCategory(categoryId: string) {
       await supabaseAdmin.from('products').update({ category_id: null }).eq('category_id', dbId);
       // 2. Delete from categories table
       await supabaseAdmin.from('categories').delete().eq('id', dbId);
-    } else {
-      await supabaseAdmin.from('categories').delete().eq('slug', categoryId);
+    }
+    
+    await supabaseAdmin.from('categories').delete().eq('slug', categoryId);
+    if (isKirtasiye) {
+      await supabaseAdmin.from('categories').delete().eq('slug', 'k-rtasiye-r-nleri');
+      const { data: catRows } = await supabaseAdmin.from('categories').select('id').ilike('name', '%kırtasiye%');
+      if (catRows && catRows.length > 0) {
+        for (const row of catRows) {
+          await supabaseAdmin.from('products').update({ category_id: null }).eq('category_id', row.id);
+          await supabaseAdmin.from('categories').delete().eq('id', row.id);
+        }
+      }
     }
   } catch (err) {
     console.error('Supabase admin delete category error:', err);

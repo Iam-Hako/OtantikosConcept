@@ -109,19 +109,9 @@ export function deduplicateLiveChatMessages(messages: LiveChatMessage[]): LiveCh
   return result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 }
 
-export const DEFAULT_STORE_CATEGORIES: Category[] = [
-  {
-    id: 'cat-kirtasiye',
-    name: 'Kırtasiye Ürünleri',
-    slug: 'k-rtasiye-r-nleri',
-    description: 'Defterler, tasarım kalemler ve masaüstü ürünleri',
-    display_order: 1,
-    is_active: true,
-    created_at: '2026-01-01T00:00:00.000Z',
-  },
-];
+export const DEFAULT_STORE_CATEGORIES: Category[] = [];
 
-let runtimeCategories: Category[] = [...DEFAULT_STORE_CATEGORIES];
+let runtimeCategories: Category[] = [];
 
 export const DEFAULT_HOME_BANNERS: HomeBanner[] = [
   {
@@ -519,6 +509,22 @@ export const DataService = {
   // 2. CATEGORIES
   // ==========================================
   async getCategories(): Promise<Category[]> {
+    // 1. Check client-side localStorage cache
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('otantikos_categories');
+        if (stored !== null) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            runtimeCategories = parsed.filter(c => c.id !== 'cat-kirtasiye' && c.slug !== 'k-rtasiye-r-nleri');
+            return runtimeCategories;
+          }
+        }
+      } catch {
+        // Ignore
+      }
+    }
+
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -526,20 +532,20 @@ export const DataService = {
         .select('*')
         .order('display_order', { ascending: true });
 
-      if (!error && data && data.length > 0) {
-        runtimeCategories = data as Category[];
+      if (!error && data) {
+        runtimeCategories = (data as Category[]).filter(c => c.id !== 'cat-kirtasiye' && c.slug !== 'k-rtasiye-r-nleri');
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('otantikos_categories', JSON.stringify(runtimeCategories));
+          } catch {}
+        }
         return runtimeCategories;
       }
     } catch {
       // Fallback
     }
 
-    if (runtimeCategories && runtimeCategories.length > 0) {
-      return runtimeCategories;
-    }
-
-    runtimeCategories = [...DEFAULT_STORE_CATEGORIES];
-    return runtimeCategories;
+    return runtimeCategories.filter(c => c.id !== 'cat-kirtasiye' && c.slug !== 'k-rtasiye-r-nleri');
   },
 
   async saveCategory(cat: Partial<Category>): Promise<Category> {
@@ -566,7 +572,11 @@ export const DataService = {
     }
 
     runtimeCategories = list;
-    
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('otantikos_categories', JSON.stringify(runtimeCategories));
+      } catch {}
+    }
 
     try {
       const supabase = createClient();
@@ -588,7 +598,6 @@ export const DataService = {
 
       if (!error && data) {
         savedCat.id = data.id;
-        
       }
     } catch {
       // Local fallback
@@ -598,14 +607,27 @@ export const DataService = {
   },
 
   async deleteCategory(categoryId: string): Promise<boolean> {
-    let list = runtimeCategories;
-    list = list.filter(c => c.id !== categoryId && c.slug !== categoryId);
+    const isKirtasiye = categoryId === 'cat-kirtasiye' || categoryId === 'k-rtasiye-r-nleri';
+    let list = runtimeCategories.filter(c => {
+      if (c.id === categoryId || c.slug === categoryId) return false;
+      if (isKirtasiye && (c.id === 'cat-kirtasiye' || c.slug === 'k-rtasiye-r-nleri' || c.name?.toLowerCase().includes('kırtasiye'))) return false;
+      return true;
+    });
     runtimeCategories = list;
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('otantikos_categories', JSON.stringify(runtimeCategories));
+      } catch {}
+    }
 
     try {
       const supabase = createClient();
       await supabase.from('products').update({ category_id: null }).eq('category_id', categoryId);
       await supabase.from('categories').delete().or(`id.eq.${categoryId},slug.eq.${categoryId}`);
+      if (isKirtasiye) {
+        await supabase.from('categories').delete().or('slug.eq.k-rtasiye-r-nleri,id.eq.cat-kirtasiye');
+      }
     } catch {
       // Ignore
     }
@@ -681,7 +703,7 @@ export const DataService = {
         badge_text: banner.badge_text || '',
         image_url: banner.image_url || '/images/miniso_otantikos_banner.jpg',
         button_text: banner.button_text || 'Hemen Keşfet',
-        button_url: banner.button_url || '/kategori/k-rtasiye-r-nleri',
+        button_url: banner.button_url || '/kategori/tum-urunler',
         bg_gradient: banner.bg_gradient || 'from-sky-200/60 via-rose-100/50 to-amber-100/60',
         display_order: banner.display_order ?? (list.length + 1),
         is_active: banner.is_active ?? true,
