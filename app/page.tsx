@@ -136,7 +136,7 @@ export default function HomePage() {
   const displayProducts = featuredProducts.length > 0 ? featuredProducts : products;
 
   return (
-    <div className="space-y-6 sm:space-y-10 pb-20 relative bg-white">
+    <div className="space-y-6 sm:space-y-10 pb-20 relative bg-white min-h-screen overflow-x-clip transform-gpu">
       
       {/* ============================================================ */}
       {/* 1. MINISO STYLE HERO BANNER SLIDER (YÖNETİM MERKEZİNDEN KONTROLLÜ) */}

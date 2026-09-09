@@ -44,8 +44,15 @@ export default function Navbar() {
     const handleCustomOpenSearch = () => {
       setIsSearchModalOpen(true);
     };
+    const handleCustomOpenMenu = () => {
+      setIsMobileMenuOpen(true);
+    };
     window.addEventListener('otantikos:open_search', handleCustomOpenSearch);
-    return () => window.removeEventListener('otantikos:open_search', handleCustomOpenSearch);
+    window.addEventListener('otantikos:open_menu', handleCustomOpenMenu);
+    return () => {
+      window.removeEventListener('otantikos:open_search', handleCustomOpenSearch);
+      window.removeEventListener('otantikos:open_menu', handleCustomOpenMenu);
+    };
   }, []);
 
   // Close dropdown on outside click
@@ -284,8 +291,8 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* MINISO STYLE CATEGORIES SUBNAV (WITH CUTE MINI ICONS) */}
-      <nav className="border-t border-stone-100 bg-white">
+      {/* MINISO STYLE CATEGORIES SUBNAV (DESKTOP ONLY - ON MOBILE ONLY SIDE DRAWER IS USED) */}
+      <nav className="hidden md:block border-t border-stone-100 bg-white">
         <div className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
           <ul className="flex items-center justify-start lg:justify-between text-[11px] sm:text-xs font-semibold text-stone-700 py-2 gap-4 sm:gap-6 overflow-x-auto no-scrollbar">
             

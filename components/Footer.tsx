@@ -371,12 +371,12 @@ export default function Footer() {
 
       </div>
 
-      {/* BOTTOM PANORAMIC CHARACTER STRIP (EXACT AS IMAGE 3) */}
-      <div className="w-full overflow-hidden leading-none select-none pointer-events-none mt-2">
+      {/* BOTTOM PANORAMIC CHARACTER STRIP */}
+      <div className="w-full overflow-hidden leading-none select-none pointer-events-none mt-4 pb-14 sm:pb-0">
         <img
           src="/images/footer_characters_banner.png"
           alt="Otantikos Sevimli Karakterler"
-          className="w-full h-auto object-cover block"
+          className="w-full h-auto max-h-[140px] sm:max-h-[200px] object-cover object-bottom block"
           loading="lazy"
         />
       </div>

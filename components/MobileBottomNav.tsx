@@ -26,6 +26,13 @@ export default function MobileBottomNav() {
     }
   };
 
+  const handleOpenCategories = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('otantikos:open_menu'));
+    }
+  };
+
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-stone-200 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] px-3 shadow-lg">
       <div className="flex items-center justify-around">
@@ -41,15 +48,14 @@ export default function MobileBottomNav() {
         </Link>
 
         {/* Categories */}
-        <Link
-          href="/kategori/tum-urunler"
-          className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium py-1 px-2.5 min-w-[56px] active:scale-90 transition-transform ${
-            pathname?.startsWith('/kategori') && !isSearchActive ? 'text-amber-700 font-bold' : 'text-stone-500 hover:text-stone-900'
-          }`}
+        <button
+          type="button"
+          onClick={handleOpenCategories}
+          className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium py-1 px-2.5 min-w-[56px] active:scale-90 transition-transform text-stone-500 hover:text-stone-900 cursor-pointer"
         >
           <Grid className="w-5 h-5" />
           <span>Kategoriler</span>
-        </Link>
+        </button>
 
         {/* Search */}
         <button
