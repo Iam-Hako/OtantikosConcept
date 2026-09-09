@@ -28,10 +28,12 @@ CREATE INDEX IF NOT EXISTS idx_home_banners_order ON public.home_banners (displa
 ALTER TABLE public.home_banners ENABLE ROW LEVEL SECURITY;
 
 -- Everyone can read active banners
+DROP POLICY IF EXISTS "Public Read Active Banners" ON public.home_banners;
 CREATE POLICY "Public Read Active Banners" ON public.home_banners
     FOR SELECT USING (is_active = true OR auth.role() = 'authenticated');
 
 -- Authenticated users (admin) can manage banners
+DROP POLICY IF EXISTS "Admin Manage Banners" ON public.home_banners;
 CREATE POLICY "Admin Manage Banners" ON public.home_banners
     FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
