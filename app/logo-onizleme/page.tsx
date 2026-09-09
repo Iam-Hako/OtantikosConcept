@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
   Crown, 
   Check, 
@@ -9,29 +10,28 @@ import {
   ShoppingBag, 
   Sparkles, 
   CheckCircle2, 
-  Layers, 
   Zap, 
   Gem,
   Award
 } from 'lucide-react';
-import Logo, { LuxuryLogoConcept, LUXURY_CONCEPTS, LuxuryLogoIconRender } from '@/components/Logo';
+import Logo, { LogoConceptId, PNG_LOGOS } from '@/components/Logo';
 
 export default function LogoPreviewPage() {
-  const [activeConcept, setActiveConcept] = useState<LuxuryLogoConcept>('haute-monogram');
-  const [appliedConcept, setAppliedConcept] = useState<LuxuryLogoConcept>('haute-monogram');
+  const [activeConcept, setActiveConcept] = useState<LogoConceptId>('png-logo-01');
+  const [appliedConcept, setAppliedConcept] = useState<LogoConceptId>('png-logo-01');
   const [justApplied, setJustApplied] = useState(false);
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('otantikos_active_logo') as LuxuryLogoConcept;
-      if (stored && LUXURY_CONCEPTS.some(c => c.id === stored)) {
+      const stored = localStorage.getItem('otantikos_active_logo') as LogoConceptId;
+      if (stored && PNG_LOGOS.some(c => c.id === stored)) {
         setActiveConcept(stored);
         setAppliedConcept(stored);
       }
     } catch {}
   }, []);
 
-  const handleApplyLogo = (conceptId: LuxuryLogoConcept) => {
+  const handleApplyLogo = (conceptId: LogoConceptId) => {
     try {
       localStorage.setItem('otantikos_active_logo', conceptId);
       window.dispatchEvent(new Event('otantikos_logo_changed'));
@@ -44,25 +44,25 @@ export default function LogoPreviewPage() {
     }
   };
 
-  const selectedMeta = LUXURY_CONCEPTS.find((c) => c.id === activeConcept) || LUXURY_CONCEPTS[0];
+  const selectedMeta = PNG_LOGOS.find((c) => c.id === activeConcept) || PNG_LOGOS[0];
 
   return (
     <div className="bg-white min-h-screen">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-14">
         
         {/* EDITORIAL LUXURY HEADER */}
-        <div className="text-center max-w-2xl mx-auto space-y-3">
+        <div className="text-center max-w-3xl mx-auto space-y-3">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-stone-100 text-stone-800 border border-stone-200 text-xs font-semibold rounded-full">
             <Gem className="w-3.5 h-3.5 text-stone-700" />
-            <span>Haute Couture & Kurumsal Şıklık</span>
+            <span>10 Farklı Şık & Lüks Yuvarlak Şirket Logosu Koleksiyonu</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-serif font-black text-stone-900 tracking-tight">
-            Şık & Lüks Yuvarlak Şirket Logoları
+            Şirketiniz İçin 10 Lüks Yuvarlak Logo
           </h1>
 
-          <p className="text-xs sm:text-sm text-stone-500 leading-relaxed max-w-xl mx-auto">
-            Çocuksu veya oyuncak perakende havasından tamamen arındırılmış; <strong>zarif, yüksek moda, mimari ve ağırbaşlı</strong> 6 farklı dairesel şirket kimliği tasarlandı.
+          <p className="text-xs sm:text-sm text-stone-500 leading-relaxed max-w-2xl mx-auto">
+            Miniso tarzı çocuksu kırmızı kalıpların dışına çıkarak; <strong>Paris ve Milano lüks marka kimlikleri tarzında</strong> 10 adet yüksek çözünürlüklü dairesel şirket logosu hazırlandı. Aşağıdan beğendiğiniz logoyu tek tıkla sitenizde aktif edebilirsiniz.
           </p>
 
           {/* ACTIVE STATUS BANNER */}
@@ -71,15 +71,15 @@ export default function LogoPreviewPage() {
               <span className="text-stone-400">Canlıdaki Logo:</span>
               <span className="font-bold text-white flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                #{LUXURY_CONCEPTS.find(c => c.id === appliedConcept)?.number} - {LUXURY_CONCEPTS.find(c => c.id === appliedConcept)?.name}
+                #{PNG_LOGOS.find(c => c.id === appliedConcept)?.number} - {PNG_LOGOS.find(c => c.id === appliedConcept)?.name}
               </span>
             </div>
           </div>
         </div>
 
-        {/* 6 LUXURY LOGO INTERACTIVE GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {LUXURY_CONCEPTS.map((c) => {
+        {/* 10 LUXURY LOGOS GRID */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {PNG_LOGOS.map((c) => {
             const isSelected = activeConcept === c.id;
             const isApplied = appliedConcept === c.id;
 
@@ -109,12 +109,17 @@ export default function LogoPreviewPage() {
                   </span>
                 </div>
 
-                {/* Center High-End Render */}
+                {/* Center Image Display */}
                 <div className="py-4 flex flex-col items-center justify-center">
-                  <div className="w-20 h-20 transition-transform duration-300 group-hover:scale-105 drop-shadow-2xs">
-                    <LuxuryLogoIconRender concept={c.id} />
+                  <div className="w-28 h-28 relative rounded-full overflow-hidden transition-transform duration-300 group-hover:scale-105 shadow-sm border border-stone-200">
+                    <Image
+                      src={c.image}
+                      alt={c.name}
+                      fill
+                      className="object-contain"
+                      sizes="112px"
+                    />
                   </div>
-                  <span className="text-[10px] font-mono text-stone-400 mt-3">{c.style}</span>
                 </div>
 
                 {/* Title & Desc */}
@@ -158,7 +163,7 @@ export default function LogoPreviewPage() {
           })}
         </div>
 
-        {/* SELECTED LOGO HIGH-END SHOWCASE & MOCKUPS */}
+        {/* SELECTED LOGO LARGE SHOWCASE & MOCKUPS */}
         <div className="p-6 sm:p-12 rounded-3xl border border-stone-200 bg-stone-50/50 space-y-10">
           
           {/* Header */}
@@ -191,7 +196,16 @@ export default function LogoPreviewPage() {
 
           {/* Large Logo Showcase */}
           <div className="bg-white p-10 sm:p-16 rounded-2xl border border-stone-200 flex flex-col items-center justify-center gap-6 shadow-2xs">
-            <Logo concept={activeConcept} size="xl" />
+            <div className="w-44 h-44 relative rounded-full overflow-hidden shadow-lg border border-stone-200">
+              <Image
+                src={selectedMeta.image}
+                alt={selectedMeta.name}
+                fill
+                className="object-contain"
+                sizes="176px"
+                priority
+              />
+            </div>
             <div className="text-center space-y-0.5 pt-3 border-t border-stone-100 max-w-sm">
               <span className="text-xs font-bold text-stone-900 tracking-[0.2em] uppercase">
                 Otantikos Concept
