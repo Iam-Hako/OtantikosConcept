@@ -146,13 +146,15 @@ export default function HeroBannerSlider({ initialBanners }: HeroBannerSliderPro
                     )}
 
                     {banner.button_text && (
-                      <div className="pt-1">
+                      <div className="pt-2">
                         <Link
                           href={banner.button_url || '/kategori/tum-urunler'}
-                          className="inline-flex items-center gap-2 px-5 py-2.5 sm:px-7 sm:py-3.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-black text-xs sm:text-sm shadow-lg shadow-rose-500/30 hover:scale-105 active:scale-95 transition-all duration-200"
+                          className="inline-flex items-center gap-2.5 px-6 py-3 sm:px-8 sm:py-3.5 rounded-full bg-[#e60012] hover:bg-[#c90010] text-white font-black text-xs sm:text-sm shadow-xl shadow-red-600/30 hover:scale-105 active:scale-95 transition-all duration-200"
                         >
                           <span>{banner.button_text}</span>
-                          <ArrowRight className="w-4 h-4" />
+                          <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white text-[#e60012] flex items-center justify-center text-xs font-black shadow-xs">
+                            ➔
+                          </span>
                         </Link>
                       </div>
                     )}
@@ -177,7 +179,7 @@ export default function HeroBannerSlider({ initialBanners }: HeroBannerSliderPro
           <button
             onClick={prevSlide}
             aria-label="Önceki Afiş"
-            className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/85 hover:bg-white text-stone-800 hover:text-rose-600 backdrop-blur-md shadow-lg border border-white/60 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer opacity-90 sm:opacity-0 group-hover:opacity-100"
+            className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/90 hover:bg-white text-stone-700 hover:text-[#e60012] backdrop-blur-md shadow-md border border-stone-200/80 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer opacity-90 sm:opacity-0 group-hover:opacity-100"
           >
             <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
           </button>
@@ -188,13 +190,13 @@ export default function HeroBannerSlider({ initialBanners }: HeroBannerSliderPro
           <button
             onClick={nextSlide}
             aria-label="Sonraki Afiş"
-            className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/85 hover:bg-white text-stone-800 hover:text-rose-600 backdrop-blur-md shadow-lg border border-white/60 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer opacity-90 sm:opacity-0 group-hover:opacity-100"
+            className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/90 hover:bg-white text-stone-700 hover:text-[#e60012] backdrop-blur-md shadow-md border border-stone-200/80 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer opacity-90 sm:opacity-0 group-hover:opacity-100"
           >
             <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
           </button>
         )}
 
-        {/* Miniso Style Pill Pagination Dots (Bottom Center) */}
+        {/* Miniso Style Pill Pagination Bars (Bottom Center) */}
         {banners.length > 1 && (
           <div className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/20 backdrop-blur-md border border-white/20">
             {banners.map((_, dotIdx) => {
@@ -206,8 +208,8 @@ export default function HeroBannerSlider({ initialBanners }: HeroBannerSliderPro
                   aria-label={`Afiş ${dotIdx + 1}`}
                   className={`transition-all duration-300 rounded-full cursor-pointer ${
                     isDotActive
-                      ? 'w-7 sm:w-8 h-2 sm:h-2.5 bg-rose-500 shadow-sm'
-                      : 'w-2 sm:w-2.5 h-2 sm:h-2.5 bg-white/70 hover:bg-white'
+                      ? 'w-10 sm:w-14 h-1.5 sm:h-2 bg-[#e60012] shadow-sm'
+                      : 'w-6 sm:w-8 h-1.5 sm:h-2 bg-white/70 hover:bg-white'
                   }`}
                 />
               );

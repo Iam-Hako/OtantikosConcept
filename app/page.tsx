@@ -25,82 +25,9 @@ import { Product, Category } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
 import ProductCard from '@/components/ProductCard';
 import HeroBannerSlider from '@/components/HeroBannerSlider';
+import FloatingPromoRibbon from '@/components/FloatingPromoRibbon';
 
-// 10 Genuine Circular Quick Navigation & Category Bubbles (No Fake Labels)
-const STORY_ITEMS = [
-  {
-    id: 'story-tum-urunler',
-    title: 'Tüm Ürünler',
-    icon: Sparkles,
-    href: '/kategori/tum-urunler',
-    ringGradient: 'from-orange-500 via-amber-500 to-yellow-500',
-    bgGradient: 'from-orange-50 to-amber-50',
-    iconColor: 'text-orange-600',
-  },
-  {
-    id: 'story-kirtasiye',
-    title: 'Kırtasiye',
-    icon: Tag,
-    href: '/kategori/k-rtasiye-r-nleri',
-    ringGradient: 'from-blue-500 via-cyan-500 to-teal-500',
-    bgGradient: 'from-blue-50 to-cyan-50',
-    iconColor: 'text-blue-600',
-  },
-  {
-    id: 'story-toptan',
-    title: 'Tahtakale Toptan',
-    icon: Package,
-    href: '/toptan-satis',
-    ringGradient: 'from-emerald-500 via-teal-500 to-green-600',
-    bgGradient: 'from-emerald-50 to-teal-50',
-    iconColor: 'text-emerald-600',
-  },
-  {
-    id: 'story-dhl-kargo',
-    title: 'DHL Kargo',
-    icon: Truck,
-    href: '/iade-ve-teslimat',
-    ringGradient: 'from-amber-500 via-orange-500 to-red-500',
-    bgGradient: 'from-amber-50 to-orange-50',
-    iconColor: 'text-amber-700',
-  },
-  {
-    id: 'story-magaza',
-    title: 'Eminönü Şube',
-    icon: Store,
-    href: '/iletisim',
-    ringGradient: 'from-rose-500 via-orange-500 to-amber-500',
-    bgGradient: 'from-rose-50 to-orange-50',
-    iconColor: 'text-rose-600',
-  },
-  {
-    id: 'story-siparis-takip',
-    title: 'Sipariş Takip',
-    icon: FileText,
-    href: '/siparis-takip',
-    ringGradient: 'from-sky-500 via-blue-500 to-indigo-500',
-    bgGradient: 'from-sky-50 to-blue-50',
-    iconColor: 'text-sky-600',
-  },
-  {
-    id: 'story-konum',
-    title: 'Harita & Konum',
-    icon: MapPin,
-    href: '/iletisim',
-    ringGradient: 'from-teal-500 via-emerald-500 to-green-500',
-    bgGradient: 'from-teal-50 to-emerald-50',
-    iconColor: 'text-teal-700',
-  },
-  {
-    id: 'story-destek',
-    title: 'Canlı Destek',
-    icon: MessageCircle,
-    href: 'https://wa.me/905077737777',
-    ringGradient: 'from-emerald-500 via-green-500 to-teal-600',
-    bgGradient: 'from-emerald-50 to-green-50',
-    iconColor: 'text-emerald-600',
-  },
-];
+
 
 // Miniso Inspired Circular Pastel Category Themes
 const CIRCULAR_PASTEL_THEMES = [
@@ -159,8 +86,7 @@ export default function HomePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Story and category scroll container refs
-  const storiesScrollRef = useRef<HTMLDivElement>(null);
+  // Category scroll container ref
   const categoriesScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -178,13 +104,6 @@ export default function HomePage() {
     }
     loadData();
   }, []);
-
-  const scrollStories = (direction: 'left' | 'right') => {
-    if (storiesScrollRef.current) {
-      const amount = direction === 'left' ? -250 : 250;
-      storiesScrollRef.current.scrollBy({ left: amount, behavior: 'smooth' });
-    }
-  };
 
   const scrollCategories = (direction: 'left' | 'right') => {
     if (categoriesScrollRef.current) {
@@ -215,71 +134,18 @@ export default function HomePage() {
   const displayProducts = featuredProducts.length > 0 ? featuredProducts : products;
 
   return (
-    <div className="space-y-8 sm:space-y-12 pb-20 relative bg-dots-pattern">
+    <div className="space-y-6 sm:space-y-10 pb-20 relative bg-white">
       
-      {/* ============================================================ */}
-      {/* 1. TRENDYOL STYLE CIRCULAR STORIES / QUICK ACTION BUTTONS   */}
-      {/* ============================================================ */}
-      <section className="bg-white/95 backdrop-blur-md border-b border-amber-200/50 pt-4 pb-5 shadow-2xs">
-        <div className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8 relative group">
-          
-          {/* Left Arrow Button */}
-          <button
-            onClick={() => scrollStories('left')}
-            aria-label="Sola Kaydır"
-            className="hidden sm:flex absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/95 shadow-md border border-stone-200 items-center justify-center text-stone-700 hover:text-orange-600 hover:scale-110 active:scale-95 transition opacity-0 group-hover:opacity-100 cursor-pointer"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          {/* Stories Horizontal Container */}
-          <div
-            ref={storiesScrollRef}
-            className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar py-1 px-1 scroll-smooth"
-          >
-            {STORY_ITEMS.map((item) => {
-              const IconComp = item.icon;
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  className="flex flex-col items-center gap-2 group/story shrink-0 transition-transform active:scale-95"
-                >
-                  {/* Circular Ring with Vibrant Gradient */}
-                  <div className={`p-[2.5px] rounded-full bg-gradient-to-tr ${item.ringGradient} shadow-xs group-hover/story:scale-105 transition-transform duration-300`}>
-                    <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br ${item.bgGradient} flex items-center justify-center border-2 border-white shadow-inner`}>
-                      <IconComp className={`w-6 h-6 sm:w-7 sm:h-7 ${item.iconColor} group-hover/story:rotate-6 transition-transform`} />
-                    </div>
-                  </div>
-
-                  {/* Title */}
-                  <span className="text-[11px] sm:text-xs font-bold text-stone-800 text-center line-clamp-1 max-w-[80px] group-hover/story:text-orange-600 transition-colors">
-                    {item.title}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Right Arrow Button */}
-          <button
-            onClick={() => scrollStories('right')}
-            aria-label="Sağa Kaydır"
-            className="hidden sm:flex absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/95 shadow-md border border-stone-200 items-center justify-center text-stone-700 hover:text-orange-600 hover:scale-110 active:scale-95 transition opacity-0 group-hover:opacity-100 cursor-pointer"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-
-        </div>
-      </section>
+      {/* Miniso Style Floating Promo Ribbon on Right Edge */}
+      <FloatingPromoRibbon />
 
       {/* ============================================================ */}
-      {/* 2. MINISO STYLE HERO BANNER SLIDER (YÖNETİM MERKEZİNDEN KONTROLLÜ) */}
+      {/* 1. MINISO STYLE HERO BANNER SLIDER (YÖNETİM MERKEZİNDEN KONTROLLÜ) */}
       {/* ============================================================ */}
       <HeroBannerSlider />
 
       {/* ============================================================ */}
-      {/* 3. MINISO STYLE CIRCULAR PASTEL CATEGORY CAROUSEL            */}
+      {/* 2. MINISO STYLE CIRCULAR PASTEL CATEGORY CAROUSEL            */}
       {/* ============================================================ */}
       {categories.length > 0 && (
         <section className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
