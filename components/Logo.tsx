@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-export type LogoConcept = 'smile-bag' | 'gift-ribbon' | 'kawaii-mascot';
+export type LogoConcept = 'round-seal' | 'round-monogram' | 'round-minimal' | 'smile-bag';
 
 interface LogoProps {
   concept?: LogoConcept;
@@ -13,7 +13,7 @@ interface LogoProps {
 }
 
 export default function Logo({
-  concept = 'smile-bag',
+  concept = 'round-seal',
   size = 'md',
   showText = true,
   className = '',
@@ -21,47 +21,49 @@ export default function Logo({
 }: LogoProps) {
   // Dimension definitions
   const dimensions = {
-    xs: { icon: 'w-7 h-7', title: 'text-sm', sub: 'text-[7px]' },
-    sm: { icon: 'w-9 h-9', title: 'text-base', sub: 'text-[8px]' },
-    md: { icon: 'w-10 h-10 sm:w-11 sm:h-11', title: 'text-lg sm:text-xl', sub: 'text-[9px]' },
-    lg: { icon: 'w-14 h-14 sm:w-16 sm:h-16', title: 'text-2xl sm:text-3xl', sub: 'text-xs' },
-    xl: { icon: 'w-20 h-20 sm:w-24 sm:h-24', title: 'text-3xl sm:text-4xl', sub: 'text-sm' },
+    xs: { icon: 'w-7 h-7', title: 'text-sm', sub: 'text-[7px]', badge: 'text-[6px]' },
+    sm: { icon: 'w-9 h-9', title: 'text-base', sub: 'text-[8px]', badge: 'text-[7px]' },
+    md: { icon: 'w-10 h-10 sm:w-11 sm:h-11', title: 'text-lg sm:text-xl', sub: 'text-[9px]', badge: 'text-[8px]' },
+    lg: { icon: 'w-14 h-14 sm:w-16 sm:h-16', title: 'text-2xl sm:text-3xl', sub: 'text-xs', badge: 'text-[10px]' },
+    xl: { icon: 'w-20 h-20 sm:w-24 sm:h-24', title: 'text-3xl sm:text-4xl', sub: 'text-sm', badge: 'text-xs' },
   }[size];
 
   return (
     <div className={`inline-flex items-center gap-2.5 sm:gap-3 group select-none ${className}`}>
-      {/* LOGO ICON EMBLEM */}
+      {/* CIRCULAR COMPANY LOGO EMBLEM */}
       <div 
         className={`${dimensions.icon} shrink-0 transition-transform duration-300 group-hover:scale-105 filter drop-shadow-xs`}
-        title="Otantikos Concept"
+        title="Otantikos Concept Şirket Logosu"
       >
-        {concept === 'smile-bag' && <SmileBagIcon />}
-        {concept === 'gift-ribbon' && <GiftRibbonIcon />}
-        {concept === 'kawaii-mascot' && <KawaiiMascotIcon />}
+        {concept === 'round-seal' && <RoundSealIcon />}
+        {concept === 'round-monogram' && <RoundMonogramIcon />}
+        {concept === 'round-minimal' && <RoundMinimalIcon />}
+        {concept === 'smile-bag' && <RoundMinimalIcon />}
       </div>
 
-      {/* LOGO TYPOGRAPHY */}
+      {/* CORPORATE TYPOGRAPHY */}
       {showText && (
         <div className="flex flex-col justify-center leading-none">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <span 
               className={`font-sans font-black tracking-tight ${dimensions.title} ${
                 isDark ? 'text-white' : 'text-stone-900 group-hover:text-[#e60012]'
-              } transition-colors`}
+              } transition-colors uppercase`}
             >
               Otantikos
             </span>
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#e60012] animate-pulse" />
           </div>
+          
           <div className="flex items-center gap-1.5 mt-0.5 sm:mt-1">
-            <span className={`font-black text-[#e60012] tracking-[0.22em] uppercase ${dimensions.sub}`}>
+            <span className={`font-black text-[#e60012] tracking-[0.25em] uppercase ${dimensions.sub}`}>
               CONCEPT
             </span>
             <span className={`text-[8px] font-bold text-stone-300 ${size === 'xs' || size === 'sm' ? 'hidden' : 'inline-block'}`}>
               •
             </span>
-            <span className={`text-[9px] font-medium text-stone-400 tracking-wide ${size === 'xs' || size === 'sm' ? 'hidden' : 'inline-block'}`}>
-              TAHTAKALE
+            <span className={`font-bold text-stone-400 tracking-wider uppercase ${dimensions.badge} ${size === 'xs' || size === 'sm' ? 'hidden' : 'inline-block'}`}>
+              LTD. ŞTİ.
             </span>
           </div>
         </div>
@@ -71,134 +73,138 @@ export default function Logo({
 }
 
 /**
- * Concept 1: The Iconic Miniso-Style Cute Shopping Bag with Smile & Sparkle
+ * Concept 1: Dairesel Kurumsal Şirket Arması / Mühür (Round Seal)
+ * Çift halkalı resmi şirket amblemi, çember üzerinde OTANTIKOS CONCEPT ve EST. 2024 yazısı, merkezde geometrik 'O' amblemi ve parıltı yıldızı.
  */
-export function SmileBagIcon() {
+export function RoundSealIcon() {
   return (
     <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
       <defs>
-        <linearGradient id="otantikosRedGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+        <linearGradient id="corpRedGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
           <stop stopColor="#ff1725" />
-          <stop offset="1" stopColor="#c90010" />
+          <stop offset="1" stopColor="#b8000e" />
         </linearGradient>
+
+        {/* Text Paths along Circle */}
+        <path id="sealPathTop" d="M 6.5,24 A 17.5,17.5 0 0,1 41.5,24" fill="none" />
+        <path id="sealPathBottom" d="M 41.5,24 A 17.5,17.5 0 0,1 6.5,24" fill="none" />
       </defs>
 
-      {/* Red Shopping Bag Body */}
-      <rect x="4" y="11" width="40" height="34" rx="10" fill="url(#otantikosRedGrad)" />
-      
-      {/* Bag Handle (Top Arch) */}
-      <path 
-        d="M17 12V8C17 5 19.5 3 22.5 3H25.5C28.5 3 31 5 31 8V12" 
-        stroke="white" 
-        strokeWidth="2.8" 
-        strokeLinecap="round" 
-      />
+      {/* Outer Solid Red Circle */}
+      <circle cx="24" cy="24" r="23" fill="url(#corpRedGrad)" />
 
-      {/* Kawaii Eyes (Happy Arcs) */}
-      <path 
-        d="M15.5 24C16.3 22.2 18.7 22.2 19.5 24" 
-        stroke="white" 
-        strokeWidth="2.4" 
-        strokeLinecap="round" 
-      />
-      <path 
-        d="M28.5 24C29.3 22.2 31.7 22.2 32.5 24" 
-        stroke="white" 
-        strokeWidth="2.4" 
-        strokeLinecap="round" 
-      />
+      {/* Outer Fine White Accent Ring */}
+      <circle cx="24" cy="24" r="21" stroke="white" strokeWidth="1" strokeOpacity="0.85" />
 
-      {/* Sweet Smile */}
-      <path 
-        d="M20 29C21.2 32 26.8 32 28 29" 
-        stroke="white" 
-        strokeWidth="2.5" 
-        strokeLinecap="round" 
-      />
+      {/* Inner Framing Circle */}
+      <circle cx="24" cy="24" r="14" stroke="white" strokeWidth="1" strokeOpacity="0.75" />
 
-      {/* Cute Rosy Cheeks */}
-      <circle cx="15" cy="27.5" r="1.6" fill="#ffb4b9" opacity="0.95" />
-      <circle cx="33" cy="27.5" r="1.6" fill="#ffb4b9" opacity="0.95" />
+      {/* Circular Curving Text: OTANTIKOS (Top Arc) */}
+      <text fill="white" fontSize="4.1" fontWeight="900" letterSpacing="0.9">
+        <textPath href="#sealPathTop" startOffset="50%" textAnchor="middle">
+          OTANTIKOS
+        </textPath>
+      </text>
 
-      {/* Sparkle Star at Top Right */}
+      {/* Circular Curving Text: CONCEPT • 2024 (Bottom Arc) */}
+      <text fill="white" fontSize="3.6" fontWeight="800" letterSpacing="0.8">
+        <textPath href="#sealPathBottom" startOffset="50%" textAnchor="middle">
+          CONCEPT • 2024
+        </textPath>
+      </text>
+
+      {/* Flanking Stars */}
+      <path d="M 6.5,23.5 L 7.5,24.5 L 8.5,23.5 L 7.5,22.5 Z" fill="white" />
+      <path d="M 41.5,23.5 L 42.5,24.5 L 43.5,23.5 L 42.5,22.5 Z" fill="white" />
+
+      {/* Center Core: Bold Geometric "O" Monogram & 4-Point Star */}
+      <circle cx="24" cy="24" r="9" stroke="white" strokeWidth="2.4" fill="none" />
       <path 
-        d="M37 14L38 16.5L40.5 17.5L38 18.5L37 21L36 18.5L33.5 17.5L36 16.5L37 14Z" 
+        d="M 24,19 L 25.2,22.8 L 29,24 L 25.2,25.2 L 24,29 L 22.8,25.2 L 19,24 L 22.8,22.8 Z" 
         fill="white" 
-        opacity="0.95"
       />
     </svg>
   );
 }
 
 /**
- * Concept 2: The Modern "O" Monogram with Ribbon / Gift Loop
+ * Concept 2: Prestij "OC" İkili Monogram Mühür (Round Monogram)
+ * Lüks kurumsal retail markaları tarzında, iç içe geçen modern geometrik "O" ve "C" harfleri, çift halka bordür ve merkez pırlanta.
  */
-export function GiftRibbonIcon() {
+export function RoundMonogramIcon() {
   return (
     <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
       <defs>
-        <linearGradient id="ribbonGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#ff2a38" />
+        <linearGradient id="monogramGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#ff2434" />
+          <stop offset="1" stopColor="#a3000d" />
+        </linearGradient>
+      </defs>
+
+      {/* Outer Red Badge */}
+      <circle cx="24" cy="24" r="23" fill="url(#monogramGrad)" />
+
+      {/* Double Concentric Rings */}
+      <circle cx="24" cy="24" r="20.5" stroke="white" strokeWidth="1.2" strokeOpacity="0.9" />
+      <circle cx="24" cy="24" r="18.5" stroke="white" strokeWidth="0.8" strokeOpacity="0.5" strokeDasharray="3 2" />
+
+      {/* Outer Bold "O" */}
+      <circle cx="24" cy="24" r="13" stroke="white" strokeWidth="3.2" fill="none" />
+
+      {/* Interlinked "C" Letter Arc inside "O" */}
+      <path 
+        d="M 27.5,16.5 C 20,16.5 16,19.8 16,24 C 16,28.2 20,31.5 27.5,31.5" 
+        stroke="white" 
+        strokeWidth="3.2" 
+        strokeLinecap="round" 
+        fill="none" 
+      />
+
+      {/* Central Diamond Accent */}
+      <path d="M 24,21 L 26,24 L 24,27 L 22,24 Z" fill="white" />
+
+      {/* North / South Pinpoint Markers */}
+      <circle cx="24" cy="7.5" r="1.2" fill="white" />
+      <circle cx="24" cy="40.5" r="1.2" fill="white" />
+    </svg>
+  );
+}
+
+/**
+ * Concept 3: Modern Geometrik Şirket Amblemi (Round Minimal)
+ * Sade, şık, global şirket kimliği. Kalın kırmızı zemin, beyaz negatif alanlı modern dairesel ikon ve merkez odak noktası.
+ */
+export function RoundMinimalIcon() {
+  return (
+    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      <defs>
+        <linearGradient id="minimalRoundGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#ff1725" />
           <stop offset="1" stopColor="#b8000e" />
         </linearGradient>
       </defs>
 
-      {/* Rounded Emblem Badge */}
-      <rect x="3" y="3" width="42" height="42" rx="12" fill="url(#ribbonGrad)" />
+      {/* Clean Circular Emblem */}
+      <circle cx="24" cy="24" r="23" fill="url(#minimalRoundGrad)" />
 
-      {/* Stylized 'O' Circle */}
-      <circle cx="24" cy="26" r="12" stroke="white" strokeWidth="4" />
-      
-      {/* Gift Ribbon Bow on Top of 'O' */}
-      <path 
-        d="M18 14C15 10 18 6 22 9C23.5 10.5 24 14 24 14C24 14 24.5 10.5 26 9C30 6 33 10 30 14" 
+      {/* Bold Circular Ring with Stylized Dynamic Cutout */}
+      <circle 
+        cx="24" 
+        cy="24" 
+        r="14" 
         stroke="white" 
-        strokeWidth="2.6" 
+        strokeWidth="4" 
         strokeLinecap="round" 
-        strokeLinejoin="round" 
+        strokeDasharray="72 16"
+        transform="rotate(-45 24 24)"
       />
-      <circle cx="24" cy="14" r="2.2" fill="white" />
-    </svg>
-  );
-}
 
-/**
- * Concept 3: The Kawaii Plush Bear / Mascot Silhouette
- */
-export function KawaiiMascotIcon() {
-  return (
-    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-      <defs>
-        <linearGradient id="mascotGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#ff1725" />
-          <stop offset="1" stopColor="#c90010" />
-        </linearGradient>
-      </defs>
+      {/* Central Solid Core Circle & Star Sparkle */}
+      <circle cx="24" cy="24" r="5" fill="white" />
+      <circle cx="24" cy="24" r="2.5" fill="#b8000e" />
 
-      {/* Badge */}
-      <rect x="3" y="3" width="42" height="42" rx="12" fill="url(#mascotGrad)" />
-
-      {/* Bear Ears */}
-      <circle cx="15" cy="15" r="4.5" fill="white" />
-      <circle cx="33" cy="15" r="4.5" fill="white" />
-      <circle cx="15" cy="15" r="2.5" fill="#ff1725" />
-      <circle cx="33" cy="15" r="2.5" fill="#ff1725" />
-
-      {/* Bear Head */}
-      <circle cx="24" cy="26" r="13" fill="white" />
-
-      {/* Eyes */}
-      <circle cx="19" cy="24" r="1.8" fill="#1c1917" />
-      <circle cx="29" cy="24" r="1.8" fill="#1c1917" />
-
-      {/* Snout & Nose */}
-      <ellipse cx="24" cy="28.5" rx="4.5" ry="3.2" fill="#fef2f2" />
-      <ellipse cx="24" cy="27.5" rx="1.8" ry="1.2" fill="#1c1917" />
-      <path d="M22.5 29.5C23.2 30.5 24.8 30.5 25.5 29.5" stroke="#1c1917" strokeWidth="1" strokeLinecap="round" />
-
-      {/* Cheeks */}
-      <circle cx="16.5" cy="26.5" r="1.5" fill="#f87171" opacity="0.7" />
-      <circle cx="31.5" cy="26.5" r="1.5" fill="#f87171" opacity="0.7" />
+      {/* Subtle Top Accent Star */}
+      <path d="M 24,5.5 L 24.8,7.2 L 26.5,8 L 24.8,8.8 L 24,10.5 L 23.2,8.8 L 21.5,8 L 23.2,7.2 Z" fill="white" />
     </svg>
   );
 }
