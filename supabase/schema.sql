@@ -671,5 +671,33 @@ EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
 
+-- 21. HOME BANNERS (Hero Slider)
+CREATE TABLE IF NOT EXISTS public.home_banners (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    subtitle TEXT,
+    badge_text TEXT,
+    image_url TEXT NOT NULL,
+    mobile_image_url TEXT,
+    button_text TEXT DEFAULT 'Hemen Keşfet',
+    button_url TEXT DEFAULT '/kategori/tum-urunler',
+    bg_gradient TEXT DEFAULT 'from-sky-100 via-rose-50 to-amber-100',
+    display_order INTEGER DEFAULT 1,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 
+ALTER TABLE public.home_banners ADD COLUMN IF NOT EXISTS mobile_image_url TEXT;
 
+CREATE INDEX IF NOT EXISTS idx_home_banners_order ON public.home_banners (display_order ASC, is_active);
+
+ALTER TABLE public.home_banners ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public Read Active Banners" ON public.home_banners;
+CREATE POLICY "Public Read Active Banners" ON public.home_banners
+    FOR SELECT USING (is_active = true OR auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Admin Manage Banners" ON public.home_banners;
+CREATE POLICY "Admin Manage Banners" ON public.home_banners
+    FOR ALL TO authenticated USING (true) WITH CHECK (true);
