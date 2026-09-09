@@ -331,14 +331,16 @@ function CheckoutContent() {
 
   if (items.length === 0) {
     return (
-      <div className="w-full max-w-[1840px] mx-auto px-4 py-20 text-center space-y-4">
-        <h2 className="text-xl font-bold text-stone-900">Sepetiniz Boş</h2>
-        <p className="text-xs text-stone-500 max-w-sm mx-auto">
-          Sepetinize henüz ürün eklemediniz. Tahtakale özgün koleksiyonumuzu hemen keşfedebilirsiniz.
-        </p>
-        <Link href="/kategori/tum-urunler" className="inline-flex px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition">
-          Ürünlere Göz Atın
-        </Link>
+      <div className="bg-white min-h-[70vh] flex items-center justify-center">
+        <div className="w-full max-w-[1840px] mx-auto px-4 py-20 text-center space-y-4">
+          <h2 className="text-xl font-bold text-stone-900">Sepetiniz Boş</h2>
+          <p className="text-xs text-stone-500 max-w-sm mx-auto">
+            Sepetinize henüz ürün eklemediniz. Tahtakale özgün koleksiyonumuzu hemen keşfedebilirsiniz.
+          </p>
+          <Link href="/kategori/tum-urunler" className="inline-flex px-5 py-2.5 bg-[#e60012] hover:bg-[#c90010] text-white text-xs font-bold rounded-xl transition shadow-xs">
+            Ürünlere Göz Atın
+          </Link>
+        </div>
       </div>
     );
   }
@@ -348,185 +350,187 @@ function CheckoutContent() {
   // =========================================================================
   if (!isOnlineSalesActive && !isAdmin && user?.role !== 'admin') {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8 pb-24 lg:pb-16 text-center">
-        
-        {/* Top Breadcrumb / Back Link */}
-        <div className="flex items-center justify-between border-b border-stone-200 pb-4">
-          <Link href="/sepet" className="inline-flex items-center gap-2 text-xs font-semibold text-stone-600 hover:text-amber-700 transition">
-            <ArrowLeft className="w-4 h-4" />
-            <span>Sepete Geri Dön</span>
-          </Link>
-          <div className="flex items-center gap-2 text-xs text-stone-500">
-            <Lock className="w-3.5 h-3.5 text-emerald-600" />
-            <span>256-Bit SSL & iyzico Sanal POS Hazırlığı</span>
-          </div>
-        </div>
-
-        {/* Hero Announcement */}
-        <div className="space-y-4">
-          <div className="relative w-20 h-20 mx-auto bg-stone-950 rounded-3xl p-3 border border-stone-800 shadow-xl">
-            <Image src="/images/logo.webp" alt="Otantikos Concept" fill className="object-contain p-1.5" />
-          </div>
-
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold">
-            <Clock className="w-3.5 h-3.5 text-amber-700" />
-            <span>Geri Sayım Başladı • Altyapı Hazırlığı Sürüyor</span>
-          </div>
-
-          <h1 className="text-3xl sm:text-4xl font-serif font-black text-stone-900 leading-tight">
-            Online Satışlarımız Çok Yakında Başlıyor!
-          </h1>
-
-          <p className="text-xs sm:text-sm text-stone-600 max-w-xl mx-auto leading-relaxed">
-            Otantikos Concept Eminönü Tahtakale koleksiyonumuz için doğrudan kredi kartı ve <strong>iyzico Sanal POS</strong> satış altyapımız tamamlanmak üzeredir. Çok yakında tüm Türkiye&apos;ye 3D Secure güvenli ödeme ve taksit seçenekleriyle online sipariş alımına başlıyoruz.
-          </p>
-        </div>
-
-        {/* Official iyzico Logo Band */}
-        <div className="p-4 sm:p-5 bg-stone-50 rounded-3xl border border-stone-200 shadow-2xs max-w-xl mx-auto space-y-2">
-          <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">
-            BDDK Lisanslı iyzico Sanal POS Entegrasyonu
-          </span>
-          <div className="relative h-7 w-60 mx-auto opacity-90">
-            <Image
-              src="/images/iyzico/logo_band_colored.svg"
-              alt="iyzico, Visa, MasterCard, Troy"
-              fill
-              className="object-contain"
-            />
-          </div>
-          <p className="text-[10px] text-stone-400">
-            256-Bit SSL Sertifikası • 3D Secure SMS Koruması • Tüm Banka Kartlarına Taksit İmkanı
-          </p>
-        </div>
-
-        {/* Selected Cart Items Mini Preview (Customer's Cart is Safe!) */}
-        <div className="bg-white rounded-3xl border border-stone-200 p-5 sm:p-6 max-w-xl mx-auto text-left space-y-4 shadow-xs">
-          <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-stone-900 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-600" />
-              <span>Seçtiğiniz Ürünler ({items.length} Kalem)</span>
-            </h3>
-            <span className="text-xs font-black text-amber-700">{formatPrice(total)}</span>
-          </div>
-
-          <div className="divide-y divide-stone-100 max-h-52 overflow-y-auto pr-1">
-            {items.map((i) => {
-              const itemPrice = i.variant?.price_override ?? i.product.price;
-              const cover = i.variant?.image_url || i.product.images?.[0]?.image_url || '/images/logo.webp';
-              return (
-                <div key={`${i.product.id}-${i.variant?.id}`} className="py-2.5 flex items-center justify-between text-xs gap-3">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="relative w-9 h-9 rounded-lg bg-stone-100 overflow-hidden shrink-0 border border-stone-200">
-                      <Image src={cover} alt={i.product.name} fill className="object-cover" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-semibold text-stone-900 truncate">{i.product.name}</div>
-                      <div className="text-[10px] text-stone-400">{i.quantity} Adet {i.variant ? `(${i.variant.value})` : ''}</div>
-                    </div>
-                  </div>
-                  <span className="font-bold text-stone-900 shrink-0">{formatPrice(itemPrice * i.quantity)}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Immediate Ordering Actions: WhatsApp & Store */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto text-left">
+      <div className="bg-white min-h-screen">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8 pb-24 lg:pb-16 text-center">
           
-          {/* WhatsApp Direct Order Button */}
-          <div className="p-6 bg-emerald-50/80 border border-emerald-200 rounded-3xl space-y-3 shadow-xs flex flex-col justify-between">
-            <div className="space-y-2">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-                <MessageCircle className="w-5 h-5" />
-              </div>
-              <h3 className="font-bold text-stone-900 text-sm">WhatsApp ile Hemen Sipariş Verin</h3>
-              <p className="text-xs text-stone-600 leading-relaxed">
-                Sepetinizdeki ürünleri beklemeden doğrudan WhatsApp sipariş hattımız üzerinden teyit edip satın alabilirsiniz.
-              </p>
+          {/* Top Breadcrumb / Back Link */}
+          <div className="flex items-center justify-between border-b border-stone-200 pb-4">
+            <Link href="/sepet" className="inline-flex items-center gap-2 text-xs font-semibold text-stone-600 hover:text-[#e60012] transition">
+              <ArrowLeft className="w-4 h-4" />
+              <span>Sepete Geri Dön</span>
+            </Link>
+            <div className="flex items-center gap-2 text-xs text-stone-500">
+              <Lock className="w-3.5 h-3.5 text-emerald-600" />
+              <span>256-Bit SSL & iyzico Sanal POS Hazırlığı</span>
             </div>
-
-            <a
-              href={`https://wa.me/905077737777?text=${whatsappCartMessage}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>WhatsApp'tan Siparişi Gönder</span>
-            </a>
           </div>
 
-          {/* Physical Store Pickup */}
-          <div className="p-6 bg-amber-50/80 border border-amber-200 rounded-3xl space-y-3 shadow-xs flex flex-col justify-between">
-            <div className="space-y-2">
-              <div className="w-10 h-10 rounded-2xl bg-amber-700 text-white flex items-center justify-center shadow-xs">
-                <Store className="w-5 h-5" />
+          {/* Hero Announcement */}
+          <div className="space-y-4">
+            <div className="relative w-20 h-20 mx-auto bg-stone-950 rounded-3xl p-3 border border-stone-800 shadow-xl">
+              <Image src="/images/logo.webp" alt="Otantikos Concept" fill className="object-contain p-1.5" />
+            </div>
+
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-red-50 text-[#e60012] border border-red-200 text-xs font-bold">
+              <Clock className="w-3.5 h-3.5 text-[#e60012]" />
+              <span>Geri Sayım Başladı • Altyapı Hazırlığı Sürüyor</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl font-serif font-black text-stone-900 leading-tight">
+              Online Satışlarımız Çok Yakında Başlıyor!
+            </h1>
+
+            <p className="text-xs sm:text-sm text-stone-600 max-w-xl mx-auto leading-relaxed">
+              Otantikos Concept Eminönü Tahtakale koleksiyonumuz için doğrudan kredi kartı ve <strong>iyzico Sanal POS</strong> satış altyapımız tamamlanmak üzeredir. Çok yakında tüm Türkiye&apos;ye 3D Secure güvenli ödeme ve taksit seçenekleriyle online sipariş alımına başlıyoruz.
+            </p>
+          </div>
+
+          {/* Official iyzico Logo Band */}
+          <div className="p-4 sm:p-5 bg-stone-50 rounded-3xl border border-stone-200 shadow-2xs max-w-xl mx-auto space-y-2">
+            <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">
+              BDDK Lisanslı iyzico Sanal POS Entegrasyonu
+            </span>
+            <div className="relative h-7 w-60 mx-auto opacity-90">
+              <Image
+                src="/images/iyzico/logo_band_colored.svg"
+                alt="iyzico, Visa, MasterCard, Troy"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <p className="text-[10px] text-stone-400">
+              256-Bit SSL Sertifikası • 3D Secure SMS Koruması • Tüm Banka Kartlarına Taksit İmkanı
+            </p>
+          </div>
+
+          {/* Selected Cart Items Mini Preview (Customer's Cart is Safe!) */}
+          <div className="bg-white rounded-3xl border border-stone-200 p-5 sm:p-6 max-w-xl mx-auto text-left space-y-4 shadow-xs">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-stone-900 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#e60012]" />
+                <span>Seçtiğiniz Ürünler ({items.length} Kalem)</span>
+              </h3>
+              <span className="text-xs font-black text-[#e60012]">{formatPrice(total)}</span>
+            </div>
+
+            <div className="divide-y divide-stone-100 max-h-52 overflow-y-auto pr-1">
+              {items.map((i) => {
+                const itemPrice = i.variant?.price_override ?? i.product.price;
+                const cover = i.variant?.image_url || i.product.images?.[0]?.image_url || '/images/logo.webp';
+                return (
+                  <div key={`${i.product.id}-${i.variant?.id}`} className="py-2.5 flex items-center justify-between text-xs gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="relative w-9 h-9 rounded-lg bg-stone-100 overflow-hidden shrink-0 border border-stone-200">
+                        <Image src={cover} alt={i.product.name} fill className="object-cover" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-stone-900 truncate">{i.product.name}</div>
+                        <div className="text-[10px] text-stone-400">{i.quantity} Adet {i.variant ? `(${i.variant.value})` : ''}</div>
+                      </div>
+                    </div>
+                    <span className="font-bold text-stone-900 shrink-0">{formatPrice(itemPrice * i.quantity)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Immediate Ordering Actions: WhatsApp & Store */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto text-left">
+            
+            {/* WhatsApp Direct Order Button */}
+            <div className="p-6 bg-emerald-50/80 border border-emerald-200 rounded-3xl space-y-3 shadow-xs flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                  <MessageCircle className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-stone-900 text-sm">WhatsApp ile Hemen Sipariş Verin</h3>
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  Sepetinizdeki ürünleri beklemeden doğrudan WhatsApp sipariş hattımız üzerinden teyit edip satın alabilirsiniz.
+                </p>
               </div>
-              <h3 className="font-bold text-stone-900 text-sm">Tahtakale Mağazamızdan Teslim Alın</h3>
-              <p className="text-xs text-stone-600 leading-relaxed">
-                Eminönü Süleymaniye Tamburacı ve Görenli Han&apos;daki mağazamızdan elden teslim alabilir ve ödemenizi yapabilirsiniz.
+
+              <a
+                href={`https://wa.me/905077737777?text=${whatsappCartMessage}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>WhatsApp'tan Siparişi Gönder</span>
+              </a>
+            </div>
+
+            {/* Physical Store Pickup */}
+            <div className="p-6 bg-stone-50 border border-stone-200 rounded-3xl space-y-3 shadow-xs flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-xs">
+                  <Store className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-stone-900 text-sm">Tahtakale Mağazamızdan Teslim Alın</h3>
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  Eminönü Süleymaniye Tamburacı ve Görenli Han&apos;daki mağazamızdan elden teslim alabilir ve ödemenizi yapabilirsiniz.
+                </p>
+              </div>
+
+              <Link
+                href="/iletisim"
+                className="w-full py-3.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
+              >
+                <MapPin className="w-4 h-4 text-[#e60012]" />
+                <span>Mağaza Adresi ve Yol Tarifi</span>
+              </Link>
+            </div>
+
+          </div>
+
+          {/* Notify when sales open */}
+          <div className="p-6 sm:p-8 bg-white rounded-3xl border border-stone-200 shadow-2xs max-w-xl mx-auto space-y-4">
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-stone-900">Satışlar Başladığında İlk Size Haber Verelim</h3>
+              <p className="text-xs text-stone-500">
+                Online kartlı ödeme aktif olduğunda ve açılışa özel tekliflerde anında haberdar olun.
               </p>
             </div>
 
+            {isNotified ? (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-800 flex items-center justify-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>E-posta adresiniz kaydedildi. Açılış anında bilgilendirileceksiniz!</span>
+              </div>
+            ) : (
+              <form onSubmit={handleNotifySubmit} className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="email"
+                  required
+                  value={notifyEmail}
+                  onChange={(e) => setNotifyEmail(e.target.value)}
+                  placeholder="E-posta adresinizi giriniz..."
+                  className="flex-1 text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-[#e60012]"
+                />
+                <button
+                  type="submit"
+                  className="px-5 py-3 bg-[#e60012] hover:bg-[#c90010] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5 shrink-0"
+                >
+                  <Bell className="w-3.5 h-3.5" />
+                  <span>Haber Ver</span>
+                </button>
+              </form>
+            )}
+          </div>
+
+          {/* Back to Products */}
+          <div>
             <Link
-              href="/iletisim"
-              className="w-full py-3.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
+              href="/kategori/tum-urunler"
+              className="inline-flex items-center gap-2 text-xs font-bold text-[#e60012] hover:underline"
             >
-              <MapPin className="w-4 h-4 text-amber-400" />
-              <span>Mağaza Adresi ve Yol Tarifi</span>
+              <span>Koleksiyonu İncelemeye Devam Et</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
         </div>
-
-        {/* Notify when sales open */}
-        <div className="p-6 sm:p-8 bg-white rounded-3xl border border-stone-200 shadow-2xs max-w-xl mx-auto space-y-4">
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold text-stone-900">Satışlar Başladığında İlk Size Haber Verelim</h3>
-            <p className="text-xs text-stone-500">
-              Online kartlı ödeme aktif olduğunda ve açılışa özel tekliflerde anında haberdar olun.
-            </p>
-          </div>
-
-          {isNotified ? (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-800 flex items-center justify-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>E-posta adresiniz kaydedildi. Açılış anında bilgilendirileceksiniz!</span>
-            </div>
-          ) : (
-            <form onSubmit={handleNotifySubmit} className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="email"
-                required
-                value={notifyEmail}
-                onChange={(e) => setNotifyEmail(e.target.value)}
-                placeholder="E-posta adresinizi giriniz..."
-                className="flex-1 text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-600"
-              />
-              <button
-                type="submit"
-                className="px-5 py-3 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5 shrink-0"
-              >
-                <Bell className="w-3.5 h-3.5" />
-                <span>Haber Ver</span>
-              </button>
-            </form>
-          )}
-        </div>
-
-        {/* Back to Products */}
-        <div>
-          <Link
-            href="/kategori/tum-urunler"
-            className="inline-flex items-center gap-2 text-xs font-bold text-amber-700 hover:text-amber-800 underline"
-          >
-            <span>Koleksiyonu İncelemeye Devam Et</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
       </div>
     );
   }
@@ -535,200 +539,201 @@ function CheckoutContent() {
   // LIVE CHECKOUT FORM (ACTIVE WHEN NEXT_PUBLIC_ONLINE_SALES_ACTIVE IS TRUE)
   // =========================================================================
   return (
-    <div className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-24 lg:pb-12">
-      
-      {/* Header & Back Link */}
-      <div className="flex items-center justify-between border-b border-stone-200 pb-4">
-        <Link href="/sepet" className="inline-flex items-center gap-2 text-xs font-semibold text-stone-600 hover:text-amber-700 transition">
-          <ArrowLeft className="w-4 h-4" />
-          <span>Sepete Geri Dön</span>
-        </Link>
-        <div className="flex items-center gap-2 text-xs text-stone-500">
-          <Lock className="w-3.5 h-3.5 text-emerald-600" />
-          <span>256-Bit SSL & iyzico Korumalı Ödeme</span>
-        </div>
-      </div>
-
-      {/* Admin Test Mode Banner */}
-      {(isAdmin || user?.role === 'admin') && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border-2 border-purple-300 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center font-black text-base shadow-xs shrink-0">
-              🛡️
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-xs sm:text-sm text-purple-950">Yönetici Test Siparişi Modu</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-200 text-purple-800 uppercase tracking-wide">
-                  Aktif
-                </span>
-              </div>
-              <p className="text-[11px] text-purple-800 mt-0.5">
-                Kredi kartı girmeden gerçek bir sipariş oluşturabilir; stok düşümü, kargo fişi ve sipariş takip akışlarını canlı test edebilirsiniz.
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setPaymentMethod('admin_test');
-              toast.info('🧪 Kartsız Yönetici Test Satın Alımı seçildi. Formu doldurup alttan siparişi onaylayabilirsiniz.');
-            }}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
-              paymentMethod === 'admin_test'
-                ? 'bg-purple-700 text-white shadow-md'
-                : 'bg-white text-purple-900 border border-purple-300 hover:bg-purple-100'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{paymentMethod === 'admin_test' ? '✓ Test Siparişi Seçili' : 'Kartsız Test Satın Alımını Seç'}</span>
-          </button>
-        </div>
-      )}
-
-      <form onSubmit={handleCompleteOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div className="bg-white min-h-screen">
+      <div className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-24 lg:pb-12">
         
-        {/* Left Column: Form Fields (8 Cols) */}
-        <div className="lg:col-span-8 space-y-6">
-          
-          {/* 1. DELIVERY TYPE SELECTOR */}
-          <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">1</span>
-              <span>Teslimat Yöntemi</span>
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label
-                className={`p-4 rounded-xl border-2 cursor-pointer transition flex items-start gap-3 ${
-                  deliveryType === 'kargo'
-                    ? 'border-amber-600 bg-amber-50/50'
-                    : 'border-stone-200 hover:border-stone-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="delivery"
-                  value="kargo"
-                  checked={deliveryType === 'kargo'}
-                  onChange={() => setDeliveryType('kargo')}
-                  className="mt-1 text-amber-600 focus:ring-amber-500"
-                />
-                <div>
-                  <div className="flex items-center gap-1.5 font-bold text-xs text-stone-900">
-                    <Truck className="w-4 h-4 text-amber-700" />
-                    <span>DHL Kargo ile Adrese Teslim</span>
-                  </div>
-                  <p className="text-[11px] text-stone-500 mt-1">
-                    1-3 iş gününde güvenli, sigortalı kapıya teslimat (+₺200,00)
-                  </p>
-                </div>
-              </label>
-
-              <label
-                className={`p-4 rounded-xl border-2 cursor-pointer transition flex items-start gap-3 ${
-                  deliveryType === 'magaza_teslim'
-                    ? 'border-amber-600 bg-amber-50/50'
-                    : 'border-stone-200 hover:border-stone-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="delivery"
-                  value="magaza_teslim"
-                  checked={deliveryType === 'magaza_teslim'}
-                  onChange={() => setDeliveryType('magaza_teslim')}
-                  className="mt-1 text-amber-600 focus:ring-amber-500"
-                />
-                <div>
-                  <div className="flex items-center gap-1.5 font-bold text-xs text-stone-900">
-                    <Store className="w-4 h-4 text-amber-700" />
-                    <span>Tahtakale Mağazadan Teslim (Ücretsiz)</span>
-                  </div>
-                  <p className="text-[11px] text-stone-500 mt-1">
-                    Eminönü şubemizden aynı gün kargo bedelsiz elden teslim alın.
-                  </p>
-                </div>
-              </label>
-            </div>
+        {/* Header & Back Link */}
+        <div className="flex items-center justify-between border-b border-stone-200 pb-4">
+          <Link href="/sepet" className="inline-flex items-center gap-2 text-xs font-semibold text-stone-600 hover:text-[#e60012] transition">
+            <ArrowLeft className="w-4 h-4" />
+            <span>Sepete Geri Dön</span>
+          </Link>
+          <div className="flex items-center gap-2 text-xs text-stone-500">
+            <Lock className="w-3.5 h-3.5 text-emerald-600" />
+            <span>256-Bit SSL & iyzico Korumalı Ödeme</span>
           </div>
+        </div>
 
-          {/* 2. CONTACT & SHIPPING ADDRESS */}
-          <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">2</span>
-              <span>İletişim ve Teslimat Bilgileri</span>
-            </h2>
-
-            {/* Saved Address Quick Select */}
-            {savedAddresses.length > 0 && deliveryType === 'kargo' && (
-              <div className="p-3.5 bg-orange-50/80 rounded-xl border border-orange-200 space-y-2">
-                <span className="text-[11px] font-bold text-orange-950 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-orange-600" />
-                  <span>Kayıtlı Profil Adreslerinizden Seçin:</span>
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {savedAddresses.map((addr) => (
-                    <button
-                      key={addr.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedAddressId(addr.id);
-                        setFullName(addr.full_name);
-                        setPhone(addr.phone);
-                        setProvince(addr.province);
-                        setDistrict(addr.district);
-                        setFullAddress(addr.address_detail);
-                        setPostalCode(addr.postal_code || '');
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
-                        selectedAddressId === addr.id
-                          ? 'bg-orange-600 text-white border-orange-600 shadow-xs'
-                          : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'
-                      }`}
-                    >
-                      <span>{addr.title}</span>
-                      <span className="text-[10px] opacity-80 font-normal">({addr.district} / {addr.province})</span>
-                    </button>
-                  ))}
+        {/* Admin Test Mode Banner */}
+        {(isAdmin || user?.role === 'admin') && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border-2 border-purple-300 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center font-black text-base shadow-xs shrink-0">
+                🛡️
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-xs sm:text-sm text-purple-950">Yönetici Test Siparişi Modu</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-200 text-purple-800 uppercase tracking-wide">
+                    Aktif
+                  </span>
                 </div>
+                <p className="text-[11px] text-purple-800 mt-0.5">
+                  Kredi kartı girmeden gerçek bir sipariş oluşturabilir; stok düşümü, kargo fişi ve sipariş takip akışlarını canlı test edebilirsiniz.
+                </p>
               </div>
-            )}
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[11px] font-bold text-stone-700 mb-1">Ad Soyad *</label>
-                <input
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-600"
-                />
-              </div>
+            <button
+              type="button"
+              onClick={() => {
+                setPaymentMethod('admin_test');
+                toast.info('🧪 Kartsız Yönetici Test Satın Alımı seçildi. Formu doldurup alttan siparişi onaylayabilirsiniz.');
+              }}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+                paymentMethod === 'admin_test'
+                  ? 'bg-purple-700 text-white shadow-md'
+                  : 'bg-white text-purple-900 border border-purple-300 hover:bg-purple-100'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{paymentMethod === 'admin_test' ? '✓ Test Siparişi Seçili' : 'Kartsız Test Satın Alımını Seç'}</span>
+            </button>
+          </div>
+        )}
 
-              <div>
-                <label className="block text-[11px] font-bold text-stone-700 mb-1">Telefon Numarası *</label>
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-600"
-                />
-              </div>
+        <form onSubmit={handleCompleteOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* Left Column: Form Fields (8 Cols) */}
+          <div className="lg:col-span-8 space-y-6">
+            
+            {/* 1. DELIVERY TYPE SELECTOR */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-[#e60012] text-white flex items-center justify-center text-[10px] font-bold">1</span>
+                <span>Teslimat Yöntemi</span>
+              </h2>
 
-              <div className="sm:col-span-2">
-                <label className="block text-[11px] font-bold text-stone-700 mb-1">E-Posta Adresi * (Kargo ve Fatura Takibi İçin)</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-600"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition flex items-start gap-3 ${
+                    deliveryType === 'kargo'
+                      ? 'border-[#e60012] bg-red-50/20'
+                      : 'border-stone-200 hover:border-stone-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="delivery"
+                    value="kargo"
+                    checked={deliveryType === 'kargo'}
+                    onChange={() => setDeliveryType('kargo')}
+                    className="mt-1 accent-[#e60012]"
+                  />
+                  <div>
+                    <div className="flex items-center gap-1.5 font-bold text-xs text-stone-900">
+                      <Truck className="w-4 h-4 text-[#e60012]" />
+                      <span>DHL Kargo ile Adrese Teslim</span>
+                    </div>
+                    <p className="text-[11px] text-stone-500 mt-1">
+                      1-3 iş gününde güvenli, sigortalı kapıya teslimat (+₺200,00)
+                    </p>
+                  </div>
+                </label>
+
+                <label
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition flex items-start gap-3 ${
+                    deliveryType === 'magaza_teslim'
+                      ? 'border-[#e60012] bg-red-50/20'
+                      : 'border-stone-200 hover:border-stone-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="delivery"
+                    value="magaza_teslim"
+                    checked={deliveryType === 'magaza_teslim'}
+                    onChange={() => setDeliveryType('magaza_teslim')}
+                    className="mt-1 accent-[#e60012]"
+                  />
+                  <div>
+                    <div className="flex items-center gap-1.5 font-bold text-xs text-stone-900">
+                      <Store className="w-4 h-4 text-[#e60012]" />
+                      <span>Tahtakale Mağazadan Teslim (Ücretsiz)</span>
+                    </div>
+                    <p className="text-[11px] text-stone-500 mt-1">
+                      Eminönü şubemizden aynı gün kargo bedelsiz elden teslim alın.
+                    </p>
+                  </div>
+                </label>
               </div>
+            </div>
+
+            {/* 2. CONTACT & SHIPPING ADDRESS */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-[#e60012] text-white flex items-center justify-center text-[10px] font-bold">2</span>
+                <span>İletişim ve Teslimat Bilgileri</span>
+              </h2>
+
+              {/* Saved Address Quick Select */}
+              {savedAddresses.length > 0 && deliveryType === 'kargo' && (
+                <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                  <span className="text-[11px] font-bold text-stone-900 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#e60012]" />
+                    <span>Kayıtlı Profil Adreslerinizden Seçin:</span>
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {savedAddresses.map((addr) => (
+                      <button
+                        key={addr.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAddressId(addr.id);
+                          setFullName(addr.full_name);
+                          setPhone(addr.phone);
+                          setProvince(addr.province);
+                          setDistrict(addr.district);
+                          setFullAddress(addr.address_detail);
+                          setPostalCode(addr.postal_code || '');
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
+                          selectedAddressId === addr.id
+                            ? 'bg-[#e60012] text-white border-[#e60012] shadow-xs'
+                            : 'bg-white text-stone-700 border-stone-200 hover:border-[#e60012]'
+                        }`}
+                      >
+                        <span>{addr.title}</span>
+                        <span className="text-[10px] opacity-80 font-normal">({addr.district} / {addr.province})</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Ad Soyad *</label>
+                  <input
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#e60012]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Telefon Numarası *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#e60012]"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">E-Posta Adresi * (Kargo ve Fatura Takibi İçin)</label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#e60012]"
+                  />
+                </div>
 
               {deliveryType === 'kargo' && (
                 <>
@@ -737,7 +742,7 @@ function CheckoutContent() {
                     <select
                       value={province}
                       onChange={(e) => handleProvinceChange(e.target.value)}
-                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-600"
+                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#e60012]"
                     >
                       {TURKISH_PROVINCES.map((p) => (
                         <option key={p.name} value={p.name}>
@@ -752,7 +757,7 @@ function CheckoutContent() {
                     <select
                       value={district}
                       onChange={(e) => setDistrict(e.target.value)}
-                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-600"
+                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#e60012]"
                     >
                       {currentDistricts.map((d) => (
                         <option key={d} value={d}>
@@ -769,7 +774,7 @@ function CheckoutContent() {
                       rows={2}
                       value={fullAddress}
                       onChange={(e) => setFullAddress(e.target.value)}
-                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-amber-600"
+                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#e60012]"
                     />
                   </div>
 
@@ -779,7 +784,7 @@ function CheckoutContent() {
                       type="text"
                       value={postalCode}
                       onChange={(e) => setPostalCode(e.target.value)}
-                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
+                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#e60012]"
                     />
                   </div>
 
@@ -789,22 +794,22 @@ function CheckoutContent() {
                       type="text"
                       value={courierNote}
                       onChange={(e) => setCourierNote(e.target.value)}
-                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg"
+                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#e60012]"
                     />
                   </div>
                 </>
               )}
 
               {deliveryType === 'magaza_teslim' && (
-                <div className="sm:col-span-2 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
-                  <div className="font-bold flex items-center gap-1.5">
-                    <Store className="w-4 h-4 text-amber-800" />
+                <div className="sm:col-span-2 p-3.5 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-700 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-stone-900">
+                    <Store className="w-4 h-4 text-[#e60012]" />
                     <span>Tahtakale Mağazadan Teslim Alma Adresi:</span>
                   </div>
-                  <p className="text-[11px] text-amber-800">
+                  <p className="text-[11px] text-stone-600">
                     Süleymaniye Mah. Uzunçarşı Cad. Tamburacı ve Görenli Han No: 187 / 2G Fatih / İSTANBUL
                   </p>
-                  <p className="text-[10px] text-amber-700">
+                  <p className="text-[10px] text-stone-500">
                     Mesai Saatleri: Pazartesi - Cumartesi 10:00 - 17:00
                   </p>
                 </div>
@@ -815,7 +820,7 @@ function CheckoutContent() {
           {/* 3. INVOICE DETAILS */}
           <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
             <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">3</span>
+              <span className="w-5 h-5 rounded-full bg-[#e60012] text-white flex items-center justify-center text-[10px] font-bold">3</span>
               <span>Fatura Türü ve Bilgileri</span>
             </h2>
 
@@ -827,7 +832,7 @@ function CheckoutContent() {
                   value="individual"
                   checked={invoiceType === 'individual'}
                   onChange={() => setInvoiceType('individual')}
-                  className="text-amber-600 focus:ring-amber-500"
+                  className="accent-[#e60012]"
                 />
                 <span>Bireysel Fatura</span>
               </label>
@@ -839,7 +844,7 @@ function CheckoutContent() {
                   value="corporate"
                   checked={invoiceType === 'corporate'}
                   onChange={() => setInvoiceType('corporate')}
-                  className="text-amber-600 focus:ring-amber-500"
+                  className="accent-[#e60012]"
                 />
                 <span>Kurumsal Fatura (Şirket)</span>
               </label>
@@ -898,7 +903,7 @@ function CheckoutContent() {
           <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-4 shadow-xs">
             <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">4</span>
+                <span className="w-5 h-5 rounded-full bg-[#e60012] text-white flex items-center justify-center text-[10px] font-bold">4</span>
                 <span>Ödeme Seçenekleri</span>
               </div>
               <div className="flex items-center gap-1.5 text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
@@ -912,7 +917,7 @@ function CheckoutContent() {
               <label
                 className={`p-4 rounded-xl border-2 cursor-pointer transition block ${
                   paymentMethod === 'iyzico'
-                    ? 'border-amber-600 bg-amber-50/40'
+                    ? 'border-[#e60012] bg-red-50/20'
                     : 'border-stone-200 hover:border-stone-300'
                 }`}
               >
@@ -924,12 +929,12 @@ function CheckoutContent() {
                       value="iyzico"
                       checked={paymentMethod === 'iyzico'}
                       onChange={() => setPaymentMethod('iyzico')}
-                      className="mt-1 text-amber-600 focus:ring-amber-500"
+                      className="mt-1 accent-[#e60012]"
                     />
                     <div>
                       <div className="font-bold text-xs text-stone-900 flex items-center gap-2">
                         <span>Kredi / Banka Kartı ile Güvenli Öde</span>
-                        <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold">Önerilen</span>
+                        <span className="text-[10px] bg-red-50 text-[#e60012] border border-red-200 px-2 py-0.5 rounded font-bold">Önerilen</span>
                       </div>
                       <p className="text-[11px] text-stone-500 mt-1">
                         BDDK Lisanslı iyzico Sanal POS altyapısı ile tüm kartlara taksit imkanı ve 3D Secure SMS şifreli tam koruma.
@@ -950,9 +955,9 @@ function CheckoutContent() {
 
                 {/* Sub-card: Verified Logos & Details */}
                 {paymentMethod === 'iyzico' && (
-                  <div className="mt-4 pt-3 border-t border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[11px] text-stone-600">
+                  <div className="mt-4 pt-3 border-t border-red-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[11px] text-stone-600">
                     <div className="flex items-center gap-2">
-                      <Lock className="w-3.5 h-3.5 text-amber-600" />
+                      <Lock className="w-3.5 h-3.5 text-[#e60012]" />
                       <span>Kart bilgileriniz asla saklanmaz, doğrudan bankanıza iletilir.</span>
                     </div>
 
@@ -974,7 +979,7 @@ function CheckoutContent() {
                 <label
                   className={`p-4 rounded-xl border-2 cursor-pointer transition block ${
                     paymentMethod === 'magaza_nakit'
-                      ? 'border-amber-600 bg-amber-50/40'
+                      ? 'border-[#e60012] bg-red-50/20'
                       : 'border-stone-200 hover:border-stone-300'
                   }`}
                 >
@@ -985,11 +990,11 @@ function CheckoutContent() {
                       value="magaza_nakit"
                       checked={paymentMethod === 'magaza_nakit'}
                       onChange={() => setPaymentMethod('magaza_nakit')}
-                      className="mt-1 text-amber-600 focus:ring-amber-500"
+                      className="mt-1 accent-[#e60012]"
                     />
                     <div>
                       <div className="font-bold text-xs text-stone-900 flex items-center gap-2">
-                        <Store className="w-4 h-4 text-amber-700" />
+                        <Store className="w-4 h-4 text-[#e60012]" />
                         <span>Tahtakale Mağazada Elden Ödeme (Nakit / POS)</span>
                       </div>
                       <p className="text-[11px] text-stone-500 mt-1">
@@ -1046,10 +1051,10 @@ function CheckoutContent() {
                 required
                 checked={acceptDistanceSales}
                 onChange={(e) => setAcceptDistanceSales(e.target.checked)}
-                className="mt-0.5 w-4 h-4 text-amber-600 rounded"
+                className="mt-0.5 w-4 h-4 accent-[#e60012] rounded"
               />
               <span>
-                <Link href="/mesafeli-satis-sozlesmesi" target="_blank" rel="noopener noreferrer" className="text-amber-700 font-bold underline">
+                <Link href="/mesafeli-satis-sozlesmesi" target="_blank" rel="noopener noreferrer" className="text-[#e60012] font-bold hover:underline">
                   Mesafeli Satış Sözleşmesi
                 </Link>
                 'ni okudum, içeriğini anladım ve kabul ediyorum.
@@ -1062,10 +1067,10 @@ function CheckoutContent() {
                 required
                 checked={acceptPreInfo}
                 onChange={(e) => setAcceptPreInfo(e.target.checked)}
-                className="mt-0.5 w-4 h-4 text-amber-600 rounded"
+                className="mt-0.5 w-4 h-4 accent-[#e60012] rounded"
               />
               <span>
-                <Link href="/on-bilgilendirme-formu" target="_blank" rel="noopener noreferrer" className="text-amber-700 font-bold underline">
+                <Link href="/on-bilgilendirme-formu" target="_blank" rel="noopener noreferrer" className="text-[#e60012] font-bold hover:underline">
                   Ön Bilgilendirme Koşulları
                 </Link>
                 'nı okudum ve onaylıyorum.
@@ -1078,10 +1083,10 @@ function CheckoutContent() {
                 required
                 checked={acceptKvkk}
                 onChange={(e) => setAcceptKvkk(e.target.checked)}
-                className="mt-0.5 w-4 h-4 text-amber-600 rounded"
+                className="mt-0.5 w-4 h-4 accent-[#e60012] rounded"
               />
               <span>
-                <Link href="/kvkk" target="_blank" rel="noopener noreferrer" className="text-amber-700 font-bold underline">
+                <Link href="/kvkk" target="_blank" rel="noopener noreferrer" className="text-[#e60012] font-bold hover:underline">
                   KVKK Aydınlatma Metni
                 </Link>{' '}
                 kapsamında kişisel verilerimin siparişimin ifası amacıyla işlenmesine onay veriyorum.
@@ -1132,7 +1137,7 @@ function CheckoutContent() {
             </div>
 
             {hasGiftWrap && (
-              <div className="flex justify-between text-amber-800">
+              <div className="flex justify-between text-stone-700">
                 <span>Özel Hediye Paketi</span>
                 <span className="font-semibold">{formatPrice(giftWrapFee)}</span>
               </div>
@@ -1142,7 +1147,7 @@ function CheckoutContent() {
               <div className="flex items-center gap-1.5">
                 <span>Kargo Bedeli</span>
                 {billableDesi > 0 && shippingFee > 0 && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-200">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-[#e60012] font-bold border border-red-200">
                     DHL eCom • {billableDesi} Desi
                   </span>
                 )}
@@ -1154,14 +1159,14 @@ function CheckoutContent() {
 
             <div className="border-t border-stone-200 pt-3 flex justify-between text-base font-black text-stone-950">
               <span>Ödenecek Tutar</span>
-              <span className="text-xl text-amber-700">{formatPrice(total)}</span>
+              <span className="text-xl text-[#e60012]">{formatPrice(total)}</span>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-4 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-xl transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
+            className="w-full py-4 bg-[#e60012] hover:bg-[#c90010] disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-xl transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
           >
             <Lock className="w-4 h-4" />
             <span>
@@ -1245,6 +1250,7 @@ function CheckoutContent() {
       )}
 
     </div>
+  </div>
   );
 }
 

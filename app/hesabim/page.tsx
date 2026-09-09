@@ -200,166 +200,167 @@ export default function AccountPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8 pb-24 lg:pb-12">
-      
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200 pb-4 sm:pb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-orange-100 text-orange-800 flex items-center justify-center font-black text-lg sm:text-xl shadow-2xs">
-            {user?.full_name?.charAt(0) || 'M'}
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-serif font-black text-stone-900 leading-tight">
-              {user?.full_name || 'Müşteri Hesabım'}
-            </h1>
-            <p className="text-xs text-stone-500">{user?.email || 'Giriş yapılmadı'}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          {user && (
-            <button
-              onClick={logout}
-              className="px-3.5 py-2.5 border border-stone-300 text-stone-700 hover:text-rose-600 hover:bg-rose-50 active:scale-95 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 min-h-[40px] cursor-pointer"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Çıkış Yap</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Tabs with Horizontal Scroll for Mobile */}
-      <div className="flex gap-2 border-b border-stone-200 overflow-x-auto scrollbar-none whitespace-nowrap -mx-3 px-3 sm:mx-0 sm:px-0">
-        <button
-          onClick={() => setActiveTab('orders')}
-          className={`pb-3 px-3 sm:px-4 text-xs font-bold transition border-b-2 flex items-center gap-2 shrink-0 min-h-[44px] cursor-pointer ${
-            activeTab === 'orders'
-              ? 'border-orange-600 text-orange-700'
-              : 'border-transparent text-stone-500 hover:text-stone-900'
-          }`}
-        >
-          <Package className="w-4 h-4" />
-          <span>Siparişlerim ({orders.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('addresses')}
-          className={`pb-3 px-3 sm:px-4 text-xs font-bold transition border-b-2 flex items-center gap-2 shrink-0 min-h-[44px] cursor-pointer ${
-            activeTab === 'addresses'
-              ? 'border-orange-600 text-orange-700'
-              : 'border-transparent text-stone-500 hover:text-stone-900'
-          }`}
-        >
-          <MapPin className="w-4 h-4" />
-          <span>Kayıtlı Adreslerim ({addresses.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('returns')}
-          className={`pb-3 px-3 sm:px-4 text-xs font-bold transition border-b-2 flex items-center gap-2 shrink-0 min-h-[44px] cursor-pointer ${
-            activeTab === 'returns'
-              ? 'border-orange-600 text-orange-700'
-              : 'border-transparent text-stone-500 hover:text-stone-900'
-          }`}
-        >
-          <RotateCcw className="w-4 h-4" />
-          <span>İade & Değişim Masası ({returns.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('profile')}
-          className={`pb-3 px-3 sm:px-4 text-xs font-bold transition border-b-2 flex items-center gap-2 shrink-0 min-h-[44px] cursor-pointer ${
-            activeTab === 'profile'
-              ? 'border-orange-600 text-orange-700'
-              : 'border-transparent text-stone-500 hover:text-stone-900'
-          }`}
-        >
-          <User className="w-4 h-4" />
-          <span>Profil ve Bilgilerim</span>
-        </button>
-      </div>
-
-      {/* 1. ORDERS TAB */}
-      {activeTab === 'orders' && (
-        <div className="space-y-4">
-          {orders.length === 0 ? (
-            <div className="bg-white rounded-3xl border border-stone-200 p-8 sm:p-12 text-center shadow-2xs">
-              <Package className="w-10 h-10 text-stone-300 mx-auto mb-2" />
-              <h3 className="text-sm font-bold text-stone-900">Kayıtlı Siparişiniz Bulunmuyor</h3>
-              <p className="text-xs text-stone-500 mt-1 mb-4">Tahtakale koleksiyonumuzdan ilk siparişinizi verin.</p>
-              <Link href="/kategori/tum-urunler" className="inline-flex px-5 py-3 bg-orange-600 hover:bg-orange-700 active:scale-95 text-white text-xs font-bold rounded-xl transition min-h-[44px] items-center">
-                Alışverişe Başla
-              </Link>
+    <div className="bg-white min-h-screen">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8 pb-24 lg:pb-12">
+        
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200 pb-4 sm:pb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-red-50 text-[#e60012] flex items-center justify-center font-black text-lg sm:text-xl shadow-2xs">
+              {user?.full_name?.charAt(0) || 'M'}
             </div>
-          ) : (
-            orders.map((ord) => (
-              <div key={ord.id} className="bg-white rounded-2xl border border-stone-200 p-4 sm:p-6 shadow-2xs space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-stone-100 text-xs">
-                  <div>
-                    <span className="text-stone-400">Sipariş No: </span>
-                    <strong className="font-mono text-stone-900">{ord.order_number}</strong>
-                    <span className="text-stone-400 ml-2 sm:ml-3">{formatDate(ord.created_at)}</span>
-                  </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-serif font-black text-stone-900 leading-tight">
+                {user?.full_name || 'Müşteri Hesabım'}
+              </h1>
+              <p className="text-xs text-stone-500">{user?.email || 'Giriş yapılmadı'}</p>
+            </div>
+          </div>
 
-                  <div className="flex items-center gap-3">
-                    <span className="px-2.5 py-1 bg-orange-50 text-orange-900 font-bold rounded-full capitalize text-[11px] border border-orange-200">
-                      {ord.status.replace('_', ' ')}
-                    </span>
-
-                    <Link
-                      href={`/siparis-takip?order_number=${ord.order_number}`}
-                      className="text-orange-700 font-bold hover:underline flex items-center gap-1 min-h-[36px]"
-                    >
-                      <Truck className="w-3.5 h-3.5" />
-                      <span>Kargo İzle</span>
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Items */}
-                <div className="divide-y divide-stone-100">
-                  {ord.items?.map((item, idx) => (
-                    <div key={idx} className="py-2.5 flex items-center justify-between text-xs">
-                      <div>
-                        <div className="font-bold text-stone-900">{item.product_name}</div>
-                        <div className="text-[11px] text-stone-500">
-                          {item.quantity} Adet {item.variant_name ? `(${item.variant_name})` : ''} • Adet: {formatPrice(item.unit_price || item.price)}
-                        </div>
-                      </div>
-                      <span className="font-bold text-stone-900">{formatPrice(item.total_price || item.total)}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="pt-3 border-t border-stone-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-                  <div className="text-stone-600">
-                    Teslimat: <strong>{ord.delivery_type === 'pickup' ? 'Tahtakale Mağaza Teslim' : `${ord.shipping_address?.province || ''} / ${ord.shipping_address?.district || ''}`}</strong>
-                  </div>
-
-                  <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-4">
-                    <div>
-                      <span className="text-stone-400">Toplam: </span>
-                      <strong className="text-sm sm:text-base font-black text-orange-700">{formatPrice(ord.total_amount)}</strong>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedOrderForReturn(ord);
-                        setIsReturnModalOpen(true);
-                      }}
-                      className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 active:scale-95 text-stone-700 font-bold rounded-xl text-xs transition min-h-[40px] cursor-pointer"
-                    >
-                      İade Talebi Aç
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
+          <div className="flex items-center gap-2.5">
+            {user && (
+              <button
+                onClick={logout}
+                className="px-3.5 py-2.5 border border-stone-300 text-stone-700 hover:text-rose-600 hover:bg-rose-50 active:scale-95 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 min-h-[40px] cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Çıkış Yap</span>
+              </button>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* Tabs with Horizontal Scroll for Mobile */}
+        <div className="flex gap-2 border-b border-stone-200 overflow-x-auto scrollbar-none whitespace-nowrap -mx-3 px-3 sm:mx-0 sm:px-0">
+          <button
+            onClick={() => setActiveTab('orders')}
+            className={`pb-3 px-3 sm:px-4 text-xs font-bold transition border-b-2 flex items-center gap-2 shrink-0 min-h-[44px] cursor-pointer ${
+              activeTab === 'orders'
+                ? 'border-[#e60012] text-[#e60012]'
+                : 'border-transparent text-stone-500 hover:text-stone-900'
+            }`}
+          >
+            <Package className="w-4 h-4" />
+            <span>Siparişlerim ({orders.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('addresses')}
+            className={`pb-3 px-3 sm:px-4 text-xs font-bold transition border-b-2 flex items-center gap-2 shrink-0 min-h-[44px] cursor-pointer ${
+              activeTab === 'addresses'
+                ? 'border-[#e60012] text-[#e60012]'
+                : 'border-transparent text-stone-500 hover:text-stone-900'
+            }`}
+          >
+            <MapPin className="w-4 h-4" />
+            <span>Kayıtlı Adreslerim ({addresses.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('returns')}
+            className={`pb-3 px-3 sm:px-4 text-xs font-bold transition border-b-2 flex items-center gap-2 shrink-0 min-h-[44px] cursor-pointer ${
+              activeTab === 'returns'
+                ? 'border-[#e60012] text-[#e60012]'
+                : 'border-transparent text-stone-500 hover:text-stone-900'
+            }`}
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>İade & Değişim Masası ({returns.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`pb-3 px-3 sm:px-4 text-xs font-bold transition border-b-2 flex items-center gap-2 shrink-0 min-h-[44px] cursor-pointer ${
+              activeTab === 'profile'
+                ? 'border-[#e60012] text-[#e60012]'
+                : 'border-transparent text-stone-500 hover:text-stone-900'
+            }`}
+          >
+            <User className="w-4 h-4" />
+            <span>Profil ve Bilgilerim</span>
+          </button>
+        </div>
+
+        {/* 1. ORDERS TAB */}
+        {activeTab === 'orders' && (
+          <div className="space-y-4">
+            {orders.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-stone-200 p-8 sm:p-12 text-center shadow-2xs">
+                <Package className="w-10 h-10 text-stone-300 mx-auto mb-2" />
+                <h3 className="text-sm font-bold text-stone-900">Kayıtlı Siparişiniz Bulunmuyor</h3>
+                <p className="text-xs text-stone-500 mt-1 mb-4">Koleksiyonumuzdan ilk siparişinizi verin.</p>
+                <Link href="/kategori/tum-urunler" className="inline-flex px-5 py-3 bg-[#e60012] hover:bg-[#c90010] active:scale-95 text-white text-xs font-bold rounded-xl transition min-h-[44px] items-center">
+                  Alışverişe Başla
+                </Link>
+              </div>
+            ) : (
+              orders.map((ord) => (
+                <div key={ord.id} className="bg-white rounded-2xl border border-stone-200 p-4 sm:p-6 shadow-2xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-stone-100 text-xs">
+                    <div>
+                      <span className="text-stone-400">Sipariş No: </span>
+                      <strong className="font-mono text-stone-900">{ord.order_number}</strong>
+                      <span className="text-stone-400 ml-2 sm:ml-3">{formatDate(ord.created_at)}</span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="px-2.5 py-1 bg-red-50 text-[#e60012] font-bold rounded-full capitalize text-[11px] border border-red-200">
+                        {ord.status.replace('_', ' ')}
+                      </span>
+
+                      <Link
+                        href={`/siparis-takip?order_number=${ord.order_number}`}
+                        className="text-[#e60012] font-bold hover:underline flex items-center gap-1 min-h-[36px]"
+                      >
+                        <Truck className="w-3.5 h-3.5" />
+                        <span>Kargo İzle</span>
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Items */}
+                  <div className="divide-y divide-stone-100">
+                    {ord.items?.map((item, idx) => (
+                      <div key={idx} className="py-2.5 flex items-center justify-between text-xs">
+                        <div>
+                          <div className="font-bold text-stone-900">{item.product_name}</div>
+                          <div className="text-[11px] text-stone-500">
+                            {item.quantity} Adet {item.variant_name ? `(${item.variant_name})` : ''} • Adet: {formatPrice(item.unit_price || item.price)}
+                          </div>
+                        </div>
+                        <span className="font-bold text-stone-900">{formatPrice(item.total_price || item.total)}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-3 border-t border-stone-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                    <div className="text-stone-600">
+                      Teslimat: <strong>{ord.delivery_type === 'pickup' ? 'Mağaza Teslim' : `${ord.shipping_address?.province || ''} / ${ord.shipping_address?.district || ''}`}</strong>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-4">
+                      <div>
+                        <span className="text-stone-400">Toplam: </span>
+                        <strong className="text-sm sm:text-base font-black text-[#e60012]">{formatPrice(ord.total_amount)}</strong>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedOrderForReturn(ord);
+                          setIsReturnModalOpen(true);
+                        }}
+                        className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 active:scale-95 text-stone-700 font-bold rounded-xl text-xs transition min-h-[40px] cursor-pointer"
+                      >
+                        İade Talebi Aç
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
 
       {/* 2. SAVED ADDRESSES TAB */}
       {activeTab === 'addresses' && (
@@ -374,7 +375,7 @@ export default function AccountPage() {
             </div>
             <button
               onClick={handleOpenNewAddress}
-              className="px-4 py-2.5 bg-orange-600 hover:bg-orange-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+              className="px-4 py-2.5 bg-[#e60012] hover:bg-[#c90010] active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-2 shrink-0 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Yeni Açık Adres Ekle</span>
@@ -384,7 +385,7 @@ export default function AccountPage() {
           {/* Addresses Grid */}
           {addresses.length === 0 ? (
             <div className="bg-white rounded-3xl border border-stone-200 p-8 sm:p-12 text-center shadow-2xs">
-              <div className="w-14 h-14 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="w-14 h-14 bg-red-50 text-[#e60012] rounded-full flex items-center justify-center mx-auto mb-3">
                 <MapPin className="w-7 h-7" />
               </div>
               <h3 className="text-sm font-bold text-stone-900">Henüz Kayıtlı Bir Açık Adresiniz Yok</h3>
@@ -393,7 +394,7 @@ export default function AccountPage() {
               </p>
               <button
                 onClick={handleOpenNewAddress}
-                className="inline-flex px-5 py-3 bg-orange-600 hover:bg-orange-700 active:scale-95 text-white text-xs font-bold rounded-xl transition min-h-[44px] items-center gap-2 cursor-pointer"
+                className="inline-flex px-5 py-3 bg-[#e60012] hover:bg-[#c90010] active:scale-95 text-white text-xs font-bold rounded-xl transition min-h-[44px] items-center gap-2 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>İlk Adresinizi Ekleyin</span>
@@ -411,7 +412,7 @@ export default function AccountPage() {
                     key={addr.id}
                     className={`relative bg-white rounded-2xl p-5 border transition shadow-2xs flex flex-col justify-between gap-4 ${
                       addr.is_default
-                        ? 'border-orange-500 ring-2 ring-orange-500/10'
+                        ? 'border-[#e60012] ring-2 ring-red-500/10'
                         : 'border-stone-200 hover:border-stone-300'
                     }`}
                   >
@@ -420,7 +421,7 @@ export default function AccountPage() {
                       <div className="flex items-center justify-between gap-2 pb-3 border-b border-stone-100">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-lg bg-stone-100 text-stone-700 flex items-center justify-center">
-                            <TitleIcon className="w-4 h-4 text-orange-600" />
+                            <TitleIcon className="w-4 h-4 text-[#e60012]" />
                           </div>
                           <div>
                             <h3 className="font-bold text-xs sm:text-sm text-stone-900">{addr.title}</h3>
@@ -435,7 +436,7 @@ export default function AccountPage() {
                         ) : (
                           <button
                             onClick={() => handleSetDefaultAddress(addr.id)}
-                            className="text-[11px] font-bold text-stone-500 hover:text-orange-600 transition flex items-center gap-1 cursor-pointer"
+                            className="text-[11px] font-bold text-stone-500 hover:text-[#e60012] transition flex items-center gap-1 cursor-pointer"
                           >
                             <Check className="w-3 h-3" />
                             <span>Varsayılan Yap</span>
@@ -456,7 +457,7 @@ export default function AccountPage() {
                         </div>
 
                         <div className="flex items-start gap-2 text-stone-700 mt-2">
-                          <MapPin className="w-3.5 h-3.5 text-orange-500 shrink-0 mt-0.5" />
+                          <MapPin className="w-3.5 h-3.5 text-[#e60012] shrink-0 mt-0.5" />
                           <div className="space-y-0.5 leading-relaxed">
                             <p className="font-medium text-stone-900">{addr.address_detail}</p>
                             <p className="text-stone-500 text-[11px]">
@@ -514,7 +515,7 @@ export default function AccountPage() {
                   </div>
                   <span className={`px-2.5 py-1 rounded-full font-bold text-[11px] ${
                     ret.status === 'onaylandi' ? 'bg-emerald-100 text-emerald-800' :
-                    ret.status === 'reddedildi' ? 'bg-rose-100 text-rose-800' : 'bg-orange-100 text-orange-900'
+                    ret.status === 'reddedildi' ? 'bg-rose-100 text-rose-800' : 'bg-red-50 text-[#e60012]'
                   }`}>
                     {ret.status.toUpperCase()}
                   </span>
@@ -527,7 +528,7 @@ export default function AccountPage() {
 
                 {ret.admin_response && (
                   <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900">
-                    <strong>Yönetici Yanıtı:</strong> {ret.admin_response}
+                    <strong>Yetkili Yanıtı:</strong> {ret.admin_response}
                   </div>
                 )}
               </div>
@@ -557,7 +558,7 @@ export default function AccountPage() {
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-red-50 text-[#e60012] flex items-center justify-center">
                   <MapPin className="w-4 h-4" />
                 </div>
                 <h3 className="font-black text-sm sm:text-base text-stone-900">
@@ -588,7 +589,7 @@ export default function AccountPage() {
                       onClick={() => setAddrTitle(preset)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer border ${
                         addrTitle === preset
-                          ? 'bg-orange-600 text-white border-orange-600 shadow-xs'
+                          ? 'bg-[#e60012] text-white border-[#e60012] shadow-xs'
                           : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
                       }`}
                     >
@@ -602,7 +603,7 @@ export default function AccountPage() {
                   value={addrTitle}
                   onChange={(e) => setAddrTitle(e.target.value)}
                   placeholder="Örn: Ev Adresim, İş Yeri..."
-                  className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-orange-600 text-stone-900 transition"
+                  className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012] text-stone-900 transition"
                 />
               </div>
 
@@ -618,7 +619,7 @@ export default function AccountPage() {
                     value={addrFullName}
                     onChange={(e) => setAddrFullName(e.target.value)}
                     placeholder="Ad Soyad"
-                    className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-orange-600 text-stone-900 transition"
+                    className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012] text-stone-900 transition"
                   />
                 </div>
 
@@ -632,7 +633,7 @@ export default function AccountPage() {
                     value={addrPhone}
                     onChange={(e) => setAddrPhone(e.target.value)}
                     placeholder="05xx xxx xx xx"
-                    className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-orange-600 text-stone-900 transition"
+                    className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012] text-stone-900 transition"
                   />
                 </div>
               </div>
@@ -646,7 +647,7 @@ export default function AccountPage() {
                   <select
                     value={addrProvince}
                     onChange={(e) => handleProvinceChange(e.target.value)}
-                    className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-orange-600 text-stone-900 transition"
+                    className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012] text-stone-900 transition"
                   >
                     {TURKISH_PROVINCES.map((prov) => (
                       <option key={prov.name} value={prov.name}>
@@ -663,7 +664,7 @@ export default function AccountPage() {
                   <select
                     value={addrDistrict}
                     onChange={(e) => setAddrDistrict(e.target.value)}
-                    className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-orange-600 text-stone-900 transition"
+                    className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012] text-stone-900 transition"
                   >
                     {districtList.map((dist) => (
                       <option key={dist} value={dist}>
@@ -685,7 +686,7 @@ export default function AccountPage() {
                     value={addrNeighborhood}
                     onChange={(e) => setAddrNeighborhood(e.target.value)}
                     placeholder="Örn: Süleymaniye Mah."
-                    className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-orange-600 text-stone-900 transition"
+                    className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012] text-stone-900 transition"
                   />
                 </div>
 
@@ -698,7 +699,7 @@ export default function AccountPage() {
                     value={addrPostalCode}
                     onChange={(e) => setAddrPostalCode(e.target.value)}
                     placeholder="Örn: 34116"
-                    className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-orange-600 text-stone-900 transition"
+                    className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012] text-stone-900 transition"
                   />
                 </div>
               </div>
@@ -714,7 +715,7 @@ export default function AccountPage() {
                   value={addrDetail}
                   onChange={(e) => setAddrDetail(e.target.value)}
                   placeholder="Cadde, sokak adı, bina ve kapı numarası, daire, kat ve kurye için açık teslimat tarifi..."
-                  className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-orange-600 text-stone-900 transition leading-relaxed"
+                  className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012] text-stone-900 transition leading-relaxed"
                 />
               </div>
 
@@ -725,7 +726,7 @@ export default function AccountPage() {
                   id="addrIsDefault"
                   checked={addrIsDefault}
                   onChange={(e) => setAddrIsDefault(e.target.checked)}
-                  className="w-4 h-4 text-orange-600 rounded border-stone-300 focus:ring-orange-500 cursor-pointer"
+                  className="w-4 h-4 text-[#e60012] rounded border-stone-300 focus:ring-[#e60012] cursor-pointer"
                 />
                 <label htmlFor="addrIsDefault" className="text-xs font-medium text-stone-800 cursor-pointer select-none">
                   Bu adresi varsayılan teslimat adresi olarak ayarla
@@ -745,7 +746,7 @@ export default function AccountPage() {
                 <button
                   type="submit"
                   disabled={isSavingAddress}
-                  className="w-2/3 py-3 bg-orange-600 hover:bg-orange-700 active:scale-95 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition min-h-[44px] cursor-pointer flex items-center justify-center gap-2"
+                  className="w-2/3 py-3 bg-[#e60012] hover:bg-[#c90010] active:scale-95 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition min-h-[44px] cursor-pointer flex items-center justify-center gap-2"
                 >
                   {isSavingAddress ? 'Kaydediliyor...' : editingAddress ? 'Değişiklikleri Kaydet' : 'Adresi Kaydet'}
                 </button>
@@ -761,7 +762,7 @@ export default function AccountPage() {
           <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <h3 className="font-bold text-sm text-stone-900 flex items-center gap-2">
-                <RotateCcw className="w-4 h-4 text-orange-700" />
+                <RotateCcw className="w-4 h-4 text-[#e60012]" />
                 <span>İade & Değişim Talebi</span>
               </h3>
               <button 
@@ -782,7 +783,7 @@ export default function AccountPage() {
                 <select
                   value={returnReason}
                   onChange={(e) => setReturnReason(e.target.value)}
-                  className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-orange-600 text-stone-900 transition"
+                  className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012] text-stone-900 transition"
                 >
                   <option value="Beden/Ölçü Uygunsuzluğu">Beden / Ölçü Uygunsuzluğu (Farklı model ile değişim)</option>
                   <option value="Vazgeçtim / Cayma Hakkı">Vazgeçtim / 14 Gün Yasal Cayma Hakkı</option>
@@ -799,13 +800,13 @@ export default function AccountPage() {
                   value={returnDetails}
                   onChange={(e) => setReturnDetails(e.target.value)}
                   placeholder="İade veya değişim ile ilgili detaylı notunuzu yazınız..."
-                  className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-orange-600 text-stone-900 transition"
+                  className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012] text-stone-900 transition"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md transition min-h-[48px] cursor-pointer"
+                className="w-full py-3.5 bg-[#e60012] hover:bg-[#c90010] active:scale-95 text-white font-bold text-xs rounded-xl shadow-md transition min-h-[48px] cursor-pointer"
               >
                 Talebi Gönder
               </button>
@@ -814,6 +815,8 @@ export default function AccountPage() {
         </div>
       )}
 
+      </div>
     </div>
   );
 }
+

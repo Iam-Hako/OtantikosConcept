@@ -174,21 +174,25 @@ export default function ProductDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="w-full max-w-[1840px] mx-auto px-4 py-20 text-center">
-        <div className="w-12 h-12 border-4 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-sm font-semibold text-stone-600">Tahtakale ürün detayları yükleniyor...</p>
+      <div className="bg-white min-h-screen">
+        <div className="w-full max-w-[1840px] mx-auto px-4 py-20 text-center">
+          <div className="w-12 h-12 border-4 border-[#e60012] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm font-semibold text-stone-600">Ürün detayları yükleniyor...</p>
+        </div>
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="w-full max-w-[1840px] mx-auto px-4 py-20 text-center">
-        <h2 className="text-2xl font-bold text-stone-900 mb-2">Ürün Bulunamadı</h2>
-        <p className="text-xs text-stone-500 mb-6">Aradığınız ürün kaldırılmış veya bağlantı değişmiş olabilir.</p>
-        <Link href="/kategori/tum-urunler" className="px-5 py-2.5 bg-amber-600 text-white text-xs font-bold rounded-lg">
-          Koleksiyona Dön
-        </Link>
+      <div className="bg-white min-h-screen">
+        <div className="w-full max-w-[1840px] mx-auto px-4 py-20 text-center">
+          <h2 className="text-2xl font-bold text-stone-900 mb-2">Ürün Bulunamadı</h2>
+          <p className="text-xs text-stone-500 mb-6">Aradığınız ürün kaldırılmış veya bağlantı değişmiş olabilir.</p>
+          <Link href="/kategori/tum-urunler" className="px-5 py-2.5 bg-[#e60012] hover:bg-[#c90010] text-white text-xs font-bold rounded-xl transition">
+            Koleksiyona Dön
+          </Link>
+        </div>
       </div>
     );
   }
@@ -225,64 +229,65 @@ export default function ProductDetailPage() {
     .slice(0, 4);
 
   return (
-    <div className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
-      
-      {/* 1. BREADCRUMBS */}
-      <nav className="text-xs text-stone-500 flex items-center gap-1.5">
-        <Link href="/" className="hover:text-amber-700">Ana Sayfa</Link>
-        <span>/</span>
-        {product.category && (
-          <>
-            <Link href={`/kategori/${product.category.slug}`} className="hover:text-amber-700">
-              {product.category.name}
-            </Link>
-            <span>/</span>
-          </>
-        )}
-        <span className="text-stone-900 font-semibold truncate max-w-xs">{product.name}</span>
-      </nav>
-
-      {/* 2. PRODUCT MAIN GALLERY & BUYING PANEL */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+    <div className="bg-white min-h-screen">
+      <div className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
         
-        {/* Left Column: Gallery & Video & Optical Loupe Zoom (7 Cols) */}
-        <div className="lg:col-span-7 space-y-4">
-          <div className="flex flex-col-reverse sm:flex-row gap-4">
-            
-            {/* Thumbnails list */}
-            {((validImages.length > 1) || (hasVideo && hasValidImages)) && (
-              <div className="flex sm:flex-col gap-3 overflow-x-auto sm:overflow-y-auto max-h-[500px] shrink-0 pb-2 sm:pb-0">
-                
-                {/* Video Thumbnail Button */}
-                {hasVideo && (
-                  <button
-                    onClick={() => setActiveMedia('video')}
-                    className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition shrink-0 bg-stone-900 flex flex-col items-center justify-center gap-1 group ${
-                      isShowingVideo ? 'border-amber-500 ring-2 ring-amber-500/30' : 'border-stone-700 hover:border-stone-500'
-                    }`}
-                    title="Tanıtım Videosunu İzle"
-                  >
-                    <div className="w-7 h-7 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center group-hover:scale-110 transition shadow-md">
-                      <Play className="w-4 h-4 fill-stone-950 ml-0.5" />
-                    </div>
-                    <span className="text-[9px] font-bold text-amber-400 tracking-wider uppercase">Video</span>
-                  </button>
-                )}
+        {/* 1. BREADCRUMBS */}
+        <nav className="text-xs text-stone-500 flex items-center gap-1.5">
+          <Link href="/" className="hover:text-[#e60012] transition">Ana Sayfa</Link>
+          <span>/</span>
+          {product.category && (
+            <>
+              <Link href={`/kategori/${product.category.slug}`} className="hover:text-[#e60012] transition">
+                {product.category.name}
+              </Link>
+              <span>/</span>
+            </>
+          )}
+          <span className="text-stone-900 font-semibold truncate max-w-xs">{product.name}</span>
+        </nav>
 
-                {/* Photo Thumbnails */}
-                {validImages.map((img, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setActiveMedia('image');
-                      setActiveImageIndex(idx);
-                    }}
-                    className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition shrink-0 bg-stone-100 ${
-                      !isShowingVideo && activeImageIndex === idx
-                        ? 'border-amber-600 ring-2 ring-amber-600/20'
-                        : 'border-stone-200 hover:border-stone-400'
-                    }`}
-                  >
+        {/* 2. PRODUCT MAIN GALLERY & BUYING PANEL */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          
+          {/* Left Column: Gallery & Video & Optical Loupe Zoom (7 Cols) */}
+          <div className="lg:col-span-7 space-y-4">
+            <div className="flex flex-col-reverse sm:flex-row gap-4">
+              
+              {/* Thumbnails list */}
+              {((validImages.length > 1) || (hasVideo && hasValidImages)) && (
+                <div className="flex sm:flex-col gap-3 overflow-x-auto sm:overflow-y-auto max-h-[500px] shrink-0 pb-2 sm:pb-0">
+                  
+                  {/* Video Thumbnail Button */}
+                  {hasVideo && (
+                    <button
+                      onClick={() => setActiveMedia('video')}
+                      className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition shrink-0 bg-stone-900 flex flex-col items-center justify-center gap-1 group ${
+                        isShowingVideo ? 'border-[#e60012] ring-2 ring-red-500/30' : 'border-stone-700 hover:border-stone-500'
+                      }`}
+                      title="Tanıtım Videosunu İzle"
+                    >
+                      <div className="w-7 h-7 rounded-full bg-[#e60012] text-white flex items-center justify-center group-hover:scale-110 transition shadow-md">
+                        <Play className="w-4 h-4 fill-white ml-0.5" />
+                      </div>
+                      <span className="text-[9px] font-bold text-[#e60012] tracking-wider uppercase">Video</span>
+                    </button>
+                  )}
+
+                  {/* Photo Thumbnails */}
+                  {validImages.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setActiveMedia('image');
+                        setActiveImageIndex(idx);
+                      }}
+                      className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition shrink-0 bg-stone-100 ${
+                        !isShowingVideo && activeImageIndex === idx
+                          ? 'border-[#e60012] ring-2 ring-red-500/20'
+                          : 'border-stone-200 hover:border-stone-400'
+                      }`}
+                    >
                     <Image
                       src={img.image_url}
                       alt={img.alt_text || product.name}
@@ -349,7 +354,7 @@ export default function ProductDetailPage() {
 
                   {/* Hover Badge */}
                   <div className="absolute bottom-3 right-3 bg-stone-900/70 backdrop-blur-xs text-white text-[10px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 opacity-80 group-hover:opacity-100 transition">
-                    <Eye className="w-3 h-3 text-amber-400" />
+                    <Eye className="w-3 h-3 text-[#e60012]" />
                     <span>Büyütmek için üzerine gelin</span>
                   </div>
                 </div>
@@ -371,8 +376,8 @@ export default function ProductDetailPage() {
           {/* Header & Badges */}
           <div>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-700">
-                {product.category?.name || 'Tahtakale Koleksiyonu'}
+              <span className="text-xs font-bold uppercase tracking-wider text-[#e60012]">
+                {product.category?.name || 'Koleksiyon'}
               </span>
               <span className="text-[11px] text-stone-400 font-mono">
                 SKU: {currentSKU}
@@ -390,22 +395,22 @@ export default function ProductDetailPage() {
                 <span className="font-bold ml-1 text-stone-800">{product.rating}</span>
               </div>
               <span className="text-stone-300">|</span>
-              <a href="#yorumlar" className="text-stone-500 hover:text-amber-700 underline">
+              <a href="#yorumlar" className="text-stone-500 hover:text-[#e60012] transition underline">
                 {reviews.length} Değerlendirme
               </a>
               <span className="text-stone-300">|</span>
-              <a href="#sorular" className="text-stone-500 hover:text-amber-700 underline">
+              <a href="#sorular" className="text-stone-500 hover:text-[#e60012] transition underline">
                 {questions.length} Soru & Cevap
               </a>
             </div>
           </div>
 
           {/* Net Price & Stock Box */}
-          <div className="p-5 bg-amber-50/60 rounded-2xl border border-amber-200/80">
+          <div className="p-5 bg-stone-50 rounded-2xl border border-stone-200">
             <div className="flex items-baseline justify-between">
               <div>
                 <span className="text-xs text-stone-500 block">Doğrudan Net Fiyat (KDV Dahil):</span>
-                <span className="text-3xl font-serif font-black text-amber-900">
+                <span className="text-3xl font-serif font-black text-[#e60012]">
                   {formatPrice(currentPrice)}
                 </span>
               </div>
@@ -421,12 +426,12 @@ export default function ProductDetailPage() {
                 )}
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-amber-200/60 text-[11px] text-stone-600 flex items-center justify-between">
+            <div className="mt-3 pt-3 border-t border-stone-200 text-[11px] text-stone-600 flex items-center justify-between">
               <span className="flex items-center gap-1.5 font-medium">
-                <CreditCard className="w-3.5 h-3.5 text-amber-700" />
+                <CreditCard className="w-3.5 h-3.5 text-[#e60012]" />
                 <span>iyzico ile kartlara taksit seçenekleri</span>
               </span>
-              <span className="font-bold text-amber-800">Net Fiyat Garantisi</span>
+              <span className="font-bold text-stone-700">Net Fiyat Garantisi</span>
             </div>
           </div>
 
@@ -435,7 +440,7 @@ export default function ProductDetailPage() {
             <div className="space-y-3">
               <label className="block text-xs font-bold text-stone-900">
                 Seçenek / {product.variants[0].name}:{' '}
-                <strong className="text-amber-700">{selectedVariant?.value}</strong>
+                <strong className="text-[#e60012]">{selectedVariant?.value}</strong>
               </label>
               <div className="flex flex-wrap gap-2.5">
                 {product.variants.map((variant) => {
@@ -451,14 +456,14 @@ export default function ProductDetailPage() {
                       onClick={() => handleSelectVariant(variant)}
                       className={`px-4 py-2.5 rounded-xl text-xs font-semibold border transition flex items-center gap-2 ${
                         isSelected
-                          ? 'border-amber-600 bg-amber-600 text-white shadow-xs font-bold'
+                          ? 'border-[#e60012] bg-[#e60012] text-white shadow-xs font-bold'
                           : 'border-stone-200 bg-white text-stone-800 hover:border-stone-400'
                       } ${isVarOut ? 'opacity-40 line-through' : ''}`}
                     >
                       {isSelected && <Check className="w-3.5 h-3.5" />}
                       <span>{variant.value}</span>
                       {variant.price_override && variant.price_override !== product.price && (
-                        <span className={`text-[10px] ${isSelected ? 'text-amber-200' : 'text-stone-400'}`}>
+                        <span className={`text-[10px] ${isSelected ? 'text-red-100' : 'text-stone-400'}`}>
                           ({formatPrice(variant.price_override)})
                         </span>
                       )}
@@ -485,7 +490,7 @@ export default function ProductDetailPage() {
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     disabled={quantity <= 1}
-                    className="p-2 text-stone-600 hover:text-amber-700 disabled:opacity-30 transition"
+                    className="p-2 text-stone-600 hover:text-[#e60012] disabled:opacity-30 transition"
                     aria-label="Adet Azalt"
                   >
                     <Minus className="w-3.5 h-3.5" />
@@ -494,7 +499,7 @@ export default function ProductDetailPage() {
                   <button
                     onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
                     disabled={quantity >= product.stock}
-                    className="p-2 text-stone-600 hover:text-amber-700 disabled:opacity-30 transition"
+                    className="p-2 text-stone-600 hover:text-[#e60012] disabled:opacity-30 transition"
                     aria-label="Adet Artır"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -504,7 +509,7 @@ export default function ProductDetailPage() {
                 {/* Main CTA */}
                 <button
                   onClick={() => addItem(product, selectedVariant, quantity)}
-                  className="flex-1 py-3.5 px-6 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
+                  className="flex-1 py-3.5 px-6 bg-[#e60012] hover:bg-[#c90010] text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   <span>Sepete Ekle</span>
@@ -555,14 +560,14 @@ export default function ProductDetailPage() {
 
             <div className="grid grid-cols-2 gap-2.5">
               <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white border border-stone-200">
-                <Truck className="w-4 h-4 text-amber-600 shrink-0" />
+                <Truck className="w-4 h-4 text-[#e60012] shrink-0" />
                 <div>
                   <span className="font-bold text-stone-900 block text-[11px]">Hızlı Sevkiyat</span>
-                  <span className="text-[10px] text-stone-500">Eminönü Doğrudan Kargo</span>
+                  <span className="text-[10px] text-stone-500">Doğrudan Hızlı Kargo</span>
                 </div>
               </div>
               <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white border border-stone-200">
-                <RotateCcw className="w-4 h-4 text-amber-600 shrink-0" />
+                <RotateCcw className="w-4 h-4 text-[#e60012] shrink-0" />
                 <div>
                   <span className="font-bold text-stone-900 block text-[11px]">14 Gün İade</span>
                   <span className="text-[10px] text-stone-500">Kolay RMA Masası</span>
@@ -576,7 +581,7 @@ export default function ProductDetailPage() {
       {/* 3. DYNAMIC TECHNICAL SPECIFICATIONS TABLE (Dynamic Spec Builder Output) */}
       <section className="bg-white rounded-3xl border border-stone-200 p-6 sm:p-10 shadow-xs space-y-6">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-700">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#e60012]">
             <Sparkles className="w-4 h-4" />
             <span>Detaylı Ürün Analizi</span>
           </div>
@@ -615,7 +620,7 @@ export default function ProductDetailPage() {
       <section id="sorular" className="bg-white rounded-3xl border border-stone-200 p-6 sm:p-10 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-700">Müşteri Soruları</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-[#e60012]">Müşteri Soruları</span>
             <h2 className="text-xl sm:text-2xl font-serif font-black text-stone-900 mt-1">
               Soru & Cevap ({questions.length})
             </h2>
@@ -638,7 +643,7 @@ export default function ProductDetailPage() {
                     className="w-full p-4 text-left bg-stone-50/60 hover:bg-stone-100 flex items-center justify-between gap-4 transition"
                   >
                     <div className="flex items-start gap-2.5">
-                      <HelpCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <HelpCircle className="w-4 h-4 text-[#e60012] shrink-0 mt-0.5" />
                       <div>
                         <h4 className="text-xs font-bold text-stone-900">{q.question_text}</h4>
                         <span className="text-[10px] text-stone-400">{q.user_name} • {new Date(q.created_at).toLocaleDateString('tr-TR')}</span>
@@ -651,7 +656,7 @@ export default function ProductDetailPage() {
                     <div className="p-4 bg-white border-t border-stone-200 text-xs text-stone-700 space-y-1 animate-slide-down">
                       <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-[11px]">
                         <Check className="w-3.5 h-3.5" />
-                        <span>Otantikos Yetkili Yanıtı:</span>
+                        <span>Yetkili Yanıtı:</span>
                       </div>
                       <p className="pl-5 leading-relaxed text-stone-600">
                         {q.answer_text || 'Bu soru inceleniyor, yanıt yakında eklenecektir.'}
@@ -674,14 +679,14 @@ export default function ProductDetailPage() {
               placeholder="Adınız Soyadınız"
               value={newQuestionName}
               onChange={(e) => setNewQuestionName(e.target.value)}
-              className="text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-amber-500"
+              className="text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-[#e60012]"
             />
             <input
               type="email"
               placeholder="E-Posta Adresiniz (Cevap iletilsin)"
               value={newQuestionEmail}
               onChange={(e) => setNewQuestionEmail(e.target.value)}
-              className="text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-amber-500"
+              className="text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-[#e60012]"
             />
           </div>
           <textarea
@@ -690,11 +695,11 @@ export default function ProductDetailPage() {
             placeholder="Sorunuzu buraya yazın..."
             value={newQuestionText}
             onChange={(e) => setNewQuestionText(e.target.value)}
-            className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-amber-500"
+            className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-[#e60012]"
           />
           <button
             type="submit"
-            className="px-5 py-2.5 bg-stone-900 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition"
+            className="px-5 py-2.5 bg-stone-900 hover:bg-[#e60012] text-white text-xs font-bold rounded-lg transition"
           >
             Soruyu Gönder
           </button>
@@ -705,12 +710,12 @@ export default function ProductDetailPage() {
       <section id="yorumlar" className="bg-white rounded-3xl border border-stone-200 p-6 sm:p-10 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-700">Deneyimler</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-[#e60012]">Deneyimler</span>
             <h2 className="text-xl sm:text-2xl font-serif font-black text-stone-900 mt-1">
               Müşteri Değerlendirmeleri ({reviews.length})
             </h2>
           </div>
-          <div className="flex items-center gap-2 bg-amber-50 px-4 py-2 rounded-xl border border-amber-200">
+          <div className="flex items-center gap-2 bg-stone-50 px-4 py-2 rounded-xl border border-stone-200">
             <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
             <span className="text-lg font-black text-stone-900">{product.rating}</span>
             <span className="text-xs text-stone-500">/ 5.0 Genel Memnuniyet</span>
@@ -758,7 +763,7 @@ export default function ProductDetailPage() {
               placeholder="Adınız Soyadınız"
               value={newReviewName}
               onChange={(e) => setNewReviewName(e.target.value)}
-              className="text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-amber-500"
+              className="text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-[#e60012]"
             />
             <div className="flex items-center gap-2 bg-white px-3 py-2 border border-stone-300 rounded-lg">
               <span className="text-xs text-stone-600">Puanınız:</span>
@@ -786,11 +791,11 @@ export default function ProductDetailPage() {
             placeholder="Ürün hakkındaki yorum ve deneyiminiz..."
             value={newReviewComment}
             onChange={(e) => setNewReviewComment(e.target.value)}
-            className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-amber-500"
+            className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-[#e60012]"
           />
           <button
             type="submit"
-            className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition"
+            className="px-5 py-2.5 bg-[#e60012] hover:bg-[#c90010] text-white text-xs font-bold rounded-lg transition"
           >
             Yorumu Gönder
           </button>
@@ -801,7 +806,7 @@ export default function ProductDetailPage() {
       {similarProducts.length > 0 && (
         <section className="space-y-6 pt-6">
           <h2 className="text-xl sm:text-2xl font-serif font-black text-stone-900">
-            Benzer Tahtakale Ürünleri
+            Benzer Ürünler
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
             {similarProducts.map((p) => (
@@ -816,7 +821,7 @@ export default function ProductDetailPage() {
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-slide-up">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-amber-700 font-bold text-sm">
+              <div className="flex items-center gap-2 text-[#e60012] font-bold text-sm">
                 <Bell className="w-5 h-5" />
                 <span>Gelince Haber Ver</span>
               </div>
@@ -836,11 +841,11 @@ export default function ProductDetailPage() {
                 placeholder="E-Posta Adresiniz"
                 value={stockAlertEmail}
                 onChange={(e) => setStockAlertEmail(e.target.value)}
-                className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-amber-500"
+                className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012]"
               />
               <button
                 type="submit"
-                className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition"
+                className="w-full py-3 bg-[#e60012] hover:bg-[#c90010] text-white text-xs font-bold rounded-xl transition"
               >
                 Bildirim Talebi Oluştur
               </button>
@@ -849,6 +854,7 @@ export default function ProductDetailPage() {
         </div>
       )}
 
+    </div>
     </div>
   );
 }

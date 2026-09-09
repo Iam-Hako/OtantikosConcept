@@ -5,14 +5,15 @@ import { ShieldCheck } from 'lucide-react';
 
 export default function KvkkPage() {
   return (
-    <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12 pb-24 lg:pb-12 space-y-6">
-      <div className="border-b border-stone-200 pb-4">
-        <h1 className="text-2xl sm:text-3xl font-serif font-black text-stone-900 flex items-center gap-3">
-          <ShieldCheck className="w-8 h-8 text-amber-700" />
-          <span>KVKK Aydınlatma Metni</span>
-        </h1>
-        <p className="text-xs text-stone-500 mt-1">6698 Sayılı Kişisel Verilerin Korunması Kanunu Kapsamında Aydınlatma Metni</p>
-      </div>
+    <div className="bg-white min-h-screen">
+      <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12 pb-24 lg:pb-12 space-y-6">
+        <div className="border-b border-stone-200 pb-4">
+          <h1 className="text-2xl sm:text-3xl font-serif font-black text-stone-900 flex items-center gap-3">
+            <ShieldCheck className="w-8 h-8 text-[#e60012]" />
+            <span>KVKK Aydınlatma Metni</span>
+          </h1>
+          <p className="text-xs text-stone-500 mt-1">6698 Sayılı Kişisel Verilerin Korunması Kanunu Kapsamında Aydınlatma Metni</p>
+        </div>
 
       <div className="prose prose-stone text-xs sm:text-sm text-stone-700 space-y-6 leading-relaxed bg-white p-5 sm:p-10 rounded-3xl border border-stone-200 shadow-2xs">
         
@@ -62,5 +63,6 @@ export default function KvkkPage() {
 
       </div>
     </div>
+  </div>
   );
 }

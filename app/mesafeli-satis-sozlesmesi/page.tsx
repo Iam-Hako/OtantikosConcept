@@ -5,14 +5,15 @@ import { FileText, ShieldCheck, Truck, RotateCcw } from 'lucide-react';
 
 export default function DistanceSellingPage() {
   return (
-    <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12 pb-24 lg:pb-12 space-y-6">
-      <div className="border-b border-stone-200 pb-4">
-        <h1 className="text-2xl sm:text-3xl font-serif font-black text-stone-900 flex items-center gap-3">
-          <FileText className="w-8 h-8 text-amber-700" />
-          <span>Mesafeli Satış Sözleşmesi</span>
-        </h1>
-        <p className="text-xs text-stone-500 mt-1">6502 Sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği Uyarınca Düzenlenmiştir</p>
-      </div>
+    <div className="bg-white min-h-screen">
+      <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12 pb-24 lg:pb-12 space-y-6">
+        <div className="border-b border-stone-200 pb-4">
+          <h1 className="text-2xl sm:text-3xl font-serif font-black text-stone-900 flex items-center gap-3">
+            <FileText className="w-8 h-8 text-[#e60012]" />
+            <span>Mesafeli Satış Sözleşmesi</span>
+          </h1>
+          <p className="text-xs text-stone-500 mt-1">6502 Sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği Uyarınca Düzenlenmiştir</p>
+        </div>
 
       <div className="prose prose-stone text-xs sm:text-sm text-stone-700 space-y-6 leading-relaxed bg-white p-5 sm:p-10 rounded-3xl border border-stone-200 shadow-2xs">
         
@@ -75,7 +76,7 @@ export default function DistanceSellingPage() {
             <p>
               <strong>5.1. Cayma Hakkı Süresi:</strong> ALICI, hiçbir hukuki ve cezai sorumluluk üstlenmeksizin ve hiçbir gerekçe göstermeksizin, malın teslim alındığı tarihten itibaren <strong>14 (ondört) gün</strong> içerisinde cayma hakkını kullanabilir.
             </p>
-            <p className="bg-amber-50/70 p-3 rounded-xl border border-amber-200/80 text-amber-900">
+            <p className="bg-red-50/50 p-3 rounded-xl border border-red-200 text-stone-800">
               <strong>5.2. Kargo Firması & İade Masrafı:</strong> İadelerin yalnızca anlaşmalı kargo firmamız olan <strong>DHL Kargo</strong> aracılığıyla yapılması gerekmektedir. Cayma hakkı kapsamındaki keyfi iadelerde kargo gönderim bedeli ALICI&apos;ya aittir. Ayıplı, hasarlı veya hatalı ürün gönderimlerinde ise kargo masrafı SATICI tarafından karşılanır.
             </p>
             <p>
@@ -102,5 +103,6 @@ export default function DistanceSellingPage() {
 
       </div>
     </div>
+  </div>
   );
 }

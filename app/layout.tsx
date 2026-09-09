@@ -48,15 +48,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr" className="scroll-smooth">
-      <body className="flex flex-col min-h-screen font-sans text-stone-900 w-full max-w-full antialiased relative">
-        {/* Luminous Ambient Background Glows (Desktop only to prevent mobile GPU compositing crash during fast scroll) */}
-        <div className="hidden md:block fixed inset-0 pointer-events-none -z-10 overflow-hidden select-none">
-          <div className="absolute -top-28 -right-24 w-[26rem] h-[26rem] rounded-full bg-orange-300/25 blur-3xl" />
-          <div className="absolute top-1/4 -left-32 w-[30rem] h-[30rem] rounded-full bg-pink-300/20 blur-3xl" />
-          <div className="absolute top-2/3 -right-24 w-[28rem] h-[28rem] rounded-full bg-amber-300/25 blur-3xl" />
-          <div className="absolute -bottom-28 left-1/4 w-[30rem] h-[30rem] rounded-full bg-purple-300/20 blur-3xl" />
-        </div>
+    <html lang="tr" className="scroll-smooth bg-white">
+      <body className="flex flex-col min-h-screen font-sans text-stone-900 w-full max-w-full antialiased relative bg-white">
 
         <AuthProvider>
           <WishlistProvider>
@@ -64,7 +57,7 @@ export default function RootLayout({
               <Suspense fallback={null}>
                 <Navbar />
               </Suspense>
-              <main className="flex-1 pb-16 lg:pb-0 transform-gpu">{children}</main>
+              <main className="flex-1 pb-16 lg:pb-0 transform-gpu bg-white">{children}</main>
               <Footer />
               <Suspense fallback={null}>
                 <MobileBottomNav />
