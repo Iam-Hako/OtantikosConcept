@@ -109,9 +109,60 @@ export function deduplicateLiveChatMessages(messages: LiveChatMessage[]): LiveCh
   return result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 }
 
-export const DEFAULT_STORE_CATEGORIES: Category[] = [];
+export const DEFAULT_STORE_CATEGORIES: Category[] = [
+  {
+    id: 'cat-pelus',
+    name: 'Peluş & Sevimli Hediyelik',
+    slug: 'pelus-hediyelikler',
+    description: 'Yumuşacık ayıcıklar, sevimli minderler ve özel hediyelik koleksiyonları',
+    icon: '🧸',
+    display_order: 1,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'cat-blindbox',
+    name: 'Sürpriz Kutu & Figür',
+    slug: 'surpriz-kutu-blind-box',
+    description: 'Trend figürler, anime karakterleri ve lisanslı sürpriz kutular',
+    icon: '🎁',
+    display_order: 2,
+    is_active: true,
+    created_at: '2026-01-02T00:00:00.000Z',
+  },
+  {
+    id: 'cat-squishy',
+    name: 'Squishy & Antistres',
+    slug: 'squishy-antistres',
+    description: 'En popüler yavaş yükselen squishy ve stres giderici oyuncaklar',
+    icon: '⭐',
+    display_order: 3,
+    is_active: true,
+    created_at: '2026-01-03T00:00:00.000Z',
+  },
+  {
+    id: 'cat-canta',
+    name: 'Çanta & Aksesuar',
+    slug: 'canta-aksesuarlar',
+    description: 'Renkli sırt çantaları, sevimli cüzdanlar ve anahtarlıklar',
+    icon: '🎒',
+    display_order: 4,
+    is_active: true,
+    created_at: '2026-01-04T00:00:00.000Z',
+  },
+  {
+    id: 'cat-kirtasiye',
+    name: 'Kırtasiye & Defter',
+    slug: 'kirtasiye-defter',
+    description: 'Defterler, tasarım jel kalemler ve masaüstü düzenleyiciler',
+    icon: '✏️',
+    display_order: 5,
+    is_active: true,
+    created_at: '2026-01-05T00:00:00.000Z',
+  },
+];
 
-let runtimeCategories: Category[] = [];
+let runtimeCategories: Category[] = [...DEFAULT_STORE_CATEGORIES];
 
 export const DEFAULT_HOME_BANNERS: HomeBanner[] = [
   {
@@ -515,8 +566,8 @@ export const DataService = {
         const stored = localStorage.getItem('otantikos_categories');
         if (stored !== null) {
           const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed)) {
-            runtimeCategories = parsed.filter(c => c.id !== 'cat-kirtasiye' && c.slug !== 'k-rtasiye-r-nleri');
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            runtimeCategories = parsed;
             return runtimeCategories;
           }
         }
@@ -532,8 +583,8 @@ export const DataService = {
         .select('*')
         .order('display_order', { ascending: true });
 
-      if (!error && data) {
-        runtimeCategories = (data as Category[]).filter(c => c.id !== 'cat-kirtasiye' && c.slug !== 'k-rtasiye-r-nleri');
+      if (!error && data && data.length > 0) {
+        runtimeCategories = data as Category[];
         if (typeof window !== 'undefined') {
           try {
             localStorage.setItem('otantikos_categories', JSON.stringify(runtimeCategories));
@@ -545,7 +596,12 @@ export const DataService = {
       // Fallback
     }
 
-    return runtimeCategories.filter(c => c.id !== 'cat-kirtasiye' && c.slug !== 'k-rtasiye-r-nleri');
+    if (runtimeCategories && runtimeCategories.length > 0) {
+      return runtimeCategories;
+    }
+
+    runtimeCategories = [...DEFAULT_STORE_CATEGORIES];
+    return runtimeCategories;
   },
 
   async saveCategory(cat: Partial<Category>): Promise<Category> {

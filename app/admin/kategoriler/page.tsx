@@ -114,10 +114,20 @@ export default function AdminCategoriesPage() {
     }
   };
 
+  const handleResetDefaultCategories = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('otantikos_categories');
+      } catch {}
+    }
+    loadCategories();
+    toast.success('Varsayılan mağaza kategorileri başarıyla yüklendi!');
+  };
+
   return (
     <div className="space-y-6">
       
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-serif font-black text-stone-900 flex items-center gap-2">
             <Layers className="w-6 h-6 text-amber-600" />
@@ -128,83 +138,127 @@ export default function AdminCategoriesPage() {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenNew}
-          className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>+ Yeni Kategori Ekle</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleResetDefaultCategories}
+            className="px-3.5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+            title="Kategorileri varsayılan örnek listeye sıfırla"
+          >
+            <Sparkles className="w-4 h-4 text-amber-600" />
+            <span className="hidden sm:inline">Varsayılanları Yükle</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenNew}
+            className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Yeni Kategori Ekle</span>
+          </button>
+        </div>
       </div>
 
-      {/* Category Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {categories.map((c) => (
-          <div key={c.id} className="bg-white rounded-2xl border border-stone-200 p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex items-center justify-center font-bold text-2xl overflow-hidden shadow-xs">
-                  {c.image_url ? (
-                    <img src={c.image_url} alt={c.name} className="w-full h-full object-cover" />
-                  ) : c.icon ? (
-                    <span>{c.icon}</span>
-                  ) : (
-                    <Layers className="w-5 h-5 text-amber-700" />
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {c.icon && (
-                    <span className="text-sm bg-stone-50 border border-stone-200 px-2 py-0.5 rounded-lg" title="Emoji İkonu">
-                      {c.icon}
-                    </span>
-                  )}
-                  <span className="text-[10px] font-bold uppercase tracking-wider bg-stone-100 text-stone-700 border border-stone-200 px-2.5 py-1 rounded-lg">
-                    Sıra: {c.display_order}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-base text-stone-900 flex items-center gap-1.5">
-                  {c.icon && <span>{c.icon}</span>}
-                  <span>{c.name}</span>
-                </h3>
-                <div className="text-[11px] text-amber-800 font-mono mt-0.5">/kategori/{c.slug}</div>
-              </div>
-
-              <p className="text-stone-600 text-xs line-clamp-2 leading-relaxed">
-                {c.description || 'Açıklama girilmemiş.'}
-              </p>
-
-              {c.image_url && (
-                <div className="mt-2 rounded-xl overflow-hidden border border-stone-100 h-24 bg-stone-50 relative">
-                  <img src={c.image_url} alt={c.name} className="w-full h-full object-cover" />
-                  <span className="absolute bottom-1 right-1 text-[9px] bg-black/60 backdrop-blur-xs text-white px-1.5 py-0.5 rounded font-mono">
-                    Görsel aktif
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div className="pt-4 mt-4 border-t border-stone-100 flex items-center justify-end gap-2">
-              <button
-                onClick={() => handleOpenEdit(c)}
-                className="px-3.5 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg font-bold text-xs transition flex items-center gap-1"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>Düzenle</span>
-              </button>
-              <button
-                onClick={() => handleDelete(c.id, c.name)}
-                className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                title="Sil"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
+      {/* Category Cards Grid or Empty State */}
+      {categories.length === 0 ? (
+        <div className="p-8 sm:p-14 text-center bg-white rounded-3xl border border-stone-200 shadow-2xs space-y-4 max-w-xl mx-auto my-8">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-700 mx-auto flex items-center justify-center border border-amber-200">
+            <Layers className="w-8 h-8 text-amber-600" />
           </div>
-        ))}
-      </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-stone-900">Henüz Kategori Bulunmuyor</h3>
+            <p className="text-xs text-stone-500 max-w-sm mx-auto leading-relaxed">
+              Tüm kategoriler silindiği için liste boş görünüyor. Yeni bir kategori ekleyebilir veya mağaza için hazırlanan hazır örnek kategorileri tek tıkla yükleyebilirsiniz.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleOpenNew}
+              className="w-full sm:w-auto px-5 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Yeni Kategori Ekle</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleResetDefaultCategories}
+              className="w-full sm:w-auto px-5 py-2.5 bg-stone-100 hover:bg-stone-200 active:scale-95 text-stone-800 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-amber-600" />
+              <span>Örnek Kategorileri Geri Yükle</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {categories.map((c) => (
+            <div key={c.id} className="bg-white rounded-2xl border border-stone-200 p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex items-center justify-center font-bold text-2xl overflow-hidden shadow-xs">
+                    {c.image_url ? (
+                      <img src={c.image_url} alt={c.name} className="w-full h-full object-cover" />
+                    ) : c.icon ? (
+                      <span>{c.icon}</span>
+                    ) : (
+                      <Layers className="w-5 h-5 text-amber-700" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {c.icon && (
+                      <span className="text-sm bg-stone-50 border border-stone-200 px-2 py-0.5 rounded-lg" title="Emoji İkonu">
+                        {c.icon}
+                      </span>
+                    )}
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-stone-100 text-stone-700 border border-stone-200 px-2.5 py-1 rounded-lg">
+                      Sıra: {c.display_order}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-base text-stone-900 flex items-center gap-1.5">
+                    {c.icon && <span>{c.icon}</span>}
+                    <span>{c.name}</span>
+                  </h3>
+                  <div className="text-[11px] text-amber-800 font-mono mt-0.5">/kategori/{c.slug}</div>
+                </div>
+
+                <p className="text-stone-600 text-xs line-clamp-2 leading-relaxed">
+                  {c.description || 'Açıklama girilmemiş.'}
+                </p>
+
+                {c.image_url && (
+                  <div className="mt-2 rounded-xl overflow-hidden border border-stone-100 h-24 bg-stone-50 relative">
+                    <img src={c.image_url} alt={c.name} className="w-full h-full object-cover" />
+                    <span className="absolute bottom-1 right-1 text-[9px] bg-black/60 backdrop-blur-xs text-white px-1.5 py-0.5 rounded font-mono">
+                      Görsel aktif
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 mt-4 border-t border-stone-100 flex items-center justify-end gap-2">
+                <button
+                  onClick={() => handleOpenEdit(c)}
+                  className="px-3.5 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg font-bold text-xs transition flex items-center gap-1"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Düzenle</span>
+                </button>
+                <button
+                  onClick={() => handleDelete(c.id, c.name)}
+                  className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                  title="Sil"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Category Modal */}
       {isModalOpen && (
