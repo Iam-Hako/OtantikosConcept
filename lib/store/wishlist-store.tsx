@@ -28,6 +28,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   // 1. Initial Load from LocalStorage
   useEffect(() => {
     setIsMounted(true);
+    if (typeof window === 'undefined') return;
     try {
       const saved = localStorage.getItem(WISHLIST_STORAGE_KEY);
       if (saved) {
@@ -60,9 +61,11 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
             prev.forEach((p) => mergedMap.set(p.id, p));
             dbProducts.forEach((p) => mergedMap.set(p.id, p));
             const merged = Array.from(mergedMap.values());
-            try {
-              localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(merged));
-            } catch {}
+            if (typeof window !== 'undefined') {
+              try {
+                localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(merged));
+              } catch {}
+            }
             return merged;
           });
         }
@@ -78,7 +81,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
 
   // 3. Save to LocalStorage on state change
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isMounted || typeof window === 'undefined') return;
     try {
       localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(favorites));
     } catch {

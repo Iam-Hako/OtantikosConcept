@@ -83,7 +83,9 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
     try {
       const updated = [q.trim(), ...recentSearches.filter((item) => item !== q.trim())].slice(0, 5);
       setRecentSearches(updated);
-      localStorage.setItem('otk_recent_searches', JSON.stringify(updated));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('otk_recent_searches', JSON.stringify(updated));
+      }
     } catch {
       // Ignore
     }
@@ -218,7 +220,11 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                     <button
                       onClick={() => {
                         setRecentSearches([]);
-                        localStorage.removeItem('otk_recent_searches');
+                        if (typeof window !== 'undefined') {
+                          try {
+                            localStorage.removeItem('otk_recent_searches');
+                          } catch {}
+                        }
                       }}
                       className="text-[11px] text-slate-400 hover:text-slate-600 transition"
                     >

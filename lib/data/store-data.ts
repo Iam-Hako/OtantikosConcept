@@ -39,22 +39,12 @@ export function normalizeTurkish(text: string): string {
     .trim();
 }
 
-// Clear any legacy mock/cache data from localStorage on client load
+// Clear any obsolete legacy mock cache from older versions
 if (typeof window !== 'undefined') {
   try {
     const keysToRemove = [
-      'otantikos_products',
-      'otantikos_categories',
-      'otantikos_orders',
-      'otantikos_returns',
-      'otantikos_questions',
-      'otantikos_reviews',
-      'otantikos_all_chat_sessions',
-      'otantikos_wholesale',
-      'otantikos_recent_views_v1',
-      'otantikos_chat_session_id',
-      'otantikos_chat_name',
-      'otantikos_chat_email'
+      'otantikos_mock_data_legacy',
+      'otantikos_legacy_v0'
     ];
     keysToRemove.forEach((k) => localStorage.removeItem(k));
   } catch {
@@ -566,7 +556,7 @@ export const DataService = {
         const stored = localStorage.getItem('otantikos_categories');
         if (stored !== null) {
           const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed)) {
             runtimeCategories = parsed;
             return runtimeCategories;
           }

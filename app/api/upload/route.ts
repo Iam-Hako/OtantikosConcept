@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://tuphsfeowfcyzzciyvav.supabase.co';
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
   try {
     const contentTypeHeader = request.headers.get('content-type') || '';

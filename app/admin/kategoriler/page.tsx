@@ -90,7 +90,10 @@ export default function AdminCategoriesPage() {
         description: 'Menüde, kaydırılabilir listelerde ve filtrelerde canlıya yansıdı.',
       });
       setIsModalOpen(false);
-      loadCategories();
+      await loadCategories();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('otantikos_categories_changed'));
+      }
     } else {
       toast.error(res.error || 'Kategori kaydedilemedi.');
     }
@@ -108,6 +111,9 @@ export default function AdminCategoriesPage() {
         }));
         toast.success('Kategori silindi.');
         await loadCategories();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('otantikos_categories_changed'));
+        }
       } else {
         toast.error(res.error || 'Kategori silinemedi.');
       }
@@ -121,6 +127,9 @@ export default function AdminCategoriesPage() {
       } catch {}
     }
     loadCategories();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('otantikos_categories_changed'));
+    }
     toast.success('Varsayılan mağaza kategorileri başarıyla yüklendi!');
   };
 

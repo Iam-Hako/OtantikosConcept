@@ -31,7 +31,7 @@ export default function NotFound() {
             <span>Ana Sayfa</span>
           </Link>
           <Link
-            href="/kategori/tumu"
+            href="/kategori/tum-urunler"
             className="w-full sm:w-auto px-5 py-3.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2"
           >
             <ShoppingBag className="w-4 h-4" />

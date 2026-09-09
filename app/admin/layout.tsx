@@ -65,13 +65,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
 
-          <Link href="/admin" className="flex items-center gap-2.5">
-            <div className="relative w-8 h-8 rounded-lg bg-stone-800 border border-stone-700 p-1 flex items-center justify-center">
-              <Image src="/images/logo.webp" alt="Otantikos Admin" fill className="object-contain p-0.5" />
+          <Link href="/admin" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 rounded-lg bg-[#e60012] flex flex-col items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+              <span className="text-[7.5px] font-black tracking-tighter leading-none">OTAN</span>
+              <span className="text-[7.5px] font-black tracking-tighter leading-none mt-0.5">TIKOS</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-serif font-bold text-sm text-white tracking-wide">OTANTİKOS</span>
-              <span className="text-[9px] uppercase font-bold tracking-widest text-amber-400">Yönetim Merkezi</span>
+              <span className="font-sans font-black text-sm text-white tracking-wide">OTANTİKOS</span>
+              <span className="text-[9px] uppercase font-bold tracking-widest text-[#e60012]">Yönetim Merkezi</span>
             </div>
           </Link>
         </div>

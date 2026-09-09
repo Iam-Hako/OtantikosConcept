@@ -22,6 +22,7 @@ export default function LogoPreviewPage() {
   const [justApplied, setJustApplied] = useState(false);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     try {
       const stored = localStorage.getItem('otantikos_active_logo') as LogoConceptId;
       if (stored && PNG_LOGOS.some(c => c.id === stored)) {
@@ -32,15 +33,17 @@ export default function LogoPreviewPage() {
   }, []);
 
   const handleApplyLogo = (conceptId: LogoConceptId) => {
-    try {
-      localStorage.setItem('otantikos_active_logo', conceptId);
-      window.dispatchEvent(new Event('otantikos_logo_changed'));
-      setAppliedConcept(conceptId);
-      setActiveConcept(conceptId);
-      setJustApplied(true);
-      setTimeout(() => setJustApplied(false), 3000);
-    } catch (e) {
-      console.error(e);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('otantikos_active_logo', conceptId);
+        window.dispatchEvent(new Event('otantikos_logo_changed'));
+        setAppliedConcept(conceptId);
+        setActiveConcept(conceptId);
+        setJustApplied(true);
+        setTimeout(() => setJustApplied(false), 3000);
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 

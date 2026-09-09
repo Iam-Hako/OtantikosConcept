@@ -47,11 +47,16 @@ export default function Navbar() {
     const handleCustomOpenMenu = () => {
       setIsMobileMenuOpen(true);
     };
+    const handleCategoriesChanged = () => {
+      DataService.getCategories().then(setCategories);
+    };
     window.addEventListener('otantikos:open_search', handleCustomOpenSearch);
     window.addEventListener('otantikos:open_menu', handleCustomOpenMenu);
+    window.addEventListener('otantikos_categories_changed', handleCategoriesChanged);
     return () => {
       window.removeEventListener('otantikos:open_search', handleCustomOpenSearch);
       window.removeEventListener('otantikos:open_menu', handleCustomOpenMenu);
+      window.removeEventListener('otantikos_categories_changed', handleCategoriesChanged);
     };
   }, []);
 

@@ -126,6 +126,7 @@ export default function Logo({
       setSelectedConcept(concept);
       return;
     }
+    if (typeof window === 'undefined') return;
     try {
       const stored = localStorage.getItem('otantikos_active_logo');
       if (stored) setSelectedConcept(stored);

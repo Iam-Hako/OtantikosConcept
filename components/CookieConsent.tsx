@@ -8,6 +8,7 @@ export default function CookieConsent() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     try {
       const consent = localStorage.getItem('otantikos_cookie_consent');
       if (!consent) {
@@ -19,10 +20,12 @@ export default function CookieConsent() {
   }, []);
 
   const acceptCookies = () => {
-    try {
-      localStorage.setItem('otantikos_cookie_consent', 'accepted');
-    } catch {
-      // Ignore
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('otantikos_cookie_consent', 'accepted');
+      } catch {
+        // Ignore
+      }
     }
     setIsVisible(false);
   };

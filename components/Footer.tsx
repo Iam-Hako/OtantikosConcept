@@ -29,6 +29,13 @@ export default function Footer() {
 
   useEffect(() => {
     DataService.getCategories().then(setCategories);
+    const handleCategoriesChanged = () => {
+      DataService.getCategories().then(setCategories);
+    };
+    window.addEventListener('otantikos_categories_changed', handleCategoriesChanged);
+    return () => {
+      window.removeEventListener('otantikos_categories_changed', handleCategoriesChanged);
+    };
   }, []);
 
   if (pathname?.startsWith('/admin')) return null;
@@ -240,7 +247,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/hesabim" className="hover:text-[#e60012] transition">
+                <Link href="/sepet" className="hover:text-[#e60012] transition">
                   Alışveriş Sepetim
                 </Link>
               </li>
