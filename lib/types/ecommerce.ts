@@ -39,6 +39,20 @@ export interface Category {
   created_at: string;
 }
 
+export interface HomeBanner {
+  id: string;
+  title: string;
+  subtitle?: string | null;
+  badge_text?: string | null;
+  image_url: string;
+  button_text?: string | null;
+  button_url?: string | null;
+  bg_gradient?: string | null;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface ProductSpecification {
   id?: string;
   product_id?: string;

@@ -24,7 +24,8 @@ import {
   X,
   Printer,
   Users,
-  Calculator
+  Calculator,
+  ImageIcon
 } from 'lucide-react';
 import { useAuth } from '@/lib/store/auth-context';
 
@@ -36,6 +37,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const menuItems = [
     { href: '/admin', label: 'Genel Bakış (Dashboard)', icon: LayoutDashboard },
+    { href: '/admin/bannerlar', label: 'Afiş & Banner Vitrini', icon: ImageIcon, badge: 'Vitrin' },
     { href: '/admin/kar-zarar', label: 'Kâr / Zarar & Alış-Satış', icon: Calculator, badge: 'Muhasebe' },
     { href: '/admin/kullanicilar', label: 'Kullanıcılar & Yetkiler', icon: Users, badge: 'RBAC' },
     { href: '/admin/urunler', label: 'Ürün & Dinamik Özellikler', icon: Package },

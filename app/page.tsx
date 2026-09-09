@@ -24,6 +24,7 @@ import {
 import { Product, Category } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
 import ProductCard from '@/components/ProductCard';
+import HeroBannerSlider from '@/components/HeroBannerSlider';
 
 // 10 Genuine Circular Quick Navigation & Category Bubbles (No Fake Labels)
 const STORY_ITEMS = [
@@ -101,49 +102,55 @@ const STORY_ITEMS = [
   },
 ];
 
-// Vibrant Pastel Palette for Trendyol Style Category Discovery Cards
-const PASTEL_THEMES = [
+// Miniso Inspired Circular Pastel Category Themes
+const CIRCULAR_PASTEL_THEMES = [
   {
-    bg: 'bg-rose-100/80 hover:bg-rose-200/90',
-    border: 'border-rose-200/90 hover:border-rose-400',
-    badge: 'bg-rose-500 text-white',
-    iconColor: 'text-rose-600',
+    ringBg: 'bg-gradient-to-b from-rose-100/90 via-pink-100/70 to-rose-200/80',
+    innerBg: 'bg-white/90',
+    border: 'border-rose-200/90 group-hover:border-rose-400',
+    shadow: 'shadow-md shadow-rose-200/40 group-hover:shadow-rose-300/60',
+    iconColor: 'text-rose-500',
     icon: Tag,
   },
   {
-    bg: 'bg-purple-100/80 hover:bg-purple-200/90',
-    border: 'border-purple-200/90 hover:border-purple-400',
-    badge: 'bg-purple-500 text-white',
-    iconColor: 'text-purple-600',
+    ringBg: 'bg-gradient-to-b from-purple-100/90 via-fuchsia-100/70 to-purple-200/80',
+    innerBg: 'bg-white/90',
+    border: 'border-purple-200/90 group-hover:border-purple-400',
+    shadow: 'shadow-md shadow-purple-200/40 group-hover:shadow-purple-300/60',
+    iconColor: 'text-purple-500',
     icon: Gem,
   },
   {
-    bg: 'bg-sky-100/80 hover:bg-sky-200/90',
-    border: 'border-sky-200/90 hover:border-sky-400',
-    badge: 'bg-sky-500 text-white',
-    iconColor: 'text-sky-600',
+    ringBg: 'bg-gradient-to-b from-sky-100/90 via-blue-100/70 to-sky-200/80',
+    innerBg: 'bg-white/90',
+    border: 'border-sky-200/90 group-hover:border-sky-400',
+    shadow: 'shadow-md shadow-sky-200/40 group-hover:shadow-sky-300/60',
+    iconColor: 'text-sky-500',
     icon: Gift,
   },
   {
-    bg: 'bg-amber-100/80 hover:bg-amber-200/90',
-    border: 'border-amber-200/90 hover:border-amber-400',
-    badge: 'bg-amber-500 text-white',
-    iconColor: 'text-amber-700',
+    ringBg: 'bg-gradient-to-b from-amber-100/90 via-yellow-100/70 to-amber-200/80',
+    innerBg: 'bg-white/90',
+    border: 'border-amber-200/90 group-hover:border-amber-400',
+    shadow: 'shadow-md shadow-amber-200/40 group-hover:shadow-amber-300/60',
+    iconColor: 'text-amber-600',
     icon: ShoppingBag,
   },
   {
-    bg: 'bg-orange-100/80 hover:bg-orange-200/90',
-    border: 'border-orange-200/90 hover:border-orange-400',
-    badge: 'bg-orange-500 text-white',
-    iconColor: 'text-orange-600',
-    icon: Package,
+    ringBg: 'bg-gradient-to-b from-emerald-100/90 via-teal-100/70 to-emerald-200/80',
+    innerBg: 'bg-white/90',
+    border: 'border-emerald-200/90 group-hover:border-emerald-400',
+    shadow: 'shadow-md shadow-emerald-200/40 group-hover:shadow-emerald-300/60',
+    iconColor: 'text-emerald-500',
+    icon: Sparkles,
   },
   {
-    bg: 'bg-emerald-100/80 hover:bg-emerald-200/90',
-    border: 'border-emerald-200/90 hover:border-emerald-400',
-    badge: 'bg-emerald-500 text-white',
-    iconColor: 'text-emerald-600',
-    icon: Sparkles,
+    ringBg: 'bg-gradient-to-b from-orange-100/90 via-amber-100/70 to-orange-200/80',
+    innerBg: 'bg-white/90',
+    border: 'border-orange-200/90 group-hover:border-orange-400',
+    shadow: 'shadow-md shadow-orange-200/40 group-hover:shadow-orange-300/60',
+    iconColor: 'text-orange-500',
+    icon: Package,
   },
 ];
 
@@ -152,8 +159,9 @@ export default function HomePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Story scroll container ref
+  // Story and category scroll container refs
   const storiesScrollRef = useRef<HTMLDivElement>(null);
+  const categoriesScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -175,6 +183,13 @@ export default function HomePage() {
     if (storiesScrollRef.current) {
       const amount = direction === 'left' ? -250 : 250;
       storiesScrollRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+    }
+  };
+
+  const scrollCategories = (direction: 'left' | 'right') => {
+    if (categoriesScrollRef.current) {
+      const amount = direction === 'left' ? -280 : 280;
+      categoriesScrollRef.current.scrollBy({ left: amount, behavior: 'smooth' });
     }
   };
 
@@ -259,11 +274,16 @@ export default function HomePage() {
       </section>
 
       {/* ============================================================ */}
-      {/* 2. TRENDYOL STYLE "KATEGORİLERİ KEŞFET" (RENKLİ PASTEL KARTLAR) */}
+      {/* 2. MINISO STYLE HERO BANNER SLIDER (YÖNETİM MERKEZİNDEN KONTROLLÜ) */}
+      {/* ============================================================ */}
+      <HeroBannerSlider />
+
+      {/* ============================================================ */}
+      {/* 3. MINISO STYLE CIRCULAR PASTEL CATEGORY CAROUSEL            */}
       {/* ============================================================ */}
       {categories.length > 0 && (
         <section className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white/95 backdrop-blur-xs rounded-3xl p-5 sm:p-7 border border-amber-200/60 shadow-lg shadow-orange-950/[0.03] space-y-5 overflow-hidden relative">
+          <div className="bg-white/95 backdrop-blur-xs rounded-3xl p-5 sm:p-7 border border-amber-200/60 shadow-lg shadow-orange-950/[0.03] space-y-5 overflow-hidden relative group/catsection">
             
             {/* Cheerful Rainbow Top Accent Trim */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-400 via-purple-400 via-amber-400 to-orange-400" />
@@ -271,7 +291,7 @@ export default function HomePage() {
             {/* Header Row */}
             <div className="flex items-center justify-between pb-3 border-b border-stone-100 pt-1">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-xs">
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
@@ -279,71 +299,83 @@ export default function HomePage() {
                     Kategorileri Keşfet
                   </h2>
                   <p className="text-[11px] text-stone-400 font-medium hidden sm:block">
-                    Eminönü Tahtakale vitrinimizden renkli koleksiyonlar
+                    Renkli ve sevimli koleksiyonlarımızı keşfe çıkın
                   </p>
                 </div>
               </div>
 
               <Link
                 href="/kategori/tum-urunler"
-                className="text-xs sm:text-sm font-extrabold text-orange-600 hover:text-orange-700 flex items-center gap-1 group py-1"
+                className="text-xs sm:text-sm font-extrabold text-rose-600 hover:text-rose-700 flex items-center gap-1 group py-1"
               >
                 <span>Tüm Kategoriler</span>
                 <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
 
-            {/* Category Cards (Flex/Grid that sizes naturally for any category count) */}
-            <div className="flex flex-wrap items-center gap-3 sm:gap-5">
-              {categories.map((cat, idx) => {
-                const theme = PASTEL_THEMES[idx % PASTEL_THEMES.length];
-                const IconComp = theme.icon;
-                const photo = getCategoryPhoto(cat);
+            {/* Miniso Style Circular Categories Carousel with Left/Right Buttons */}
+            <div className="relative">
+              {/* Left Arrow Button */}
+              <button
+                onClick={() => scrollCategories('left')}
+                aria-label="Kategorileri Sola Kaydır"
+                className="hidden sm:flex absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/95 shadow-md border border-stone-200 items-center justify-center text-stone-700 hover:text-rose-600 hover:scale-110 active:scale-95 transition opacity-0 group-hover/catsection:opacity-100 cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
 
-                return (
-                  <Link
-                    key={cat.id}
-                    href={cat.slug === 'toptan-satis' ? '/toptan-satis' : `/kategori/${cat.slug}`}
-                    className="group flex flex-col items-center cursor-pointer w-32 sm:w-40 shrink-0"
-                  >
-                    {/* Pastel Rounded Square Container */}
-                    <div className={`relative w-full aspect-square rounded-2xl sm:rounded-3xl ${theme.bg} ${theme.border} border p-3 flex items-center justify-center overflow-hidden shadow-2xs group-hover:shadow-md group-hover:-translate-y-1 transition-all duration-300`}>
-                      
-                      {/* Top Right Mini Star Badge */}
-                      <span className={`absolute top-2 right-2 w-5 h-5 rounded-full ${theme.badge} flex items-center justify-center text-[10px] font-black shadow-xs z-10`}>
-                        ★
-                      </span>
+              {/* Categories Horizontal Scroll Row */}
+              <div
+                ref={categoriesScrollRef}
+                className="flex items-start gap-5 sm:gap-8 overflow-x-auto no-scrollbar py-2 px-1 scroll-smooth"
+              >
+                {categories.map((cat, idx) => {
+                  const theme = CIRCULAR_PASTEL_THEMES[idx % CIRCULAR_PASTEL_THEMES.length];
+                  const IconComp = theme.icon;
+                  const photo = getCategoryPhoto(cat);
 
-                      {/* Centered Image or Stylized Icon */}
-                      {photo ? (
-                        <div className="relative w-full h-full">
-                          <Image
-                            src={photo}
-                            alt={cat.name}
-                            fill
-                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-                            className="object-contain p-1 group-hover:scale-110 transition-transform duration-300"
-                          />
+                  return (
+                    <Link
+                      key={cat.id}
+                      href={cat.slug === 'toptan-satis' ? '/toptan-satis' : `/kategori/${cat.slug}`}
+                      className="group/item flex flex-col items-center cursor-pointer shrink-0 w-24 sm:w-28 md:w-32 transition-transform active:scale-95"
+                    >
+                      {/* Miniso Style Circular Disc */}
+                      <div className={`relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full p-1.5 sm:p-2 ${theme.ringBg} border-2 ${theme.border} ${theme.shadow} flex items-center justify-center group-hover/item:scale-105 group-hover/item:-translate-y-1 transition-all duration-300`}>
+                        <div className={`w-full h-full rounded-full ${theme.innerBg} backdrop-blur-xs flex items-center justify-center overflow-hidden relative shadow-inner`}>
+                          {photo ? (
+                            <Image
+                              src={photo}
+                              alt={cat.name}
+                              fill
+                              sizes="(max-width: 640px) 96px, 128px"
+                              className="object-contain p-2 group-hover/item:scale-110 transition-transform duration-300"
+                            />
+                          ) : (
+                            <IconComp className={`w-7 h-7 sm:w-9 sm:h-9 ${theme.iconColor} group-hover/item:rotate-6 transition-transform`} />
+                          )}
                         </div>
-                      ) : (
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/90 backdrop-blur-xs shadow-xs border border-white/60 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                          <IconComp className={`w-6 h-6 sm:w-7 sm:h-7 ${theme.iconColor}`} />
-                        </div>
-                      )}
-                    </div>
+                      </div>
 
-                    {/* Title & Action Label Below Box */}
-                    <div className="text-center mt-2.5 w-full px-1">
-                      <h3 className="text-xs sm:text-sm font-bold text-stone-900 group-hover:text-orange-600 transition-colors line-clamp-1">
-                        {cat.name}
-                      </h3>
-                      <span className="text-[10px] font-semibold text-orange-600 group-hover:text-orange-700 block mt-0.5">
-                        Keşfet &rsaquo;
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })}
+                      {/* Title Below Disc */}
+                      <div className="text-center mt-2.5 w-full px-1">
+                        <h3 className="text-xs sm:text-sm font-bold text-stone-900 group-hover/item:text-rose-600 transition-colors line-clamp-2 leading-tight">
+                          {cat.name}
+                        </h3>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Right Arrow Button */}
+              <button
+                onClick={() => scrollCategories('right')}
+                aria-label="Kategorileri Sağa Kaydır"
+                className="hidden sm:flex absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/95 shadow-md border border-stone-200 items-center justify-center text-stone-700 hover:text-rose-600 hover:scale-110 active:scale-95 transition opacity-0 group-hover/catsection:opacity-100 cursor-pointer"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
 
           </div>

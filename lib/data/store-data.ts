@@ -14,7 +14,8 @@ import {
   AccountingTransaction,
   ProfitSummary,
   ProductProfitStat,
-  UserAddress
+  UserAddress,
+  HomeBanner
 } from '@/lib/types/ecommerce';
 import { createClient } from '@/lib/supabase/client';
 
@@ -121,6 +122,24 @@ export const DEFAULT_STORE_CATEGORIES: Category[] = [
 ];
 
 let runtimeCategories: Category[] = [...DEFAULT_STORE_CATEGORIES];
+
+export const DEFAULT_HOME_BANNERS: HomeBanner[] = [
+  {
+    id: 'banner-default-1',
+    title: 'Yeni Dönemde Tarzını Yansıt!',
+    subtitle: 'Eminönü Tahtakale vitrinimizden sevimli kırtasiye, defter ve tasarım hediyelik koleksiyonları.',
+    badge_text: 'YENİ DÖNEM',
+    image_url: '/images/miniso_otantikos_banner.jpg',
+    button_text: 'Hemen Alışverişe Başla',
+    button_url: '/kategori/k-rtasiye-r-nleri',
+    bg_gradient: 'from-sky-200/60 via-rose-100/50 to-amber-100/60',
+    display_order: 1,
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+];
+
+let runtimeBanners: HomeBanner[] = [...DEFAULT_HOME_BANNERS];
 
 export const DataService = {
   // ==========================================
@@ -556,6 +575,135 @@ export const DataService = {
       const supabase = createClient();
       await supabase.from('products').update({ category_id: null }).eq('category_id', categoryId);
       await supabase.from('categories').delete().or(`id.eq.${categoryId},slug.eq.${categoryId}`);
+    } catch {
+      // Ignore
+    }
+    return true;
+  },
+
+  // ==========================================
+  // 2.5 BANNERS & HERO SLIDER
+  // ==========================================
+  async getHomeBanners(): Promise<HomeBanner[]> {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('home_banners')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        runtimeBanners = data as HomeBanner[];
+        return runtimeBanners;
+      }
+    } catch {
+      // Local fallback
+    }
+
+    const activeList = runtimeBanners.filter(b => b.is_active);
+    return activeList.length > 0 ? activeList : DEFAULT_HOME_BANNERS;
+  },
+
+  async getAllAdminBanners(): Promise<HomeBanner[]> {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('home_banners')
+        .select('*')
+        .order('display_order', { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        runtimeBanners = data as HomeBanner[];
+        return runtimeBanners;
+      }
+    } catch {
+      // Local fallback
+    }
+
+    return runtimeBanners.length > 0 ? runtimeBanners : DEFAULT_HOME_BANNERS;
+  },
+
+  async saveBanner(banner: Partial<HomeBanner>): Promise<HomeBanner> {
+    const list = [...runtimeBanners];
+    const idx = list.findIndex(b => b.id === banner.id);
+
+    let savedBanner: HomeBanner;
+    if (idx > -1) {
+      savedBanner = { ...list[idx], ...banner } as HomeBanner;
+      list[idx] = savedBanner;
+    } else {
+      savedBanner = {
+        id: banner.id || `banner-${Date.now()}`,
+        title: banner.title || 'Yeni Kampanya',
+        subtitle: banner.subtitle || '',
+        badge_text: banner.badge_text || '',
+        image_url: banner.image_url || '/images/miniso_otantikos_banner.jpg',
+        button_text: banner.button_text || 'Hemen Keşfet',
+        button_url: banner.button_url || '/kategori/k-rtasiye-r-nleri',
+        bg_gradient: banner.bg_gradient || 'from-sky-200/60 via-rose-100/50 to-amber-100/60',
+        display_order: banner.display_order ?? (list.length + 1),
+        is_active: banner.is_active ?? true,
+        created_at: new Date().toISOString(),
+      };
+      list.push(savedBanner);
+    }
+
+    runtimeBanners = list;
+
+    try {
+      const supabase = createClient();
+      const isCustomId = savedBanner.id.startsWith('banner-');
+      const { data, error } = await supabase
+        .from('home_banners')
+        .upsert({
+          id: isCustomId ? undefined : savedBanner.id,
+          title: savedBanner.title,
+          subtitle: savedBanner.subtitle,
+          badge_text: savedBanner.badge_text,
+          image_url: savedBanner.image_url,
+          button_text: savedBanner.button_text,
+          button_url: savedBanner.button_url,
+          bg_gradient: savedBanner.bg_gradient,
+          display_order: savedBanner.display_order,
+          is_active: savedBanner.is_active,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        savedBanner.id = data.id;
+        const replaceIdx = runtimeBanners.findIndex(b => b.id === banner.id);
+        if (replaceIdx > -1) runtimeBanners[replaceIdx] = savedBanner;
+      }
+    } catch {
+      // Local fallback
+    }
+
+    return savedBanner;
+  },
+
+  async deleteBanner(bannerId: string): Promise<boolean> {
+    runtimeBanners = runtimeBanners.filter(b => b.id !== bannerId);
+
+    try {
+      const supabase = createClient();
+      await supabase.from('home_banners').delete().eq('id', bannerId);
+    } catch {
+      // Ignore
+    }
+    return true;
+  },
+
+  async toggleBannerActive(bannerId: string, isActive: boolean): Promise<boolean> {
+    const idx = runtimeBanners.findIndex(b => b.id === bannerId);
+    if (idx > -1) {
+      runtimeBanners[idx].is_active = isActive;
+    }
+
+    try {
+      const supabase = createClient();
+      await supabase.from('home_banners').update({ is_active: isActive }).eq('id', bannerId);
     } catch {
       // Ignore
     }
