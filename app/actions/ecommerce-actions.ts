@@ -285,6 +285,7 @@ export async function actionSaveCategory(catData: Partial<Category>) {
       slug: saved.slug,
       description: saved.description || '',
       image_url: saved.image_url || '',
+      icon: saved.icon || null,
       display_order: saved.display_order,
       is_active: saved.is_active,
     };

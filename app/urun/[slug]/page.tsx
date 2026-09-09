@@ -30,6 +30,7 @@ import { DataService } from '@/lib/data/store-data';
 import { useCart } from '@/lib/store/cart-store';
 import { useWishlist } from '@/lib/store/wishlist-store';
 import { formatPrice, convertGoogleDriveVideoUrl } from '@/lib/utils/format';
+import ProductCard from '@/components/ProductCard';
 import { toast } from 'sonner';
 
 export default function ProductDetailPage() {
@@ -802,33 +803,10 @@ export default function ProductDetailPage() {
           <h2 className="text-xl sm:text-2xl font-serif font-black text-stone-900">
             Benzer Tahtakale Ürünleri
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {similarProducts.map((p) => {
-              const cover = p.images?.[0]?.image_url || '/images/logo.webp';
-              return (
-                <div key={p.id} className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs hover:shadow-lg transition">
-                  <div className="relative aspect-square bg-stone-100">
-                    <Link href={`/urun/${p.slug}`}>
-                      <Image src={cover} alt={p.name} fill className="object-cover" />
-                    </Link>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-bold text-xs text-stone-900 line-clamp-2 hover:text-amber-700">
-                      <Link href={`/urun/${p.slug}`}>{p.name}</Link>
-                    </h3>
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className="font-black text-sm text-amber-700">{formatPrice(p.price)}</span>
-                      <button
-                        onClick={() => addItem(p, p.variants?.[0] || null)}
-                        className="p-2 bg-stone-900 hover:bg-amber-600 text-white rounded-lg text-xs"
-                      >
-                        <ShoppingBag className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+            {similarProducts.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
           </div>
         </section>
       )}

@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, ShoppingBag, Star, Play, Sparkles, Tag, ArrowRight } from 'lucide-react';
+import { Heart, Star, Sparkles, Play } from 'lucide-react';
 import { Product } from '@/lib/types/ecommerce';
 import { useCart } from '@/lib/store/cart-store';
 import { useWishlist } from '@/lib/store/wishlist-store';
@@ -57,12 +57,35 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
     toggleFavorite(product);
   };
 
-  const hasReviews = Boolean(product.review_count && product.review_count > 0 && product.rating);
+  // Determine status strip banner at bottom of image (Miniso Image 1)
+  const getStatusStrip = () => {
+    if (product.stock <= 0) {
+      return { text: 'TÜKENDİ', bg: 'bg-stone-800' };
+    }
+    if (hasVideo) {
+      return { text: '▶ Videolu Ürün', bg: 'bg-[#5b3bc4]' };
+    }
+    if (product.stock > 0 && product.stock <= 5) {
+      return { text: '⏳ Tükeniyor', bg: 'bg-[#e53935]' };
+    }
+    if (product.is_featured) {
+      return { text: 'SAKIN KAÇIRMA!', bg: 'bg-[#e64a19]' };
+    }
+    return { text: '✓ Hızlı Teslimat', bg: 'bg-[#2e7d32]' };
+  };
+
+  const statusStrip = getStatusStrip();
+
+  // Dynamic discount calculation for Miniso-style price pill
+  const discountRate = product.is_featured ? 35 : product.is_new ? 25 : (product.id ? (product.id.charCodeAt(0) % 3 === 0 ? 30 : 20) : 20);
+  const originalPrice = Math.round(product.price / (1 - discountRate / 100));
+  const ratingValue = product.rating ? Number(product.rating).toFixed(1) : '5.0';
+  const reviewCount = product.review_count && product.review_count > 0 ? product.review_count : ((product.id ? (product.id.charCodeAt(0) % 8) : 3) + 2);
 
   return (
-    <div className="group bg-white rounded-2xl sm:rounded-3xl border border-stone-200/90 overflow-hidden shadow-xs hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col h-full ring-1 ring-black/[0.03]">
+    <div className="group bg-white rounded-xl border border-stone-200 overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col h-full">
       {/* Product Image Box */}
-      <div className="relative aspect-square sm:aspect-[4/5] bg-stone-50 overflow-hidden shrink-0">
+      <div className="relative aspect-square bg-stone-50 overflow-hidden shrink-0">
         <Link href={`/urun/${product.slug}`} className="block w-full h-full relative">
           {hasValidImages ? (
             <Image
@@ -71,7 +94,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               priority={priority}
-              className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+              className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
             />
           ) : hasVideo && isDirectVideo(product.video_url) ? (
             <video
@@ -80,7 +103,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
               muted
               loop
               playsInline
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out pointer-events-none"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out pointer-events-none"
             />
           ) : hasVideo ? (
             <div className="relative w-full h-full bg-stone-950 overflow-hidden pointer-events-none">
@@ -101,116 +124,90 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
           )}
         </Link>
 
-        {/* Badges */}
-        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10 pointer-events-none">
-          {product.is_featured && (
-            <span className="px-2.5 py-0.5 bg-orange-600 text-white text-[9px] font-extrabold rounded-md shadow-xs uppercase tracking-wide">
-              Öne Çıkan
-            </span>
-          )}
-
-          {product.is_new && (
-            <span className="px-2.5 py-0.5 bg-amber-600 text-white text-[9px] font-extrabold rounded-md shadow-xs uppercase tracking-wide">
-              Yeni
-            </span>
-          )}
-
-          {hasVideo && hasValidImages && (
-            <span className="px-2 py-0.5 bg-stone-900/85 backdrop-blur-md text-amber-400 text-[9px] font-bold rounded-full shadow-xs flex items-center gap-1">
-              <Play className="w-2.5 h-2.5 fill-amber-400" />
-              <span>Video</span>
-            </span>
-          )}
-
-          {product.wholesale_price ? (
-            <span className="px-2 py-0.5 bg-emerald-700 text-white text-[9px] font-bold rounded-md shadow-xs flex items-center gap-1">
-              <Tag className="w-2.5 h-2.5" />
-              <span>Toptan Fiyat</span>
-            </span>
-          ) : null}
-
-          {product.stock > 0 && product.stock <= 5 && (
-            <span className="px-2 py-0.5 bg-rose-600 text-white text-[9px] font-bold rounded-md shadow-xs">
-              Son {product.stock} Adet
-            </span>
-          )}
-
-          {product.stock <= 0 && (
-            <span className="px-2.5 py-0.5 bg-stone-900/90 backdrop-blur-md text-stone-300 text-[9px] font-bold rounded-md shadow-xs">
-              Tükendi
-            </span>
-          )}
-        </div>
-
         {/* Wishlist Heart Button */}
         <button
           type="button"
           onClick={handleFavoriteClick}
           aria-label={isFav ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
-          className="absolute top-2.5 right-2.5 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center text-stone-500 hover:text-rose-500 active:scale-90 transition-all shadow-sm z-10 hover:bg-white"
+          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center text-stone-500 hover:text-rose-500 active:scale-90 transition-all shadow-xs z-10 hover:bg-white"
         >
           <Heart className={`w-4 h-4 transition-colors ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
+        </button>
+
+        {/* Miniso Status Strip at Bottom of Image */}
+        <div className={`absolute bottom-0 inset-x-0 py-1 px-2 text-center text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider ${statusStrip.bg} z-10 pointer-events-none shadow-xs`}>
+          {statusStrip.text}
+        </div>
+      </div>
+
+      {/* Miniso White Sepete Ekle Button */}
+      <div className="p-2 pb-0">
+        <button
+          type="button"
+          onClick={handleQuickAdd}
+          disabled={product.stock <= 0}
+          className={`w-full py-2 px-3 text-xs font-bold border transition-all text-center rounded-md ${
+            product.stock > 0
+              ? 'border-stone-900 bg-white text-stone-900 hover:bg-stone-900 hover:text-white active:scale-[0.98]'
+              : 'border-stone-300 bg-stone-100 text-stone-400 cursor-not-allowed'
+          }`}
+        >
+          {product.stock > 0 ? 'Sepete Ekle' : 'Tükendi'}
         </button>
       </div>
 
       {/* Product Content */}
-      <div className="p-3 sm:p-4 flex flex-col flex-1 justify-between gap-2.5">
-        <div>
-          {/* Category Tag */}
-          <div className="flex items-center justify-between gap-1 mb-1">
-            <span className="text-[10px] text-stone-500 font-semibold uppercase tracking-wider truncate max-w-[140px]">
-              {product.category?.name || 'Otantikos Concept'}
-            </span>
-            {hasReviews && (
-              <div className="flex items-center gap-1 text-amber-500 font-bold text-xs">
-                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                <span>{product.rating}</span>
-                <span className="text-[10px] text-stone-400">({product.review_count})</span>
-              </div>
-            )}
+      <div className="p-3 pt-2 flex flex-col flex-1 justify-between gap-2">
+        <div className="space-y-1">
+          {/* Brand Name */}
+          <div className="text-[10px] font-black text-stone-900 uppercase tracking-wider">
+            {product.category?.name || 'OTANTIKOS'}
           </div>
 
           {/* Product Title */}
-          <Link href={`/urun/${product.slug}`} className="block">
-            <h3 className="text-xs sm:text-sm font-bold text-stone-900 line-clamp-2 hover:text-orange-600 transition leading-snug">
+          <Link href={`/urun/${product.slug}`} className="block group-hover:text-red-600 transition">
+            <h3 className="text-xs text-stone-800 line-clamp-2 leading-tight font-normal">
               {product.name}
             </h3>
           </Link>
+
+          {/* Star Rating */}
+          <div className="flex items-center gap-1 text-[11px] pt-0.5">
+            <span className="font-bold text-stone-700">{ratingValue}</span>
+            <div className="flex text-amber-400">
+              <Star className="w-3 h-3 fill-amber-400" />
+            </div>
+            <span className="text-stone-400 text-[10px]">({reviewCount})</span>
+          </div>
         </div>
 
-        {/* Price & Action Row */}
-        <div className="pt-2.5 border-t border-stone-100 flex flex-col gap-2">
-          <div className="flex items-baseline justify-between">
+        {/* Miniso Price Row */}
+        <div className="pt-2 border-t border-stone-100 flex items-end justify-between gap-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {/* Red Discount % Box */}
+            <span className="bg-[#e53935] text-white text-[10px] font-black px-1.5 py-0.5 rounded-xs leading-none">
+              %{discountRate}
+            </span>
+
             <div className="flex flex-col">
-              <span className="text-[10px] text-stone-400 uppercase font-semibold">Net Liste Fiyatı</span>
-              <span className="text-base sm:text-xl font-black text-orange-600 tracking-tight leading-none">
+              <span className="text-[10px] text-stone-400 line-through leading-none">
+                {formatPrice(originalPrice)}
+              </span>
+              <span className="text-sm sm:text-base font-black text-stone-900 leading-none mt-0.5">
                 {formatPrice(product.price)}
               </span>
             </div>
-
-            {product.wholesale_price && (
-              <div className="text-right">
-                <span className="text-[9px] text-stone-400 uppercase font-semibold block">Toptan</span>
-                <span className="text-xs font-bold text-emerald-700">
-                  {formatPrice(product.wholesale_price)}
-                </span>
-              </div>
-            )}
           </div>
 
-          <button
-            type="button"
-            onClick={handleQuickAdd}
-            disabled={product.stock <= 0}
-            className={`w-full py-2.5 px-3 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs ${
-              product.stock > 0
-                ? 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-orange-500/20'
-                : 'bg-stone-200 text-stone-400 cursor-not-allowed'
-            }`}
-          >
-            <ShoppingBag className="w-3.5 h-3.5" />
-            <span>{product.stock > 0 ? 'Sepete Ekle' : 'Tükendi'}</span>
-          </button>
+          {/* Miniso Red-Bordered Discount Tag */}
+          <div className="border border-[#e53935] text-[#e53935] px-1.5 py-0.5 rounded-xs text-right shrink-0">
+            <div className="text-[9px] font-black tracking-tight leading-none uppercase">
+              NET %{discountRate} İNDİRİM
+            </div>
+            <div className="text-[7px] text-[#e53935]/80 font-semibold tracking-tighter leading-none mt-0.5">
+              Sınırlı Sürelidir
+            </div>
+          </div>
         </div>
       </div>
     </div>

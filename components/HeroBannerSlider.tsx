@@ -91,12 +91,14 @@ export default function HeroBannerSlider({ initialBanners }: HeroBannerSliderPro
         onTouchStart={() => setIsPaused(true)}
         onTouchEnd={() => setIsPaused(false)}
       >
-        {/* Miniso Mobile Top Pill Badge (As shown in screenshot) */}
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1.5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black bg-gradient-to-r from-blue-900 via-indigo-900 to-rose-600 text-white shadow-md border border-white/20 whitespace-nowrap">
-          <span className="text-yellow-300">⭐</span>
-          <span>{currentBanner?.badge_text || 'SEPETTE SÜRPRİZ İNDİRİM FIRSATLARI'}</span>
-          <span className="text-yellow-300 font-black ml-0.5">›</span>
-        </div>
+        {/* Top Pill Badge if set by Admin */}
+        {currentBanner?.badge_text && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1.5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black bg-gradient-to-r from-blue-900 via-indigo-900 to-rose-600 text-white shadow-md border border-white/20 whitespace-nowrap">
+            <span className="text-yellow-300">⭐</span>
+            <span>{currentBanner.badge_text}</span>
+            <span className="text-yellow-300 font-black ml-0.5">›</span>
+          </div>
+        )}
 
         {/* Miniso Style Bottom-Right "FIRSAT KAZAN" Promo Sticker (As shown in screenshot) */}
         <Link

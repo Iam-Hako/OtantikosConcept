@@ -5,15 +5,20 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { 
+  Truck, 
+  Award, 
+  ShieldCheck, 
+  RotateCcw, 
+  CreditCard, 
+  Headphones, 
   MapPin, 
   Phone, 
   Mail, 
-  ShieldCheck, 
-  Truck, 
-  RotateCcw, 
-  Lock, 
-  Sparkles,
-  Building2
+  Instagram, 
+  Facebook, 
+  Youtube,
+  Lock,
+  Sparkles
 } from 'lucide-react';
 import { DataService } from '@/lib/data/store-data';
 import { Category } from '@/lib/types/ecommerce';
@@ -29,244 +34,351 @@ export default function Footer() {
   if (pathname?.startsWith('/admin')) return null;
 
   return (
-    <footer className="bg-stone-950 text-stone-300 pt-12 sm:pt-16 pb-24 lg:pb-12 border-t border-stone-800">
+    <footer className="bg-white text-stone-700 pt-10 sm:pt-14 pb-0 border-t border-stone-200">
       <div className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* VALUE PROPOSITIONS & TRUST BADGES - 2x2 on Mobile, 4-col on Desktop */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 pb-12 border-b border-stone-800 text-xs">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 sm:gap-3 p-3 sm:p-4 rounded-2xl bg-stone-900/60 border border-stone-800/80">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
-              <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
+        {/* TOP VALUE PROPOSITIONS & TRUST BADGES (6 RED OUTLINE ICONS - IMAGE 2) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 pb-10 border-b border-stone-100 text-center">
+          
+          {/* Badge 1 */}
+          <div className="flex flex-col items-center gap-2 group">
+            <div className="w-12 h-12 rounded-2xl border border-red-200 bg-red-50/50 flex items-center justify-center text-[#e60012] group-hover:scale-110 transition-transform">
+              <Truck className="w-6 h-6 stroke-[1.6]" />
             </div>
             <div>
-              <h4 className="font-bold text-white text-xs sm:text-sm">DHL Kargo Sevkiyatı</h4>
-              <p className="text-stone-400 text-[11px] sm:text-xs mt-0.5">1-3 iş gününde kargo</p>
+              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">Aynı Gün Hızlı Kargo</h4>
+              <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
+                Hafta içi 15:00'e kadar verilen siparişler aynı gün kargoda.
+              </p>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 sm:gap-3 p-3 sm:p-4 rounded-2xl bg-stone-900/60 border border-stone-800/80">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+          {/* Badge 2 */}
+          <div className="flex flex-col items-center gap-2 group">
+            <div className="w-12 h-12 rounded-2xl border border-red-200 bg-red-50/50 flex items-center justify-center text-[#e60012] group-hover:scale-110 transition-transform">
+              <Award className="w-6 h-6 stroke-[1.6]" />
             </div>
             <div>
-              <h4 className="font-bold text-white text-xs sm:text-sm">Net & Şeffaf Fiyat</h4>
-              <p className="text-stone-400 text-[11px] sm:text-xs mt-0.5">Dürüst net fiyatlar</p>
+              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">Memnuniyet Garantisi</h4>
+              <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
+                İade ve değişim süreçlerinde koşulsuz müşteri memnuniyeti.
+              </p>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 sm:gap-3 p-3 sm:p-4 rounded-2xl bg-stone-900/60 border border-stone-800/80">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
-              <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
+          {/* Badge 3 */}
+          <div className="flex flex-col items-center gap-2 group">
+            <div className="w-12 h-12 rounded-2xl border border-red-200 bg-red-50/50 flex items-center justify-center text-[#e60012] group-hover:scale-110 transition-transform">
+              <ShieldCheck className="w-6 h-6 stroke-[1.6]" />
             </div>
             <div>
-              <h4 className="font-bold text-white text-xs sm:text-sm">14 Gün Kolay İade</h4>
-              <p className="text-stone-400 text-[11px] sm:text-xs mt-0.5">DHL Kargo RMA masası</p>
+              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">Orijinal Ürün Garantisi</h4>
+              <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
+                Satılan tüm ürünler %100 orijinal ve kalite garantilidir.
+              </p>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 sm:gap-3 p-3 sm:p-4 rounded-2xl bg-stone-900/60 border border-stone-800/80">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
-              <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
+          {/* Badge 4 */}
+          <div className="flex flex-col items-center gap-2 group">
+            <div className="w-12 h-12 rounded-2xl border border-red-200 bg-red-50/50 flex items-center justify-center text-[#e60012] group-hover:scale-110 transition-transform">
+              <RotateCcw className="w-6 h-6 stroke-[1.6]" />
             </div>
             <div>
-              <h4 className="font-bold text-white text-xs sm:text-sm">256-Bit SSL Güvenli</h4>
-              <p className="text-stone-400 text-[11px] sm:text-xs mt-0.5">3D Secure korumalı</p>
+              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">Kolay İade</h4>
+              <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
+                Satın aldığınız ürünü 14 gün içinde kolayca iade edebilirsiniz.
+              </p>
             </div>
           </div>
+
+          {/* Badge 5 */}
+          <div className="flex flex-col items-center gap-2 group">
+            <div className="w-12 h-12 rounded-2xl border border-red-200 bg-red-50/50 flex items-center justify-center text-[#e60012] group-hover:scale-110 transition-transform">
+              <CreditCard className="w-6 h-6 stroke-[1.6]" />
+            </div>
+            <div>
+              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">Güvenli Alışveriş</h4>
+              <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
+                256 Bit SSL ve iyzico altyapısı ile güvenli ödeme yapın.
+              </p>
+            </div>
+          </div>
+
+          {/* Badge 6 */}
+          <div className="flex flex-col items-center gap-2 group">
+            <div className="w-12 h-12 rounded-2xl border border-red-200 bg-red-50/50 flex items-center justify-center text-[#e60012] group-hover:scale-110 transition-transform">
+              <Headphones className="w-6 h-6 stroke-[1.6]" />
+            </div>
+            <div>
+              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">Kesintisiz İletişim</h4>
+              <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
+                Destek ekibimize WhatsApp ve çağrı merkezi üzerinden ulaşın.
+              </p>
+            </div>
+          </div>
+
         </div>
 
-        {/* MAIN FOOTER LINKS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 py-12 border-b border-stone-800">
+        {/* MAIN CORPORATE & STORE COLUMNS (IMAGE 2) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 py-10 text-xs">
           
-          {/* Column 1: Brand & Corporate Info */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="relative w-10 h-10 rounded-xl bg-stone-900 border border-stone-800 p-1 flex items-center justify-center">
-                <Image
-                  src="/images/logo.webp"
-                  alt="Otantikos Logo"
-                  width={40}
-                  height={40}
-                  className="object-contain"
-                />
+          {/* Col 1: Brand, Logo & Social */}
+          <div className="space-y-4">
+            <Link href="/" className="inline-flex items-center gap-2.5">
+              <div className="w-11 h-11 bg-[#e60012] rounded-xl flex flex-col items-center justify-center text-white shadow-xs">
+                <span className="text-[10px] font-black tracking-tighter leading-none">OTAN</span>
+                <span className="text-[10px] font-black tracking-tighter leading-none mt-0.5">TIKOS</span>
               </div>
               <div className="flex flex-col">
-                <span className="font-serif font-black text-xl text-white tracking-tight">
-                  OTANTİKOS
+                <span className="font-sans font-black text-lg text-stone-900 tracking-tight leading-none">
+                  Otantikos
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-500">
+                <span className="text-[9px] font-extrabold text-[#e60012] tracking-widest uppercase mt-0.5">
                   CONCEPT
                 </span>
               </div>
+            </Link>
+
+            <div className="space-y-2">
+              <p className="text-[11px] font-bold text-stone-500">Bizi Takip Edin</p>
+              <div className="flex items-center gap-2 text-stone-600">
+                <a 
+                  href="https://instagram.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-lg bg-stone-100 hover:bg-[#e60012] hover:text-white flex items-center justify-center transition"
+                  aria-label="Instagram"
+                >
+                  <Instagram className="w-4 h-4" />
+                </a>
+                <a 
+                  href="https://facebook.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-lg bg-stone-100 hover:bg-[#e60012] hover:text-white flex items-center justify-center transition"
+                  aria-label="Facebook"
+                >
+                  <Facebook className="w-4 h-4" />
+                </a>
+                <a 
+                  href="https://youtube.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-lg bg-stone-100 hover:bg-[#e60012] hover:text-white flex items-center justify-center transition"
+                  aria-label="YouTube"
+                >
+                  <Youtube className="w-4 h-4" />
+                </a>
+              </div>
             </div>
 
-            <p className="text-xs text-stone-400 leading-relaxed">
-              Otantikos Hediyelik Eşya Oyuncak Ticaret Limited Şirketi
+            <p className="text-[10px] text-stone-400 pt-2">
+              Otantikos 2026 | Concept Store
             </p>
-
-            <div className="space-y-2 text-xs text-stone-400">
-              <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                <span>Süleymaniye Mah. Uzunçarşı Cad. Tamburacı ve Görenli Han No: 187 / 2G Fatih / İSTANBUL</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-amber-500 shrink-0" />
-                <a href="tel:+905077737777" className="hover:text-amber-400 transition font-medium">
-                  +90 (507) 773 77 77 (10:00 - 17:00)
-                </a>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-amber-500 shrink-0" />
-                <a href="mailto:aylindurmus54@gmail.com" className="hover:text-amber-400 transition font-medium">
-                  aylindurmus54@gmail.com
-                </a>
-              </div>
-              <div className="pt-1 text-[11px] text-stone-400">
-                <span>Hocapaşa V.D. | VKN: 6491340351 | MERSİS: 0649134035100001</span>
-              </div>
-            </div>
           </div>
 
-          {/* Column 2: Categories */}
+          {/* Col 2: Kurumsal */}
           <div>
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-4 border-l-2 border-amber-500 pl-2">
-              Kategoriler
+            <h4 className="font-black text-xs text-[#e60012] uppercase tracking-wider mb-3">
+              Kurumsal
             </h4>
-            <ul className="space-y-2 text-xs">
+            <ul className="space-y-2 text-stone-600 font-medium">
               <li>
-                <Link href="/kategori/tum-urunler" className="hover:text-amber-400 transition">
-                  Tüm Koleksiyon
-                </Link>
-              </li>
-              {categories.map((c) => (
-                <li key={c.id}>
-                  <Link href={`/kategori/${c.slug}`} className="hover:text-amber-400 transition">
-                    {c.name}
-                  </Link>
-                </li>
-              ))}
-              <li>
-                <Link href="/toptan-satis" className="text-amber-400 hover:underline transition flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  <span>Toptan Teklif & Satış</span>
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 3: Customer Care */}
-          <div>
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-4 border-l-2 border-amber-500 pl-2">
-              Müşteri Hizmetleri
-            </h4>
-            <ul className="space-y-2 text-xs">
-              <li>
-                <Link href="/siparis-takip" className="hover:text-amber-400 transition">
-                  Kargo & Sipariş Takibi
-                </Link>
-              </li>
-              <li>
-                <Link href="/hesabim" className="hover:text-amber-400 transition">
-                  Hesabım & Siparişlerim
-                </Link>
-              </li>
-              <li>
-                <Link href="/iade-ve-teslimat" className="hover:text-amber-400 transition">
-                  İade ve Teslimat Şartları
-                </Link>
-              </li>
-              <li>
-                <Link href="/hakkimizda" className="hover:text-amber-400 transition">
+                <Link href="/hakkimizda" className="hover:text-[#e60012] transition">
                   Hakkımızda & Hikayemiz
                 </Link>
               </li>
               <li>
-                <Link href="/iletisim" className="hover:text-amber-400 transition">
-                  İletişim & Mağaza Konumu
+                <Link href="/toptan-satis" className="hover:text-[#e60012] transition flex items-center gap-1 text-amber-700 font-bold">
+                  <Sparkles className="w-3 h-3 text-amber-600" />
+                  <span>Tahtakale Toptan Satış</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/iletisim" className="hover:text-[#e60012] transition">
+                  Eminönü Mağazamız
+                </Link>
+              </li>
+              <li>
+                <Link href="/hakkimizda" className="hover:text-[#e60012] transition">
+                  Marka Felsefemiz
+                </Link>
+              </li>
+              <li>
+                <Link href="/iletisim" className="hover:text-[#e60012] transition">
+                  İletişim & Konum
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Column 4: Legal Pages */}
+          {/* Col 3: Yardım */}
           <div>
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-4 border-l-2 border-amber-500 pl-2">
-              Yasal & Kurumsal
+            <h4 className="font-black text-xs text-[#e60012] uppercase tracking-wider mb-3">
+              Yardım
             </h4>
-            <ul className="space-y-2 text-xs">
+            <ul className="space-y-2 text-stone-600 font-medium">
               <li>
-                <Link href="/mesafeli-satis-sozlesmesi" className="hover:text-amber-400 transition">
+                <Link href="/siparis-takip" className="hover:text-[#e60012] transition">
+                  Müşteri Hizmetleri
+                </Link>
+              </li>
+              <li>
+                <Link href="/siparis-takip" className="hover:text-[#e60012] transition">
+                  Sipariş & Kargo Takibi
+                </Link>
+              </li>
+              <li>
+                <Link href="/iade-ve-teslimat" className="hover:text-[#e60012] transition">
+                  İade ve Değişim Rehberi
+                </Link>
+              </li>
+              <li>
+                <Link href="/giris" className="hover:text-[#e60012] transition">
+                  Giriş Yap / Kayıt Ol
+                </Link>
+              </li>
+              <li>
+                <Link href="/hesabim" className="hover:text-[#e60012] transition">
+                  Alışveriş Sepetim
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Col 4: Alışveriş & Yasal */}
+          <div>
+            <h4 className="font-black text-xs text-[#e60012] uppercase tracking-wider mb-3">
+              Alışveriş & Yasal
+            </h4>
+            <ul className="space-y-2 text-stone-600 font-medium">
+              <li>
+                <Link href="/iade-ve-teslimat" className="hover:text-[#e60012] transition">
+                  İptal ve İade Koşulları
+                </Link>
+              </li>
+              <li>
+                <Link href="/mesafeli-satis-sozlesmesi" className="hover:text-[#e60012] transition">
                   Mesafeli Satış Sözleşmesi
                 </Link>
               </li>
               <li>
-                <Link href="/on-bilgilendirme-formu" className="hover:text-amber-400 transition">
-                  Ön Bilgilendirme Koşulları
+                <Link href="/on-bilgilendirme-formu" className="hover:text-[#e60012] transition">
+                  Ön Bilgilendirme Formu
                 </Link>
               </li>
               <li>
-                <Link href="/iade-ve-teslimat" className="hover:text-amber-400 transition">
-                  Cayma Hakkı & İade Şartları
-                </Link>
-              </li>
-              <li>
-                <Link href="/kvkk" className="hover:text-amber-400 transition">
-                  KVKK Aydınlatma Metni
-                </Link>
-              </li>
-              <li>
-                <Link href="/gizlilik-politikasi" className="hover:text-amber-400 transition">
+                <Link href="/gizlilik-politikasi" className="hover:text-[#e60012] transition">
                   Gizlilik ve Güvenlik
                 </Link>
               </li>
               <li>
-                <Link href="/cerez-politikasi" className="hover:text-amber-400 transition">
+                <Link href="/kvkk" className="hover:text-[#e60012] transition">
+                  Kişisel Verilerin Korunması (KVKK)
+                </Link>
+              </li>
+              <li>
+                <Link href="/cerez-politikasi" className="hover:text-[#e60012] transition">
                   Çerez Politikası
                 </Link>
               </li>
             </ul>
           </div>
 
+          {/* Col 5: Popüler Kategoriler */}
+          <div>
+            <h4 className="font-black text-xs text-[#e60012] uppercase tracking-wider mb-3">
+              Popüler Kategoriler
+            </h4>
+            <ul className="space-y-2 text-stone-600 font-medium">
+              <li>
+                <Link href="/kategori/tum-urunler" className="hover:text-[#e60012] transition">
+                  Tüm Koleksiyon
+                </Link>
+              </li>
+              {categories.slice(0, 5).map((c) => (
+                <li key={c.id}>
+                  <Link href={`/kategori/${c.slug}`} className="hover:text-[#e60012] transition flex items-center gap-1.5">
+                    {c.icon && <span>{c.icon}</span>}
+                    <span>{c.name}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Col 6: İletişim Bilgileri */}
+          <div>
+            <h4 className="font-black text-xs text-[#e60012] uppercase tracking-wider mb-3">
+              İletişim Bilgileri
+            </h4>
+            <div className="space-y-2.5 text-stone-600">
+              <p className="font-bold text-stone-900 leading-tight">
+                Otantikos Hediyelik Eşya Oyuncak Tic. Ltd. Şti.
+              </p>
+              
+              <div className="flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-[#e60012] shrink-0" />
+                <a href="tel:+905077737777" className="hover:text-[#e60012] transition font-bold text-stone-800">
+                  0507 773 77 77
+                </a>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-[#e60012] shrink-0" />
+                <a href="mailto:aylindurmus54@gmail.com" className="hover:text-[#e60012] transition font-medium truncate">
+                  aylindurmus54@gmail.com
+                </a>
+              </div>
+
+              <div className="flex items-start gap-1.5 pt-1 text-[11px] leading-relaxed">
+                <MapPin className="w-3.5 h-3.5 text-[#e60012] shrink-0 mt-0.5" />
+                <span>Süleymaniye Mah. Uzunçarşı Cad. Tamburacı ve Görenli Han No: 187 / 2G Fatih / İSTANBUL</span>
+              </div>
+
+              <p className="text-[10px] text-stone-400 pt-1">
+                Hocapaşa V.D. | VKN: 6491340351 | MERSİS: 0649134035100001
+              </p>
+            </div>
+          </div>
+
         </div>
 
-        {/* LEGAL IMPRINT & OFFICIAL IYZICO PAYMENT SECURITY BADGES */}
-        <div className="pt-8 border-t border-stone-800/80 space-y-4">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-            <div className="space-y-1 text-center lg:text-left">
-              <p className="text-xs text-stone-400 font-medium">
-                © 2026 Otantikos Hediyelik Eşya Oyuncak Ticaret Limited Şirketi. Tüm hakları saklıdır.
-              </p>
-              <p className="text-[10px] text-stone-400">
-                Vergi Dairesi: Hocapaşa V.D. | VKN: 6491340351 | MERSİS: 0649134035100001 | Ticaret Sicil No: 1146371
-              </p>
-            </div>
+        {/* PAYMENT SECURITY & IYZICO ROW */}
+        <div className="py-4 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-stone-500 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 font-semibold text-stone-700">
+              <Lock className="w-3.5 h-3.5 text-emerald-600" />
+              256-Bit SSL Güvenli Alışveriş
+            </span>
+            <span>•</span>
+            <span className="flex items-center gap-1 font-semibold text-stone-700">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              3D Secure ile Korunan Ödeme
+            </span>
+          </div>
 
-            {/* Official iyzico, Visa, Mastercard, Troy Logo Band */}
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="flex items-center gap-2 text-[10px] text-stone-400">
-                <div className="px-2.5 py-1.5 rounded-lg bg-stone-900 border border-stone-800 font-bold text-amber-400 flex items-center gap-1.5 shadow-2xs">
-                  <Lock className="w-3 h-3 text-amber-500" />
-                  <span>256-Bit SSL</span>
-                </div>
-                <div className="px-2.5 py-1.5 rounded-lg bg-stone-900 border border-stone-800 font-bold text-stone-300 flex items-center gap-1.5 shadow-2xs">
-                  <ShieldCheck className="w-3 h-3 text-emerald-500" />
-                  <span>3D Secure</span>
-                </div>
-              </div>
-
-              {/* Official iyzico logo band SVG */}
-              <div className="relative h-8 w-64 sm:w-80 opacity-90 hover:opacity-100 transition-opacity">
-                <Image
-                  src="/images/iyzico/logo_band_white.svg"
-                  alt="iyzico, Visa, MasterCard, Troy ile Güvenli Ödeme"
-                  fill
-                  className="object-contain object-center sm:object-right"
-                />
-              </div>
-            </div>
+          <div className="relative h-7 w-60 sm:w-72">
+            <Image
+              src="/images/iyzico/logo_band_white.svg"
+              alt="iyzico, Visa, MasterCard, Troy ile Güvenli Ödeme"
+              fill
+              className="object-contain object-center sm:object-right invert"
+            />
           </div>
         </div>
 
+      </div>
+
+      {/* BOTTOM PANORAMIC CHARACTER STRIP (EXACT AS IMAGE 3) */}
+      <div className="w-full overflow-hidden leading-none select-none pointer-events-none mt-2">
+        <img
+          src="/images/footer_characters_banner.png"
+          alt="Otantikos Sevimli Karakterler"
+          className="w-full h-auto object-cover block"
+          loading="lazy"
+        />
       </div>
     </footer>
   );

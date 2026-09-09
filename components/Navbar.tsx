@@ -304,14 +304,16 @@ export default function Navbar() {
               </Link>
             </li>
 
-            {/* Dynamic DB Categories (e.g. Kırtasiye) */}
+            {/* Dynamic DB Categories */}
             {categories.map((category) => (
               <li key={category.id} className="shrink-0">
                 <Link
                   href={`/kategori/${category.slug}`}
                   className="flex items-center gap-1.5 hover:text-[#e60012] transition-colors py-1 whitespace-nowrap group"
                 >
-                  <span className="text-base group-hover:scale-110 transition-transform">✏️</span>
+                  <span className="text-base group-hover:scale-110 transition-transform">
+                    {category.icon || '🛍️'}
+                  </span>
                   <span>{category.name}</span>
                 </Link>
               </li>
@@ -356,74 +358,172 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* MOBILE NAVIGATION DRAWER */}
+      {/* MINISO STYLE FULL-HEIGHT MOBILE SIDE DRAWER (IMAGE 4) */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-brand-100 bg-white px-4 pt-3 pb-6 animate-slide-down">
-          <button 
-            onClick={() => {
-              setIsMobileMenuOpen(false);
-              setIsSearchModalOpen(true);
-            }} 
-            className="w-full flex items-center justify-between px-4 py-2.5 mb-4 bg-slate-100 text-slate-500 text-xs rounded-xl border border-slate-200 cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <Search className="w-4 h-4 text-brand-600" />
-              <span>Ürün ara...</span>
-            </div>
-            <span className="text-[10px] font-semibold text-brand-600 bg-white px-2 py-0.5 rounded">ARA</span>
-          </button>
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity" 
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
 
-          <div className="space-y-1 divide-y divide-slate-100">
-            <div className="pb-2">
+          {/* Drawer Container */}
+          <div className="relative w-full max-w-sm bg-white h-full flex flex-col shadow-2xl z-10 animate-slide-right overflow-hidden">
+            {/* Drawer Top Header matching Image 4 */}
+            <div className="flex items-center justify-between p-4 border-b border-stone-100 bg-white">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 bg-[#e60012] rounded-xl flex flex-col items-center justify-center text-white shadow-xs">
+                  <span className="text-[9px] font-black tracking-tighter leading-none">OTAN</span>
+                  <span className="text-[9px] font-black tracking-tighter leading-none mt-0.5">TIKOS</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-sans font-black text-base text-stone-900 tracking-tight leading-none">
+                    Otantikos
+                  </span>
+                  <span className="text-[8px] font-extrabold text-[#e60012] tracking-widest uppercase mt-0.5">
+                    CONCEPT
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-9 h-9 rounded-full bg-stone-100 text-stone-600 hover:text-stone-900 flex items-center justify-center transition"
+                aria-label="Menüyü Kapat"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Drawer Content: Scrollable Colorful Cards (Image 4) */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {/* Card 1: Tüm Ürünler (Bright Red) */}
               <Link
                 href="/kategori/tum-urunler"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="block py-2 text-xs font-bold text-brand-800"
+                className="relative flex items-center justify-between h-16 sm:h-20 px-5 rounded-2xl bg-gradient-to-r from-[#e60012] via-[#ea1c2d] to-[#f43f5e] text-white shadow-sm overflow-hidden group active:scale-[0.98] transition-transform"
               >
-                Tüm Ürünler
+                <span className="font-bold text-base sm:text-lg z-10 drop-shadow-xs">Tüm Ürünler</span>
+                <div className="text-3xl sm:text-4xl group-hover:scale-110 transition-transform select-none">
+                  🎒
+                </div>
+                <div className="absolute -right-2 -bottom-2 w-20 h-20 bg-white/10 rounded-full blur-xs pointer-events-none" />
               </Link>
-              {categories.map((cat) => (
-                <Link
-                  key={cat.id}
-                  href={`/kategori/${cat.slug}`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block py-2 text-xs font-medium text-slate-800 hover:text-brand-700"
-                >
-                  {cat.name}
-                </Link>
-              ))}
-            </div>
 
-            <div className="pt-3 space-y-2 text-xs font-medium text-slate-600">
+              {/* Card 2: İndirimli Ürünler (Vibrant Orange) */}
               <Link
-                href="/siparis-takip"
+                href="/kategori/tum-urunler"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-2 py-1 text-slate-700"
+                className="relative flex items-center justify-between h-16 sm:h-20 px-5 rounded-2xl bg-gradient-to-r from-[#ea580c] via-[#f97316] to-[#fb923c] text-white shadow-sm overflow-hidden group active:scale-[0.98] transition-transform"
               >
-                <Package className="w-4 h-4 text-brand-600" />
-                <span>Sipariş Takibi</span>
+                <span className="font-bold text-base sm:text-lg z-10 drop-shadow-xs">İndirimli Ürünler</span>
+                <div className="text-3xl sm:text-4xl group-hover:scale-110 transition-transform select-none">
+                  🛍️
+                </div>
+                <div className="absolute -right-2 -bottom-2 w-20 h-20 bg-white/10 rounded-full blur-xs pointer-events-none" />
               </Link>
+
+              {/* Card 3: Yeni (Sky/Cyan Blue) */}
               <Link
-                href="/toptan-satis"
+                href="/kategori/tum-urunler"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="block py-1 text-brand-700 font-semibold"
+                className="relative flex items-center justify-between h-16 sm:h-20 px-5 rounded-2xl bg-gradient-to-r from-[#0284c7] via-[#0ea5e9] to-[#38bdf8] text-white shadow-sm overflow-hidden group active:scale-[0.98] transition-transform"
               >
-                Toptan Satış & Teklif
+                <span className="font-bold text-base sm:text-lg z-10 drop-shadow-xs">Yeni Gelenler</span>
+                <div className="text-2xl sm:text-3xl font-black italic bg-white text-[#0284c7] px-2.5 py-0.5 rounded-lg shadow-xs group-hover:scale-105 transition-transform">
+                  NEW!
+                </div>
+                <div className="absolute -right-2 -bottom-2 w-20 h-20 bg-white/10 rounded-full blur-xs pointer-events-none" />
               </Link>
+
+              {/* Card 4: Popüler / Lisanslı (Rose Pink) */}
               <Link
-                href="/hakkimizda"
+                href="/kategori/tum-urunler"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="block py-1 text-slate-700"
+                className="relative flex items-center justify-between h-16 sm:h-20 px-5 rounded-2xl bg-gradient-to-r from-[#db2777] via-[#ec4899] to-[#f472b6] text-white shadow-sm overflow-hidden group active:scale-[0.98] transition-transform"
               >
-                Hakkımızda
+                <span className="font-bold text-base sm:text-lg z-10 drop-shadow-xs">Popüler & Lisanslar</span>
+                <div className="text-3xl sm:text-4xl group-hover:scale-110 transition-transform select-none">
+                  ✨
+                </div>
+                <div className="absolute -right-2 -bottom-2 w-20 h-20 bg-white/10 rounded-full blur-xs pointer-events-none" />
               </Link>
-              <Link
-                href="/iletisim"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block py-1 text-slate-700"
-              >
-                İletişim & Eminönü Mağaza
-              </Link>
+
+              {/* Dynamic Categories with Rich Gradient Variations */}
+              {categories.map((cat, idx) => {
+                const gradients = [
+                  'from-[#b45309] via-[#d97706] to-[#f59e0b]', // Golden amber
+                  'from-[#059669] via-[#10b981] to-[#34d399]', // Emerald green
+                  'from-[#7c3aed] via-[#8b5cf6] to-[#a78bfa]', // Purple
+                  'from-[#be185d] via-[#e11d48] to-[#f43f5e]', // Magenta rose
+                  'from-[#0891b2] via-[#06b6d4] to-[#22d3ee]', // Cyan
+                  'from-[#c2410c] via-[#ea580c] to-[#fb923c]', // Terracotta
+                ];
+                const grad = gradients[idx % gradients.length];
+
+                return (
+                  <Link
+                    key={cat.id}
+                    href={`/kategori/${cat.slug}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`relative flex items-center justify-between h-16 sm:h-20 px-5 rounded-2xl bg-gradient-to-r ${grad} text-white shadow-sm overflow-hidden group active:scale-[0.98] transition-transform`}
+                  >
+                    <span className="font-bold text-base sm:text-lg z-10 drop-shadow-xs">{cat.name}</span>
+                    <div className="flex items-center gap-2 z-10">
+                      {cat.image_url ? (
+                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/20 p-0.5 shadow-xs shrink-0">
+                          <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover rounded-lg" />
+                        </div>
+                      ) : (
+                        <span className="text-3xl group-hover:scale-110 transition-transform select-none">
+                          {cat.icon || '🧸'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="absolute -right-2 -bottom-2 w-20 h-20 bg-white/10 rounded-full blur-xs pointer-events-none" />
+                  </Link>
+                );
+              })}
+
+              {/* Quick Store Links */}
+              <div className="pt-4 border-t border-stone-100 space-y-2">
+                <Link
+                  href="/toptan-satis"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-between p-3 bg-stone-50 rounded-xl text-stone-800 text-xs font-bold hover:bg-stone-100 transition"
+                >
+                  <span className="flex items-center gap-2">
+                    <span>📦</span>
+                    <span>Tahtakale Toptan Alışveriş</span>
+                  </span>
+                  <ChevronDown className="w-4 h-4 -rotate-90 text-stone-400" />
+                </Link>
+
+                <Link
+                  href="/siparis-takip"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-between p-3 bg-stone-50 rounded-xl text-stone-800 text-xs font-bold hover:bg-stone-100 transition"
+                >
+                  <span className="flex items-center gap-2">
+                    <span>🚚</span>
+                    <span>Sipariş ve Kargo Takibi</span>
+                  </span>
+                  <ChevronDown className="w-4 h-4 -rotate-90 text-stone-400" />
+                </Link>
+
+                <a
+                  href="https://wa.me/905077737777"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-3 bg-emerald-50 text-emerald-800 rounded-xl text-xs font-bold hover:bg-emerald-100 transition"
+                >
+                  <span className="flex items-center gap-2">
+                    <span>💬</span>
+                    <span>WhatsApp Canlı Destek</span>
+                  </span>
+                  <ChevronDown className="w-4 h-4 -rotate-90 text-emerald-600" />
+                </a>
+              </div>
             </div>
           </div>
         </div>

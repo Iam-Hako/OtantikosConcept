@@ -528,6 +528,7 @@ export const DataService = {
         slug: cat.slug || `kategori-${Date.now()}`,
         description: cat.description || '',
         image_url: cat.image_url || '',
+        icon: cat.icon || null,
         display_order: cat.display_order ?? (list.length + 1),
         is_active: cat.is_active ?? true,
         created_at: new Date().toISOString(),
@@ -549,6 +550,7 @@ export const DataService = {
           slug: savedCat.slug,
           description: savedCat.description,
           image_url: savedCat.image_url,
+          icon: savedCat.icon,
           display_order: savedCat.display_order,
           is_active: savedCat.is_active,
         }, { onConflict: 'slug' })

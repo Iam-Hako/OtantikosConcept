@@ -25,7 +25,6 @@ import { Product, Category } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
 import ProductCard from '@/components/ProductCard';
 import HeroBannerSlider from '@/components/HeroBannerSlider';
-import FloatingPromoRibbon from '@/components/FloatingPromoRibbon';
 
 
 
@@ -113,6 +112,9 @@ export default function HomePage() {
   };
 
   const getCategoryPhoto = (cat: Category) => {
+    if (cat.image_url && cat.image_url.trim() && cat.image_url !== '/images/logo.webp') {
+      return cat.image_url;
+    }
     const cName = (cat.name || '').toLowerCase();
     const cSlug = (cat.slug || '').toLowerCase();
 
@@ -127,7 +129,7 @@ export default function HomePage() {
     const validImages = (matched?.images || []).filter(
       (img) => img.image_url && img.image_url !== '/images/logo.webp' && !img.image_url.endsWith('logo.webp')
     );
-    return validImages.find((img) => img.is_cover)?.image_url || validImages[0]?.image_url || (cat.image_url && cat.image_url !== '/images/logo.webp' ? cat.image_url : null);
+    return validImages.find((img) => img.is_cover)?.image_url || validImages[0]?.image_url || null;
   };
 
   const featuredProducts = products.filter((p) => p.is_featured);
@@ -136,9 +138,6 @@ export default function HomePage() {
   return (
     <div className="space-y-6 sm:space-y-10 pb-20 relative bg-white">
       
-      {/* Miniso Style Floating Promo Ribbon on Right Edge */}
-      <FloatingPromoRibbon />
-
       {/* ============================================================ */}
       {/* 1. MINISO STYLE HERO BANNER SLIDER (YÖNETİM MERKEZİNDEN KONTROLLÜ) */}
       {/* ============================================================ */}
@@ -185,9 +184,9 @@ export default function HomePage() {
               <button
                 onClick={() => scrollCategories('left')}
                 aria-label="Kategorileri Sola Kaydır"
-                className="hidden sm:flex absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/95 shadow-md border border-stone-200 items-center justify-center text-stone-700 hover:text-rose-600 hover:scale-110 active:scale-95 transition opacity-0 group-hover/catsection:opacity-100 cursor-pointer"
+                className="hidden sm:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white shadow-md border border-stone-200 items-center justify-center text-stone-700 hover:text-red-600 hover:scale-110 active:scale-95 transition cursor-pointer"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-5 h-5" />
               </button>
 
               {/* Categories Horizontal Scroll Row */}
@@ -206,17 +205,21 @@ export default function HomePage() {
                       href={cat.slug === 'toptan-satis' ? '/toptan-satis' : `/kategori/${cat.slug}`}
                       className="group/item flex flex-col items-center cursor-pointer shrink-0 w-24 sm:w-28 md:w-32 transition-transform active:scale-95"
                     >
-                      {/* Miniso Style Circular Disc */}
-                      <div className={`relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full p-1.5 sm:p-2 ${theme.ringBg} border-2 ${theme.border} ${theme.shadow} flex items-center justify-center group-hover/item:scale-105 group-hover/item:-translate-y-1 transition-all duration-300`}>
-                        <div className={`w-full h-full rounded-full ${theme.innerBg} backdrop-blur-xs flex items-center justify-center overflow-hidden relative shadow-inner`}>
+                      {/* Miniso Style Circular Disc (Image 5) */}
+                      <div className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full p-1 bg-white border-2 border-stone-200 hover:border-red-400 shadow-xs group-hover/item:shadow-md flex items-center justify-center group-hover/item:scale-105 transition-all duration-300">
+                        <div className="w-full h-full rounded-full bg-stone-50 flex items-center justify-center overflow-hidden relative">
                           {photo ? (
                             <Image
                               src={photo}
                               alt={cat.name}
                               fill
                               sizes="(max-width: 640px) 96px, 128px"
-                              className="object-contain p-2 group-hover/item:scale-110 transition-transform duration-300"
+                              className="object-cover group-hover/item:scale-110 transition-transform duration-300"
                             />
+                          ) : cat.icon ? (
+                            <span className="text-3xl sm:text-4xl select-none group-hover/item:scale-110 transition-transform">
+                              {cat.icon}
+                            </span>
                           ) : (
                             <IconComp className={`w-7 h-7 sm:w-9 sm:h-9 ${theme.iconColor} group-hover/item:rotate-6 transition-transform`} />
                           )}
@@ -225,7 +228,7 @@ export default function HomePage() {
 
                       {/* Title Below Disc */}
                       <div className="text-center mt-2.5 w-full px-1">
-                        <h3 className="text-xs sm:text-sm font-bold text-stone-900 group-hover/item:text-rose-600 transition-colors line-clamp-2 leading-tight">
+                        <h3 className="text-xs sm:text-[13px] font-bold text-stone-800 group-hover/item:text-red-600 transition-colors line-clamp-2 leading-tight">
                           {cat.name}
                         </h3>
                       </div>
@@ -238,9 +241,9 @@ export default function HomePage() {
               <button
                 onClick={() => scrollCategories('right')}
                 aria-label="Kategorileri Sağa Kaydır"
-                className="hidden sm:flex absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/95 shadow-md border border-stone-200 items-center justify-center text-stone-700 hover:text-rose-600 hover:scale-110 active:scale-95 transition opacity-0 group-hover/catsection:opacity-100 cursor-pointer"
+                className="hidden sm:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white shadow-md border border-stone-200 items-center justify-center text-stone-700 hover:text-red-600 hover:scale-110 active:scale-95 transition cursor-pointer"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-5 h-5" />
               </button>
             </div>
 
