@@ -459,6 +459,7 @@ export async function actionDeleteOrder(orderId: string) {
 
     if (UUID_REGEX.test(dbId)) {
       await supabaseAdmin.from('order_items').delete().eq('order_id', dbId);
+      await supabaseAdmin.from('returns').delete().eq('order_id', dbId);
       await supabaseAdmin.from('orders').delete().eq('id', dbId);
     } else {
       await supabaseAdmin.from('orders').delete().eq('order_number', orderId);
@@ -467,7 +468,32 @@ export async function actionDeleteOrder(orderId: string) {
     console.error('Supabase admin delete order error:', err);
   }
 
+  await DataService.deleteOrder(orderId);
   revalidatePath('/admin/siparisler');
+  revalidatePath('/hesabim');
+  revalidatePath('/siparis-takip');
+  return { success: true };
+}
+
+export async function actionClearAllOrders() {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) {
+    return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+  }
+
+  try {
+    const supabaseAdmin = createAdminClient();
+    await supabaseAdmin.from('order_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabaseAdmin.from('returns').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabaseAdmin.from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  } catch (err: any) {
+    console.error('Supabase admin clear all orders error:', err);
+  }
+
+  await DataService.clearAllOrders();
+  revalidatePath('/admin/siparisler');
+  revalidatePath('/hesabim');
+  revalidatePath('/siparis-takip');
   return { success: true };
 }
 

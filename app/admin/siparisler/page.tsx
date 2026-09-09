@@ -9,11 +9,12 @@ import {
   Tag, 
   XCircle, 
   AlertTriangle,
-  RotateCcw
+  RotateCcw,
+  Trash2
 } from 'lucide-react';
 import { Order } from '@/lib/types/ecommerce';
 import { DataService, normalizeTurkish } from '@/lib/data/store-data';
-import { actionCancelOrder } from '@/app/actions/ecommerce-actions';
+import { actionCancelOrder, actionDeleteOrder, actionClearAllOrders } from '@/app/actions/ecommerce-actions';
 import { formatPrice, formatDate } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
@@ -28,9 +29,54 @@ export default function AdminOrdersPage() {
   const [restockOnCancel, setRestockOnCancel] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
 
+  // Deletion Modal State
+  const [deletingOrder, setDeletingOrder] = useState<Order | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Clear All Modal State
+  const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
+  const [isClearingAll, setIsClearingAll] = useState(false);
+
   useEffect(() => {
     DataService.getOrders().then(setOrders);
   }, []);
+
+  const handleConfirmDeleteOrder = async () => {
+    if (!deletingOrder) return;
+    setIsDeleting(true);
+    try {
+      const res = await actionDeleteOrder(deletingOrder.id);
+      if (res.success) {
+        setOrders((prev) => prev.filter((o) => o.id !== deletingOrder.id));
+        toast.success(`Sipariş #${deletingOrder.order_number} kalıcı olarak silindi.`);
+        setDeletingOrder(null);
+      } else {
+        toast.error((res as any).error || 'Sipariş silinemedi.');
+      }
+    } catch {
+      toast.error('Silme işlemi sırasında hata oluştu.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleConfirmClearAllOrders = async () => {
+    setIsClearingAll(true);
+    try {
+      const res = await actionClearAllOrders();
+      if (res.success) {
+        setOrders([]);
+        toast.success('Tüm siparişler başarıyla temizlendi.');
+        setIsClearAllModalOpen(false);
+      } else {
+        toast.error((res as any).error || 'Siparişler temizlenemedi.');
+      }
+    } catch {
+      toast.error('Siparişleri temizleme sırasında hata oluştu.');
+    } finally {
+      setIsClearingAll(false);
+    }
+  };
 
   const handleConfirmCancel = async () => {
     if (!cancellingOrder) return;
@@ -84,13 +130,24 @@ export default function AdminOrdersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-serif font-black text-stone-900 flex items-center gap-2">
-            <ShoppingBag className="w-6 h-6 text-orange-600" />
+            <ShoppingBag className="w-6 h-6 text-[#e60012]" />
             <span>Sipariş & Sevkiyat Yönetim Masası</span>
           </h1>
           <p className="text-xs text-stone-500 mt-0.5">
             Sipariş durumlarını güncelleyin, kargo takip numarası atayın, satışları iptal edin veya koli fişi yazdırın.
           </p>
         </div>
+
+        {orders.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setIsClearAllModalOpen(true)}
+            className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-xl text-xs transition inline-flex items-center gap-1.5 shadow-2xs cursor-pointer self-start sm:self-auto"
+          >
+            <Trash2 className="w-4 h-4 text-rose-600" />
+            <span>Tüm Siparişleri Temizle ({orders.length})</span>
+          </button>
+        )}
       </div>
 
       {/* Filter and Search Bar */}
@@ -208,6 +265,17 @@ export default function AdminOrdersPage() {
                   </div>
                 )}
               </div>
+
+              <div className="pt-2 border-t border-stone-100 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setDeletingOrder(ord)}
+                  className="text-stone-400 hover:text-rose-600 text-xs font-semibold inline-flex items-center gap-1 transition cursor-pointer py-1 px-2 rounded-lg hover:bg-rose-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                  <span>Siparişi Sil</span>
+                </button>
+              </div>
             </div>
           ))
         )}
@@ -322,6 +390,14 @@ export default function AdminOrdersPage() {
                           İptal Edildi
                         </span>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => setDeletingOrder(ord)}
+                        className="p-2 hover:bg-rose-50 text-stone-400 hover:text-rose-600 rounded-lg transition cursor-pointer"
+                        title="Siparişi Kalıcı Olarak Sil"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                      </button>
                     </div>
                   </td>
 
@@ -435,6 +511,82 @@ export default function AdminOrdersPage() {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Clear All Orders Confirmation Modal */}
+      {isClearAllModalOpen && (
+        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-stone-200">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-stone-900 text-base">Tüm Siparişleri Sil</h3>
+                <p className="text-xs text-stone-500 leading-relaxed">
+                  Sistemdeki mevcut <strong className="text-stone-800">{orders.length} adet</strong> sipariş ve bu siparişlere ait tüm kalemler veritabanından kalıcı olarak silinecektir. Bu işlem geri alınamaz.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsClearAllModalOpen(false)}
+                className="w-1/2 py-2.5 border border-stone-300 hover:bg-stone-50 text-stone-700 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Vazgeç
+              </button>
+              <button
+                type="button"
+                disabled={isClearingAll}
+                onClick={handleConfirmClearAllOrders}
+                className="w-1/2 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{isClearingAll ? 'Siliniyor...' : 'Evet, Tümünü Sil'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Single Order Confirmation Modal */}
+      {deletingOrder && (
+        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-stone-200">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-stone-900 text-base">Siparişi Sil</h3>
+                <p className="text-xs text-stone-500 leading-relaxed">
+                  <strong className="text-stone-900">#{deletingOrder.order_number}</strong> numaralı sipariş ve detayları veritabanından kalıcı olarak silinecektir. Emin misiniz?
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setDeletingOrder(null)}
+                className="w-1/2 py-2.5 border border-stone-300 hover:bg-stone-50 text-stone-700 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Vazgeç
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDeleteOrder}
+                className="w-1/2 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{isDeleting ? 'Siliniyor...' : 'Evet, Sil'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

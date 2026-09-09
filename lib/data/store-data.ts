@@ -1070,6 +1070,44 @@ export const DataService = {
     return { success: true, message: 'Sipariş başarıyla iptal edildi ve stoklar güncellendi.' };
   },
 
+  async deleteOrder(orderId: string): Promise<boolean> {
+    runtimeOrders = runtimeOrders.filter((o) => o.id !== orderId && o.order_number !== orderId);
+    try {
+      const supabase = createClient();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
+      if (isUuid) {
+        await supabase.from('order_items').delete().eq('order_id', orderId);
+        await supabase.from('returns').delete().eq('order_id', orderId);
+        await supabase.from('orders').delete().eq('id', orderId);
+      } else {
+        const { data: found } = await supabase.from('orders').select('id').eq('order_number', orderId).maybeSingle();
+        if (found?.id) {
+          await supabase.from('order_items').delete().eq('order_id', found.id);
+          await supabase.from('returns').delete().eq('order_id', found.id);
+          await supabase.from('orders').delete().eq('id', found.id);
+        } else {
+          await supabase.from('orders').delete().eq('order_number', orderId);
+        }
+      }
+    } catch (err) {
+      console.error('DataService deleteOrder error:', err);
+    }
+    return true;
+  },
+
+  async clearAllOrders(): Promise<boolean> {
+    runtimeOrders = [];
+    try {
+      const supabase = createClient();
+      await supabase.from('order_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('returns').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    } catch (err) {
+      console.error('DataService clearAllOrders error:', err);
+    }
+    return true;
+  },
+
   // ==========================================
   // 4. RETURNS (RMA)
   // ==========================================
