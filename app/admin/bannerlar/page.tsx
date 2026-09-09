@@ -65,6 +65,7 @@ export default function AdminBannersPage() {
   const [subtitle, setSubtitle] = useState('');
   const [badgeText, setBadgeText] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [mobileImageUrl, setMobileImageUrl] = useState('');
   const [buttonText, setButtonText] = useState('Hemen Keşfet');
   const [buttonUrl, setButtonUrl] = useState('/kategori/k-rtasiye-r-nleri');
   const [bgGradient, setBgGradient] = useState(GRADIENT_PRESETS[0].value);
@@ -72,6 +73,7 @@ export default function AdminBannersPage() {
   const [isActive, setIsActive] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mobileFileInputRef = useRef<HTMLInputElement>(null);
 
   const loadBanners = async () => {
     setIsLoading(true);
@@ -95,6 +97,7 @@ export default function AdminBannersPage() {
     setSubtitle('');
     setBadgeText('YENİ SEZON');
     setImageUrl('/images/miniso_otantikos_banner.jpg');
+    setMobileImageUrl('/images/miniso_otantikos_banner_mobile.jpg?v=20260909_1');
     setButtonText('Hemen Keşfet');
     setButtonUrl('/kategori/k-rtasiye-r-nleri');
     setBgGradient(GRADIENT_PRESETS[0].value);
@@ -109,6 +112,7 @@ export default function AdminBannersPage() {
     setSubtitle(banner.subtitle || '');
     setBadgeText(banner.badge_text || '');
     setImageUrl(banner.image_url);
+    setMobileImageUrl(banner.mobile_image_url || '');
     setButtonText(banner.button_text || 'Hemen Keşfet');
     setButtonUrl(banner.button_url || '/kategori/k-rtasiye-r-nleri');
     setBgGradient(banner.bg_gradient || GRADIENT_PRESETS[0].value);
@@ -126,12 +130,30 @@ export default function AdminBannersPage() {
     try {
       const uploadedUrl = await uploadMediaFile(file);
       setImageUrl(uploadedUrl);
-      toast.success('Görsel başarıyla yüklendi!', { id: toastId });
+      toast.success('Masaüstü görseli başarıyla yüklendi!', { id: toastId });
     } catch (err: any) {
       toast.error(err.message || 'Görsel yüklenemedi.', { id: toastId });
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleMobileFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const toastId = toast.loading('Mobil görsel yükleniyor...');
+    try {
+      const uploadedUrl = await uploadMediaFile(file);
+      setMobileImageUrl(uploadedUrl);
+      toast.success('Mobil görsel başarıyla yüklendi!', { id: toastId });
+    } catch (err: any) {
+      toast.error(err.message || 'Mobil görsel yüklenemedi.', { id: toastId });
+    } finally {
+      setIsUploading(false);
+      if (mobileFileInputRef.current) mobileFileInputRef.current.value = '';
     }
   };
 
@@ -154,6 +176,7 @@ export default function AdminBannersPage() {
         subtitle: subtitle.trim() || null,
         badge_text: badgeText.trim() || null,
         image_url: imageUrl.trim(),
+        mobile_image_url: mobileImageUrl.trim() || null,
         button_text: buttonText.trim() || 'Hemen Keşfet',
         button_url: buttonUrl.trim() || '/kategori/k-rtasiye-r-nleri',
         bg_gradient: bgGradient,
@@ -310,6 +333,11 @@ export default function AdminBannersPage() {
                       }`}>
                         {banner.is_active ? 'Yayında (Aktif)' : 'Gizli (Pasif)'}
                       </span>
+                      {banner.mobile_image_url && (
+                        <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[10px] font-bold">
+                          📱 Özel Mobil Görsel
+                        </span>
+                      )}
                     </div>
 
                     <h3 className="text-sm sm:text-base font-bold text-stone-900 truncate">
@@ -505,6 +533,7 @@ export default function AdminBannersPage() {
                       type="button"
                       onClick={() => {
                         setImageUrl('/images/miniso_otantikos_banner.jpg');
+                        setMobileImageUrl('/images/miniso_otantikos_banner_mobile.jpg?v=20260909_1');
                         if (!title) setTitle('Yeni Dönemde Tarzını Yansıt!');
                         if (!subtitle) setSubtitle('Eminönü Tahtakale vitrinimizden sevimli kırtasiye koleksiyonları');
                         setBadgeText('YENİ DÖNEM');
@@ -523,6 +552,7 @@ export default function AdminBannersPage() {
                       type="button"
                       onClick={() => {
                         setImageUrl('/images/banner_sanrio_blindbox.jpg');
+                        setMobileImageUrl('/images/banner_sanrio_blindbox_mobile.jpg?v=20260909_1');
                         if (!title) setTitle('Sevimli Sürpriz Figür & Blind Box');
                         if (!subtitle) setSubtitle('En trend sevimli figürler, anime karakterleri ve sürpriz kutular');
                         setBadgeText('SÜRPRİZ KUTU');
@@ -541,6 +571,7 @@ export default function AdminBannersPage() {
                       type="button"
                       onClick={() => {
                         setImageUrl('/images/banner_cute_plush_toys.jpg');
+                        setMobileImageUrl('/images/banner_cute_plush_toys_mobile.jpg?v=20260909_1');
                         if (!title) setTitle('Yumuşacık Peluş & Sevimli Hediyelikler');
                         if (!subtitle) setSubtitle('Özel peluş ayıcıklar, sevimli minderler ve çalışma masası ürünleri');
                         setBadgeText('ÖZEL KOLEKSİYON');
@@ -555,6 +586,65 @@ export default function AdminBannersPage() {
                       </div>
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* Mobile Image Upload & URL */}
+              <div className="space-y-2 pt-3 border-t border-stone-100">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-stone-700">
+                    📱 Mobil Banner Görseli (4:5 Dikey Format Önerilir)
+                  </label>
+                  <span className="text-[10px] text-stone-400 font-medium">Girilmezse masaüstü görseli kullanılır</span>
+                </div>
+
+                {/* Mobile Preview Box */}
+                {mobileImageUrl && (
+                  <div className="relative w-28 h-36 rounded-xl overflow-hidden border border-stone-200 bg-stone-100 shadow-inner group">
+                    <Image
+                      src={mobileImageUrl}
+                      alt="Mobil Banner Önizleme"
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => mobileFileInputRef.current?.click()}
+                        className="px-2 py-1 bg-white/95 text-stone-900 rounded-lg text-[9px] font-bold hover:bg-white shadow-md cursor-pointer"
+                      >
+                        Değiştir
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={mobileImageUrl}
+                    onChange={(e) => setMobileImageUrl(e.target.value)}
+                    placeholder="Mobil görsel URL'si veya aşağıdaki butonla yükleyin"
+                    className="flex-1 text-xs p-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-orange-500 text-stone-900 transition font-mono"
+                  />
+
+                  <input
+                    type="file"
+                    ref={mobileFileInputRef}
+                    accept="image/*"
+                    onChange={handleMobileFileUpload}
+                    className="hidden"
+                  />
+
+                  <button
+                    type="button"
+                    disabled={isUploading}
+                    onClick={() => mobileFileInputRef.current?.click()}
+                    className="px-4 py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition shrink-0 disabled:opacity-50"
+                  >
+                    <Upload className={`w-4 h-4 ${isUploading ? 'animate-bounce' : ''}`} />
+                    <span>{isUploading ? 'Yükleniyor...' : 'Mobil Görsel Yükle'}</span>
+                  </button>
                 </div>
               </div>
 

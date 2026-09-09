@@ -46,6 +46,7 @@ export interface HomeBanner {
   subtitle?: string | null;
   badge_text?: string | null;
   image_url: string;
+  mobile_image_url?: string | null;
   button_text?: string | null;
   button_url?: string | null;
   bg_gradient?: string | null;

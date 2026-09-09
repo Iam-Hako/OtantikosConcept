@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS public.home_banners (
     subtitle TEXT,
     badge_text TEXT,
     image_url TEXT NOT NULL,
+    mobile_image_url TEXT,
     button_text TEXT DEFAULT 'Hemen Keşfet',
     button_url TEXT DEFAULT '/kategori/k-rtasiye-r-nleri',
     bg_gradient TEXT DEFAULT 'from-sky-100 via-rose-50 to-amber-100',
@@ -16,6 +17,9 @@ CREATE TABLE IF NOT EXISTS public.home_banners (
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Ensure mobile_image_url exists if table already created
+ALTER TABLE public.home_banners ADD COLUMN IF NOT EXISTS mobile_image_url TEXT;
 
 -- Index for high-speed retrieval by order and active status
 CREATE INDEX IF NOT EXISTS idx_home_banners_order ON public.home_banners (display_order ASC, is_active);

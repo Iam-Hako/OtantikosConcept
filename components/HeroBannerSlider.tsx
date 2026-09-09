@@ -133,9 +133,9 @@ export default function HeroBannerSlider({ initialBanners }: HeroBannerSliderPro
           </Link>
         )}
 
-        {/* Top Pill Badge if set by Admin */}
+        {/* Top Pill Badge if set by Admin (Desktop Only) */}
         {currentBanner?.badge_text && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1.5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black bg-gradient-to-r from-blue-900 via-indigo-900 to-rose-600 text-white shadow-md border border-white/20 whitespace-nowrap">
+          <div className="hidden sm:inline-flex absolute top-3 sm:top-5 left-1/2 -translate-x-1/2 z-20 items-center gap-1.5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black bg-gradient-to-r from-blue-900 via-indigo-900 to-rose-600 text-white shadow-md border border-white/20 whitespace-nowrap">
             <span className="text-yellow-300">⭐</span>
             <span>{currentBanner.badge_text}</span>
             <span className="text-yellow-300 font-black ml-0.5">›</span>
@@ -152,22 +152,32 @@ export default function HeroBannerSlider({ initialBanners }: HeroBannerSliderPro
                 isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
               }`}
             >
-              {/* Background Color & Image */}
+              {/* Background Color & Image: Responsive Desktop vs Mobile */}
               <div className="absolute inset-0 overflow-hidden">
+                {/* Desktop Image (Landscape) */}
                 <Image
                   src={banner.image_url}
                   alt={banner.title || 'Banner'}
                   fill
                   priority={index === 0}
-                  className="object-cover object-center transform scale-100 transition-transform duration-1000 ease-out"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1440px) 95vw, 1840px"
+                  className="hidden sm:block object-cover object-center transform scale-100 transition-transform duration-1000 ease-out"
+                  sizes="(max-width: 1440px) 95vw, 1840px"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent sm:bg-gradient-to-r sm:from-black/40 sm:via-transparent sm:to-transparent" />
+                {/* Mobile Image (Dedicated 4:5 Portrait without clipping) */}
+                <Image
+                  src={banner.mobile_image_url || banner.image_url}
+                  alt={banner.title || 'Banner'}
+                  fill
+                  priority={index === 0}
+                  className="sm:hidden object-cover object-center transform scale-100 transition-transform duration-1000 ease-out"
+                  sizes="100vw"
+                />
+                <div className="hidden sm:block absolute inset-0 sm:bg-gradient-to-r sm:from-black/40 sm:via-transparent sm:to-transparent" />
               </div>
 
-              {/* Text & Content Overlay */}
+              {/* Desktop Text & Content Overlay */}
               {(banner.title || banner.subtitle) && (
-                <div className="absolute inset-0 z-10 flex flex-col justify-end sm:justify-center p-6 sm:p-12 lg:p-16 max-w-2xl text-white">
+                <div className="hidden sm:flex absolute inset-0 z-10 flex-col justify-center p-6 sm:p-12 lg:p-16 max-w-2xl text-white">
                   <div className="space-y-3 sm:space-y-4">
                     {banner.badge_text && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider bg-[#e60012] text-white shadow-sm border border-white/20">
@@ -199,11 +209,16 @@ export default function HeroBannerSlider({ initialBanners }: HeroBannerSliderPro
                 </div>
               )}
 
-              {/* Entire slide clickable if no inner button */}
+              {/* Entire slide is clickable on mobile (and desktop if no inner button) */}
+              <Link
+                href={banner.button_url || '/kategori/tum-urunler'}
+                className="absolute inset-0 z-10 sm:hidden"
+                aria-label={banner.title || 'Banner'}
+              />
               {!banner.button_text && (
                 <Link
                   href={banner.button_url || '/kategori/tum-urunler'}
-                  className="absolute inset-0 z-10"
+                  className="hidden sm:block absolute inset-0 z-10"
                   aria-label={banner.title || 'Banner'}
                 />
               )}
