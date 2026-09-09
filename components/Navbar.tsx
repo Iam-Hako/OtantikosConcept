@@ -122,42 +122,33 @@ export default function Navbar() {
           </div>
 
           {/* MINISO STYLE RIGHT ACTION ICONS */}
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-2 sm:gap-4">
             
-            {/* Mobile Search Icon */}
-            <button
-              onClick={() => setIsSearchModalOpen(true)}
-              className="md:hidden p-2 text-stone-700 hover:text-[#e60012] hover:bg-stone-50 rounded-full transition"
-              aria-label="Arama"
-            >
-              <Search className="w-5 h-5" />
-            </button>
-
             {/* Favorilerim */}
             <Link
               href="/favorilerim"
-              className="flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-2 text-stone-700 hover:text-[#e60012] transition rounded-lg group"
+              className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 p-1 sm:px-2.5 sm:py-2 text-stone-700 hover:text-[#e60012] transition rounded-lg group"
               aria-label="Favorilerim"
             >
               <div className="relative">
-                <Heart className="w-5 h-5 stroke-[1.8] group-hover:scale-110 transition-transform" />
+                <Heart className="w-5 h-5 sm:w-5 sm:h-5 stroke-[1.8] group-hover:scale-110 transition-transform" />
                 {totalFavorites > 0 && (
                   <span className="absolute -top-1.5 -right-2 bg-[#e60012] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">
                     {totalFavorites}
                   </span>
                 )}
               </div>
-              <span className="hidden sm:inline text-xs font-semibold">Favorilerim</span>
+              <span className="text-[10px] sm:text-xs font-semibold text-stone-600 sm:text-stone-700">Favorilerim</span>
             </Link>
 
             {/* Hesabım Dropdown */}
             <div className="relative" ref={userDropdownRef}>
               <button
                 onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                className="flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-2 text-xs font-semibold text-stone-700 hover:text-[#e60012] transition rounded-lg group cursor-pointer"
+                className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 p-1 sm:px-2.5 sm:py-2 text-xs font-semibold text-stone-700 hover:text-[#e60012] transition rounded-lg group cursor-pointer"
               >
-                <User className="w-5 h-5 stroke-[1.8] group-hover:scale-110 transition-transform" />
-                <span className="hidden sm:inline max-w-[90px] truncate">
+                <User className="w-5 h-5 sm:w-5 sm:h-5 stroke-[1.8] group-hover:scale-110 transition-transform" />
+                <span className="text-[10px] sm:text-xs font-semibold text-stone-600 sm:text-stone-700 max-w-[70px] sm:max-w-[90px] truncate">
                   {user ? (user.full_name?.split(' ')[0] || user.email?.split('@')[0]) : 'Hesabım'}
                 </span>
                 <ChevronDown className="w-3 h-3 text-stone-400 hidden sm:inline" />
@@ -243,22 +234,35 @@ export default function Navbar() {
             {/* Sepetim */}
             <button
               onClick={openDrawer}
-              className="flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-2 text-stone-700 hover:text-[#e60012] transition rounded-lg group cursor-pointer"
+              className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 p-1 sm:px-2.5 sm:py-2 text-stone-700 hover:text-[#e60012] transition rounded-lg group cursor-pointer"
               aria-label="Sepetim"
             >
               <div className="relative">
-                <ShoppingBag className="w-5 h-5 stroke-[1.8] group-hover:scale-110 transition-transform" />
+                <ShoppingBag className="w-5 h-5 sm:w-5 sm:h-5 stroke-[1.8] group-hover:scale-110 transition-transform" />
                 {totalItems > 0 && (
                   <span className="absolute -top-1.5 -right-2 bg-[#e60012] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-scale">
                     {totalItems}
                   </span>
                 )}
               </div>
-              <span className="hidden sm:inline text-xs font-semibold">Sepetim</span>
+              <span className="text-[10px] sm:text-xs font-semibold text-stone-600 sm:text-stone-700">Sepetim</span>
             </button>
 
           </div>
 
+        </div>
+
+        {/* MINISO MOBILE ROW 2: FULL-WIDTH SEARCH BAR (EXACT AS SCREENSHOT) */}
+        <div className="md:hidden pb-3 pt-0.5">
+          <button
+            onClick={() => setIsSearchModalOpen(true)}
+            className="w-full flex items-center justify-between py-2 px-3.5 bg-[#f5f5f5] hover:bg-stone-200/60 border border-stone-200/80 rounded-lg text-stone-400 text-xs transition group cursor-pointer"
+          >
+            <span className="text-xs text-stone-400 font-normal group-hover:text-stone-600 transition-colors">
+              Ürün, kategori veya marka ara...
+            </span>
+            <Search className="w-4 h-4 text-stone-400 group-hover:text-stone-600 transition-colors" />
+          </button>
         </div>
       </div>
 

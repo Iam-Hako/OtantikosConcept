@@ -313,13 +313,13 @@ export default function HomePage() {
       </section>
 
       {/* ============================================================ */}
-      {/* 5. TAHTAKALE EMİNÖNÜ & DHL GÜVEN ŞERİDİ                       */}
+      {/* 5. TAHTAKALE EMİNÖNÜ & DHL GÜVEN ŞERİDİ (MINISO PASTEL TARZ) */}
       {/* ============================================================ */}
       <section className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           
-          <div className="p-5 bg-gradient-to-br from-orange-50/90 via-amber-50/40 to-white rounded-3xl border border-orange-200/90 shadow-2xs hover:border-orange-400 hover:shadow-xl hover:shadow-orange-500/10 hover:-translate-y-1 transition-all duration-300 flex items-start gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+          <div className="p-4 sm:p-5 bg-gradient-to-br from-rose-50/90 via-pink-50/40 to-white rounded-2xl sm:rounded-3xl border border-rose-200/80 shadow-2xs hover:border-rose-400 hover:shadow-lg hover:shadow-rose-500/10 hover:-translate-y-0.5 transition-all duration-300 flex items-start gap-3.5">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-[#e60012] text-white flex items-center justify-center shrink-0 shadow-xs">
               <Truck className="w-5 h-5" />
             </div>
             <div>
@@ -330,8 +330,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="p-5 bg-gradient-to-br from-amber-50/90 via-yellow-50/40 to-white rounded-3xl border border-amber-200/90 shadow-2xs hover:border-amber-400 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 transition-all duration-300 flex items-start gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+          <div className="p-4 sm:p-5 bg-gradient-to-br from-amber-50/90 via-yellow-50/40 to-white rounded-2xl sm:rounded-3xl border border-amber-200/80 shadow-2xs hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/10 hover:-translate-y-0.5 transition-all duration-300 flex items-start gap-3.5">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
               <Store className="w-5 h-5" />
             </div>
             <div>
@@ -342,8 +342,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="p-5 bg-gradient-to-br from-emerald-50/90 via-teal-50/40 to-white rounded-3xl border border-emerald-200/90 shadow-2xs hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 transition-all duration-300 flex items-start gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+          <div className="p-4 sm:p-5 bg-gradient-to-br from-emerald-50/90 via-teal-50/40 to-white rounded-2xl sm:rounded-3xl border border-emerald-200/80 shadow-2xs hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/10 hover:-translate-y-0.5 transition-all duration-300 flex items-start gap-3.5">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
@@ -354,8 +354,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="p-5 bg-gradient-to-br from-blue-50/90 via-sky-50/40 to-white rounded-3xl border border-blue-200/90 shadow-2xs hover:border-blue-400 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 transition-all duration-300 flex items-start gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+          <div className="p-4 sm:p-5 bg-gradient-to-br from-blue-50/90 via-sky-50/40 to-white rounded-2xl sm:rounded-3xl border border-blue-200/80 shadow-2xs hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/10 hover:-translate-y-0.5 transition-all duration-300 flex items-start gap-3.5">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
               <MessageCircle className="w-5 h-5" />
             </div>
             <div>
@@ -370,41 +370,41 @@ export default function HomePage() {
       </section>
 
       {/* ============================================================ */}
-      {/* 6. TAHTAKALE EMİNÖNÜ HERITAGE & WHOLESALE BANNER             */}
+      {/* 6. MINISO STYLE WHOLESALE & HERITAGE SHOWCASE BANNER         */}
       {/* ============================================================ */}
       <section className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-3xl bg-gradient-to-br from-stone-900 via-orange-950/90 to-stone-950 text-white p-8 sm:p-12 lg:p-14 relative overflow-hidden shadow-2xl border border-orange-900/40">
+        <div className="rounded-2xl sm:rounded-[2.5rem] bg-gradient-to-r from-rose-50/90 via-pink-50/60 to-amber-50/80 p-6 sm:p-10 lg:p-14 relative overflow-hidden shadow-xl shadow-rose-950/[0.03] border border-rose-200/80">
           
-          {/* Warm Ambient Glow Effects */}
-          <div className="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-orange-500/20 blur-3xl pointer-events-none" />
-          <div className="absolute top-0 right-1/4 w-60 h-60 rounded-full bg-amber-500/15 blur-3xl pointer-events-none" />
+          {/* Playful Ambient Pastel Glow Effects */}
+          <div className="absolute -right-16 -bottom-16 w-72 h-72 rounded-full bg-rose-200/50 blur-3xl pointer-events-none" />
+          <div className="absolute top-0 right-1/3 w-60 h-60 rounded-full bg-amber-200/40 blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 max-w-2xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-400/30 text-orange-300 text-xs font-bold">
-              <Award className="w-3.5 h-3.5 text-orange-400" />
+          <div className="relative z-10 max-w-2xl space-y-3 sm:space-y-4">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-100/90 border border-rose-200 text-[#e60012] text-[11px] sm:text-xs font-black shadow-2xs">
+              <Award className="w-3.5 h-3.5 text-[#e60012]" />
               <span>Eminönü Tahtakale Ticaret Geleneği</span>
             </div>
 
-            <h2 className="text-2xl sm:text-4xl font-serif font-black text-white leading-tight">
-              Toptan ve Perakendede <br />
-              <span className="text-orange-400">Şeffaf ve Dürüst Fiyat Politikası</span>
+            <h2 className="text-xl sm:text-3xl lg:text-4xl font-sans font-black text-stone-900 leading-tight tracking-tight">
+              Toptan ve Perakendede <br className="hidden sm:block" />
+              <span className="text-[#e60012]">Şeffaf ve Dürüst Fiyat Politikası</span>
             </h2>
 
-            <p className="text-xs sm:text-sm text-stone-300 leading-relaxed font-normal">
+            <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-medium">
               Tahtakale&apos;nin tarihi ticaret sokaklarında; yapay indirim oyunları yerine doğrudan net ve adil fiyatlandırma sunuyoruz. İster DHL Kargo ile kapınıza gelsin, ister Eminönü şubemizden teslim alın.
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row gap-3">
               <Link
                 href="/toptan-satis"
-                className="px-6 py-3.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2"
+                className="px-6 py-3 sm:px-8 sm:py-3.5 bg-[#e60012] hover:bg-[#c90010] text-white text-xs sm:text-sm font-black rounded-full shadow-lg shadow-red-600/25 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
                 <span>Tahtakale Toptan Teklif Al</span>
               </Link>
               <Link
                 href="/hakkimizda"
-                className="px-6 py-3.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl border border-white/20 transition text-center"
+                className="px-6 py-3 sm:px-8 sm:py-3.5 bg-white hover:bg-stone-50 text-stone-800 text-xs sm:text-sm font-bold rounded-full border border-stone-200/90 shadow-2xs hover:border-stone-400 transition-all text-center"
               >
                 Kurumsal Hikayemiz
               </Link>

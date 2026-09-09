@@ -83,14 +83,35 @@ export default function HeroBannerSlider({ initialBanners }: HeroBannerSliderPro
   const currentBanner = banners[currentIndex];
 
   return (
-    <section className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8 pt-2">
+    <section className="w-full max-w-[1840px] mx-auto px-2 sm:px-6 lg:px-8 pt-1 sm:pt-2">
       <div
-        className="relative group overflow-hidden rounded-3xl sm:rounded-[2.5rem] border border-amber-200/60 shadow-xl shadow-orange-950/[0.04] bg-stone-100 select-none aspect-[16/7] min-h-[220px] sm:min-h-[340px] lg:min-h-[440px]"
+        className="relative group overflow-hidden rounded-2xl sm:rounded-[2.5rem] border border-stone-200/90 shadow-xl shadow-red-950/[0.04] bg-stone-100 select-none aspect-[4/5] min-h-[420px] sm:aspect-[16/7] sm:min-h-[340px] lg:min-h-[460px]"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
         onTouchStart={() => setIsPaused(true)}
         onTouchEnd={() => setIsPaused(false)}
       >
+        {/* Miniso Mobile Top Pill Badge (As shown in screenshot) */}
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1.5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black bg-gradient-to-r from-blue-900 via-indigo-900 to-rose-600 text-white shadow-md border border-white/20 whitespace-nowrap">
+          <span className="text-yellow-300">⭐</span>
+          <span>{currentBanner?.badge_text || 'SEPETTE SÜRPRİZ İNDİRİM FIRSATLARI'}</span>
+          <span className="text-yellow-300 font-black ml-0.5">›</span>
+        </div>
+
+        {/* Miniso Style Bottom-Right "FIRSAT KAZAN" Promo Sticker (As shown in screenshot) */}
+        <Link
+          href="/kategori/tum-urunler"
+          className="absolute bottom-4 right-3 sm:bottom-6 sm:right-6 z-20 flex items-center justify-center group/wheel"
+          title="Fırsatları Keşfet"
+        >
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full p-1 bg-gradient-to-tr from-amber-400 via-red-500 to-yellow-300 shadow-xl border-2 border-white flex items-center justify-center group-hover/wheel:scale-110 transition-transform">
+            <div className="w-full h-full rounded-full bg-white flex flex-col items-center justify-center text-center p-0.5 shadow-inner">
+              <span className="text-[9px] sm:text-[10px] font-black text-[#e60012] leading-tight">ÇARK</span>
+              <span className="text-[8px] sm:text-[9px] font-extrabold text-amber-600 leading-tight">KAZAN</span>
+            </div>
+          </div>
+        </Link>
+
         {/* Slides Container */}
         {banners.map((banner, index) => {
           const isActive = index === currentIndex;
