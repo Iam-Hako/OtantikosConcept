@@ -39,14 +39,27 @@ export function normalizeTurkish(text: string): string {
     .trim();
 }
 
-// Clear any obsolete legacy mock cache from older versions
+// Purge any leftover legacy mock or cache data to guarantee pure Supabase Single Source of Truth
 if (typeof window !== 'undefined') {
   try {
-    const keysToRemove = [
+    const keysToPurge = [
+      'otantikos_categories',
+      'otantikos_kargo_cache',
+      'otantikos_products',
+      'otantikos_orders',
+      'otantikos_returns',
+      'otantikos_questions',
+      'otantikos_reviews',
       'otantikos_mock_data_legacy',
       'otantikos_legacy_v0'
     ];
-    keysToRemove.forEach((k) => localStorage.removeItem(k));
+    keysToPurge.forEach((k) => localStorage.removeItem(k));
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('otantikos_saved_addresses_') || key.startsWith('otantikos_categories'))) {
+        localStorage.removeItem(key);
+      }
+    }
   } catch {
     // Ignore
   }
@@ -99,107 +112,13 @@ export function deduplicateLiveChatMessages(messages: LiveChatMessage[]): LiveCh
   return result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 }
 
-export const DEFAULT_STORE_CATEGORIES: Category[] = [
-  {
-    id: 'cat-pelus',
-    name: 'Peluş & Sevimli Hediyelik',
-    slug: 'pelus-hediyelikler',
-    description: 'Yumuşacık ayıcıklar, sevimli minderler ve özel hediyelik koleksiyonları',
-    icon: '🧸',
-    display_order: 1,
-    is_active: true,
-    created_at: '2026-01-01T00:00:00.000Z',
-  },
-  {
-    id: 'cat-blindbox',
-    name: 'Sürpriz Kutu & Figür',
-    slug: 'surpriz-kutu-blind-box',
-    description: 'Trend figürler, anime karakterleri ve lisanslı sürpriz kutular',
-    icon: '🎁',
-    display_order: 2,
-    is_active: true,
-    created_at: '2026-01-02T00:00:00.000Z',
-  },
-  {
-    id: 'cat-squishy',
-    name: 'Squishy & Antistres',
-    slug: 'squishy-antistres',
-    description: 'En popüler yavaş yükselen squishy ve stres giderici oyuncaklar',
-    icon: '⭐',
-    display_order: 3,
-    is_active: true,
-    created_at: '2026-01-03T00:00:00.000Z',
-  },
-  {
-    id: 'cat-canta',
-    name: 'Çanta & Aksesuar',
-    slug: 'canta-aksesuarlar',
-    description: 'Renkli sırt çantaları, sevimli cüzdanlar ve anahtarlıklar',
-    icon: '🎒',
-    display_order: 4,
-    is_active: true,
-    created_at: '2026-01-04T00:00:00.000Z',
-  },
-  {
-    id: 'cat-kirtasiye',
-    name: 'Kırtasiye & Defter',
-    slug: 'kirtasiye-defter',
-    description: 'Defterler, tasarım jel kalemler ve masaüstü düzenleyiciler',
-    icon: '✏️',
-    display_order: 5,
-    is_active: true,
-    created_at: '2026-01-05T00:00:00.000Z',
-  },
-];
+export const DEFAULT_STORE_CATEGORIES: Category[] = [];
 
-let runtimeCategories: Category[] = [...DEFAULT_STORE_CATEGORIES];
+let runtimeCategories: Category[] = [];
 
-export const DEFAULT_HOME_BANNERS: HomeBanner[] = [
-  {
-    id: 'banner-default-1',
-    title: 'Yeni Dönemde Tarzını Yansıt!',
-    subtitle: 'Eminönü Tahtakale vitrinimizden sevimli kırtasiye, defter ve tasarım hediyelik koleksiyonları.',
-    badge_text: 'YENİ DÖNEM',
-    image_url: '/images/miniso_otantikos_banner.jpg',
-    mobile_image_url: '/images/miniso_otantikos_banner_mobile.jpg?v=20260909_1',
-    button_text: 'Hemen Alışverişe Başla',
-    button_url: '/kategori/tum-urunler',
-    bg_gradient: 'from-sky-200/60 via-rose-100/50 to-amber-100/60',
-    display_order: 1,
-    is_active: true,
-    created_at: '2026-01-01T00:00:00.000Z',
-  },
-  {
-    id: 'banner-default-2',
-    title: 'Sevimli Sürpriz Figür & Blind Box',
-    subtitle: 'En trend sevimli figürler, anime karakterleri ve sürpriz kutuları şimdi keşfet!',
-    badge_text: 'SÜRPRİZ KUTU',
-    image_url: '/images/banner_sanrio_blindbox.jpg',
-    mobile_image_url: '/images/banner_sanrio_blindbox_mobile.jpg?v=20260909_1',
-    button_text: 'Koleksiyonu İncele',
-    button_url: '/kategori/tum-urunler',
-    bg_gradient: 'from-pink-100 via-rose-50 to-purple-100',
-    display_order: 2,
-    is_active: true,
-    created_at: '2026-01-02T00:00:00.000Z',
-  },
-  {
-    id: 'banner-default-3',
-    title: 'Yumuşacık Peluş & Sevimli Hediyelikler',
-    subtitle: 'Tahtakale Eminönü özel peluş ayıcıklar, sevimli minderler ve şık çalışma masası gereçleri.',
-    badge_text: 'ÖZEL KOLEKSİYON',
-    image_url: '/images/banner_cute_plush_toys.jpg',
-    mobile_image_url: '/images/banner_cute_plush_toys_mobile.jpg?v=20260909_1',
-    button_text: 'Şimdi Keşfet',
-    button_url: '/kategori/tum-urunler',
-    bg_gradient: 'from-amber-100 via-yellow-50 to-orange-100',
-    display_order: 3,
-    is_active: true,
-    created_at: '2026-01-03T00:00:00.000Z',
-  },
-];
+export const DEFAULT_HOME_BANNERS: HomeBanner[] = [];
 
-let runtimeBanners: HomeBanner[] = [...DEFAULT_HOME_BANNERS];
+let runtimeBanners: HomeBanner[] = [];
 
 export const DataService = {
   // ==========================================
@@ -550,22 +469,6 @@ export const DataService = {
   // 2. CATEGORIES
   // ==========================================
   async getCategories(): Promise<Category[]> {
-    // 1. Check client-side localStorage cache
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('otantikos_categories');
-        if (stored !== null) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed)) {
-            runtimeCategories = parsed;
-            return runtimeCategories;
-          }
-        }
-      } catch {
-        // Ignore
-      }
-    }
-
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -573,111 +476,74 @@ export const DataService = {
         .select('*')
         .order('display_order', { ascending: true });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         runtimeCategories = data as Category[];
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem('otantikos_categories', JSON.stringify(runtimeCategories));
-          } catch {}
-        }
         return runtimeCategories;
       }
-    } catch {
-      // Fallback
+      if (error) {
+        console.error('DataService getCategories Supabase error:', error.message);
+      }
+    } catch (err) {
+      console.error('DataService getCategories error:', err);
     }
 
-    if (runtimeCategories && runtimeCategories.length > 0) {
-      return runtimeCategories;
-    }
-
-    runtimeCategories = [...DEFAULT_STORE_CATEGORIES];
     return runtimeCategories;
   },
 
   async saveCategory(cat: Partial<Category>): Promise<Category> {
-    const list = runtimeCategories;
-    const idx = list.findIndex(c => c.id === cat.id || c.slug === cat.slug);
-
-    let savedCat: Category;
-    if (idx > -1) {
-      savedCat = { ...list[idx], ...cat } as Category;
-      list[idx] = savedCat;
-    } else {
-      savedCat = {
-        id: cat.id || `cat-${Date.now()}`,
-        name: cat.name || 'Yeni Kategori',
-        slug: cat.slug || `kategori-${Date.now()}`,
-        description: cat.description || '',
-        image_url: cat.image_url || '',
-        icon: cat.icon || null,
-        display_order: cat.display_order ?? (list.length + 1),
-        is_active: cat.is_active ?? true,
-        created_at: new Date().toISOString(),
-      };
-      list.push(savedCat);
-    }
-
-    runtimeCategories = list;
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('otantikos_categories', JSON.stringify(runtimeCategories));
-      } catch {}
+    const isCustomId = !cat.id || cat.id.startsWith('cat-');
+    const supabase = createClient();
+    const payload: any = {
+      name: cat.name,
+      slug: cat.slug,
+      description: cat.description || '',
+      image_url: cat.image_url || '',
+      icon: cat.icon || null,
+      display_order: Number(cat.display_order) || 1,
+      is_active: cat.is_active ?? true,
+    };
+    if (!isCustomId && cat.id) {
+      payload.id = cat.id;
     }
 
     try {
-      const supabase = createClient();
-      const isCustomId = savedCat.id.startsWith('cat-');
       const { data, error } = await supabase
         .from('categories')
-        .upsert({
-          id: isCustomId ? undefined : savedCat.id,
-          name: savedCat.name,
-          slug: savedCat.slug,
-          description: savedCat.description,
-          image_url: savedCat.image_url,
-          icon: savedCat.icon,
-          display_order: savedCat.display_order,
-          is_active: savedCat.is_active,
-        }, { onConflict: 'slug' })
+        .upsert(payload, { onConflict: 'slug' })
         .select()
         .single();
 
       if (!error && data) {
-        savedCat.id = data.id;
+        const saved = data as Category;
+        const idx = runtimeCategories.findIndex((c) => c.id === saved.id || c.slug === saved.slug);
+        if (idx > -1) {
+          runtimeCategories[idx] = saved;
+        } else {
+          runtimeCategories.push(saved);
+        }
+        return saved;
       }
-    } catch {
-      // Local fallback
+      if (error) {
+        console.error('DataService saveCategory Supabase error:', error.message);
+      }
+    } catch (err) {
+      console.error('DataService saveCategory error:', err);
     }
 
-    return savedCat;
+    return cat as Category;
   },
 
   async deleteCategory(categoryId: string): Promise<boolean> {
-    const isKirtasiye = categoryId === 'cat-kirtasiye' || categoryId === 'k-rtasiye-r-nleri';
-    let list = runtimeCategories.filter(c => {
-      if (c.id === categoryId || c.slug === categoryId) return false;
-      if (isKirtasiye && (c.id === 'cat-kirtasiye' || c.slug === 'k-rtasiye-r-nleri' || c.name?.toLowerCase().includes('kırtasiye'))) return false;
-      return true;
-    });
-    runtimeCategories = list;
-
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('otantikos_categories', JSON.stringify(runtimeCategories));
-      } catch {}
-    }
-
     try {
       const supabase = createClient();
       await supabase.from('products').update({ category_id: null }).eq('category_id', categoryId);
       await supabase.from('categories').delete().or(`id.eq.${categoryId},slug.eq.${categoryId}`);
-      if (isKirtasiye) {
-        await supabase.from('categories').delete().or('slug.eq.k-rtasiye-r-nleri,id.eq.cat-kirtasiye');
-      }
-    } catch {
-      // Ignore
+      runtimeCategories = runtimeCategories.filter((c) => c.id !== categoryId && c.slug !== categoryId);
+      return true;
+    } catch (err) {
+      console.error('DataService deleteCategory error:', err);
+      return false;
     }
-    return true;
   },
 
   // ==========================================
@@ -692,21 +558,18 @@ export const DataService = {
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
-      if (!error && data && data.length > 0) {
-        if (data.length === 1) {
-          const others = DEFAULT_HOME_BANNERS.filter(def => !data.some(d => d.id === def.id || d.title === def.title));
-          runtimeBanners = [...(data as HomeBanner[]), ...others];
-        } else {
-          runtimeBanners = data as HomeBanner[];
-        }
+      if (!error && data) {
+        runtimeBanners = data as HomeBanner[];
         return runtimeBanners;
       }
-    } catch {
-      // Local fallback
+      if (error) {
+        console.error('DataService getHomeBanners Supabase error:', error.message);
+      }
+    } catch (err) {
+      console.error('DataService getHomeBanners error:', err);
     }
 
-    const activeList = runtimeBanners.filter(b => b.is_active);
-    return activeList.length > 0 ? activeList : DEFAULT_HOME_BANNERS;
+    return runtimeBanners.filter((b) => b.is_active);
   },
 
   async getAllAdminBanners(): Promise<HomeBanner[]> {
@@ -717,20 +580,18 @@ export const DataService = {
         .select('*')
         .order('display_order', { ascending: true });
 
-      if (!error && data && data.length > 0) {
-        if (data.length === 1) {
-          const others = DEFAULT_HOME_BANNERS.filter(def => !data.some(d => d.id === def.id || d.title === def.title));
-          runtimeBanners = [...(data as HomeBanner[]), ...others];
-        } else {
-          runtimeBanners = data as HomeBanner[];
-        }
+      if (!error && data) {
+        runtimeBanners = data as HomeBanner[];
         return runtimeBanners;
       }
-    } catch {
-      // Local fallback
+      if (error) {
+        console.error('DataService getAllAdminBanners Supabase error:', error.message);
+      }
+    } catch (err) {
+      console.error('DataService getAllAdminBanners error:', err);
     }
 
-    return runtimeBanners.length > 0 ? runtimeBanners : DEFAULT_HOME_BANNERS;
+    return runtimeBanners;
   },
 
   async saveBanner(banner: Partial<HomeBanner>): Promise<HomeBanner> {
@@ -2458,21 +2319,6 @@ export const DataService = {
   async getUserAddresses(userId: string): Promise<UserAddress[]> {
     if (!userId) return [];
 
-    // Client-side local persistence backup
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem(`otantikos_saved_addresses_${userId}`);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            runtimeAddresses = parsed;
-          }
-        }
-      } catch {
-        // Ignore
-      }
-    }
-
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -2481,140 +2327,100 @@ export const DataService = {
         .eq('user_id', userId)
         .order('is_default', { ascending: false });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         runtimeAddresses = data as UserAddress[];
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem(`otantikos_saved_addresses_${userId}`, JSON.stringify(runtimeAddresses));
-          } catch {}
-        }
         return runtimeAddresses;
       }
-    } catch {
-      // Fallback
+      if (error) {
+        console.error('DataService getUserAddresses Supabase error:', error.message);
+      }
+    } catch (err) {
+      console.error('DataService getUserAddresses error:', err);
     }
 
     return runtimeAddresses.filter((a) => a.user_id === userId);
   },
 
   async saveUserAddress(addr: Partial<UserAddress>): Promise<UserAddress> {
-    const list = runtimeAddresses;
-    const now = new Date().toISOString();
-    const isFirst = !list.some((a) => a.user_id === addr.user_id);
-    const isDefault = addr.is_default ?? isFirst;
-
-    let saved: UserAddress;
-    const existingIdx = list.findIndex((a) => a.id === addr.id);
-
-    if (existingIdx > -1) {
-      saved = {
-        ...list[existingIdx],
-        ...addr,
-        is_default: isDefault,
-      } as UserAddress;
-      list[existingIdx] = saved;
-    } else {
-      saved = {
-        id: addr.id || `addr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        user_id: addr.user_id || 'guest',
-        title: addr.title || 'Ev Adresim',
-        full_name: addr.full_name || '',
-        phone: addr.phone || '',
-        province: addr.province || 'İstanbul',
-        district: addr.district || 'Fatih',
-        neighborhood: addr.neighborhood || '',
-        address_detail: addr.address_detail || '',
-        postal_code: addr.postal_code || '',
-        is_default: isDefault,
-        created_at: now,
-      };
-      list.unshift(saved);
-    }
-
-    // If marked default, unmark other addresses for same user
-    if (saved.is_default) {
-      list.forEach((a) => {
-        if (a.id !== saved.id && a.user_id === saved.user_id) {
-          a.is_default = false;
-        }
-      });
-    }
-
-    runtimeAddresses = list;
-
-    if (typeof window !== 'undefined' && saved.user_id) {
-      try {
-        const userList = list.filter((a) => a.user_id === saved.user_id);
-        localStorage.setItem(`otantikos_saved_addresses_${saved.user_id}`, JSON.stringify(userList));
-      } catch {}
+    const isCustomId = !addr.id || addr.id.startsWith('addr-');
+    const supabase = createClient();
+    const payload: any = {
+      user_id: addr.user_id,
+      title: addr.title || 'Ev Adresim',
+      full_name: addr.full_name || '',
+      phone: addr.phone || '',
+      province: addr.province || 'İstanbul',
+      district: addr.district || 'Fatih',
+      neighborhood: addr.neighborhood || '',
+      address_detail: addr.address_detail || '',
+      postal_code: addr.postal_code || '',
+      is_default: addr.is_default ?? false,
+    };
+    if (!isCustomId && addr.id) {
+      payload.id = addr.id;
     }
 
     try {
-      const supabase = createClient();
-      const isCustomId = saved.id.startsWith('addr-');
-      await supabase.from('user_addresses').upsert({
-        id: isCustomId ? undefined : saved.id,
-        user_id: saved.user_id,
-        title: saved.title,
-        full_name: saved.full_name,
-        phone: saved.phone,
-        province: saved.province,
-        district: saved.district,
-        neighborhood: saved.neighborhood,
-        address_detail: saved.address_detail,
-        postal_code: saved.postal_code,
-        is_default: saved.is_default,
-      });
-    } catch {
-      // Local fallback
+      if (payload.is_default && payload.user_id) {
+        await supabase
+          .from('user_addresses')
+          .update({ is_default: false })
+          .eq('user_id', payload.user_id);
+      }
+
+      const { data, error } = await supabase
+        .from('user_addresses')
+        .upsert(payload)
+        .select()
+        .single();
+
+      if (!error && data) {
+        const saved = data as UserAddress;
+        const idx = runtimeAddresses.findIndex((a) => a.id === saved.id);
+        if (idx > -1) {
+          runtimeAddresses[idx] = saved;
+        } else {
+          runtimeAddresses.unshift(saved);
+        }
+        return saved;
+      }
+      if (error) {
+        console.error('DataService saveUserAddress Supabase error:', error.message);
+      }
+    } catch (err) {
+      console.error('DataService saveUserAddress error:', err);
     }
 
-    return saved;
+    return addr as UserAddress;
   },
 
   async deleteUserAddress(addressId: string, userId?: string): Promise<boolean> {
-    runtimeAddresses = runtimeAddresses.filter((a) => a.id !== addressId);
-
-    if (typeof window !== 'undefined' && userId) {
-      try {
-        const userList = runtimeAddresses.filter((a) => a.user_id === userId);
-        localStorage.setItem(`otantikos_saved_addresses_${userId}`, JSON.stringify(userList));
-      } catch {}
-    }
-
     try {
       const supabase = createClient();
       await supabase.from('user_addresses').delete().eq('id', addressId);
-    } catch {
-      // Ignore
+      runtimeAddresses = runtimeAddresses.filter((a) => a.id !== addressId);
+      return true;
+    } catch (err) {
+      console.error('DataService deleteUserAddress Supabase error:', err);
+      return false;
     }
-
-    return true;
   },
 
   async setDefaultUserAddress(userId: string, addressId: string): Promise<boolean> {
-    runtimeAddresses.forEach((a) => {
-      if (a.user_id === userId) {
-        a.is_default = a.id === addressId;
-      }
-    });
-
-    if (typeof window !== 'undefined' && userId) {
-      try {
-        const userList = runtimeAddresses.filter((a) => a.user_id === userId);
-        localStorage.setItem(`otantikos_saved_addresses_${userId}`, JSON.stringify(userList));
-      } catch {}
-    }
-
     try {
       const supabase = createClient();
       await supabase.from('user_addresses').update({ is_default: false }).eq('user_id', userId);
       await supabase.from('user_addresses').update({ is_default: true }).eq('id', addressId);
-    } catch {
-      // Ignore
+      runtimeAddresses.forEach((a) => {
+        if (a.user_id === userId) {
+          a.is_default = a.id === addressId;
+        }
+      });
+      return true;
+    } catch (err) {
+      console.error('DataService setDefaultUserAddress Supabase error:', err);
+      return false;
     }
-
-    return true;
   }
 };
 

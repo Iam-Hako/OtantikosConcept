@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Layers, Plus, Trash2, Edit3, Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Layers, Plus, Trash2, Edit3, RefreshCw } from 'lucide-react';
 import { Category } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
 import { actionSaveCategory, actionDeleteCategory } from '@/app/actions/ecommerce-actions';
@@ -120,17 +120,9 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const handleResetDefaultCategories = () => {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.removeItem('otantikos_categories');
-      } catch {}
-    }
-    loadCategories();
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('otantikos_categories_changed'));
-    }
-    toast.success('Varsayılan mağaza kategorileri başarıyla yüklendi!');
+  const handleRefresh = async () => {
+    await loadCategories();
+    toast.success('Kategoriler Supabase üzerinden yenilendi.');
   };
 
   return (
@@ -143,19 +135,19 @@ export default function AdminCategoriesPage() {
             <span>Dinamik Kategori Yöneticisi</span>
           </h1>
           <p className="text-xs text-stone-500 mt-0.5">
-            E-ticaret mağazasındaki ana menü ve filtre kategorilerini anında düzenleyin.
+            E-ticaret mağazasındaki ana menü ve filtre kategorilerini Supabase üzerinden anında yönetin.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={handleResetDefaultCategories}
+            onClick={handleRefresh}
             className="px-3.5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
-            title="Kategorileri varsayılan örnek listeye sıfırla"
+            title="Kategorileri Supabase'den Yenile"
           >
-            <Sparkles className="w-4 h-4 text-amber-600" />
-            <span className="hidden sm:inline">Varsayılanları Yükle</span>
+            <RefreshCw className="w-4 h-4 text-stone-600" />
+            <span className="hidden sm:inline">Yenile</span>
           </button>
           <button
             type="button"
@@ -188,14 +180,6 @@ export default function AdminCategoriesPage() {
             >
               <Plus className="w-4 h-4" />
               <span>+ Yeni Kategori Ekle</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleResetDefaultCategories}
-              className="w-full sm:w-auto px-5 py-2.5 bg-stone-100 hover:bg-stone-200 active:scale-95 text-stone-800 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4 text-amber-600" />
-              <span>Örnek Kategorileri Geri Yükle</span>
             </button>
           </div>
         </div>

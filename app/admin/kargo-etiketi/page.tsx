@@ -104,15 +104,6 @@ function KargoEtiketiContent() {
       } else if (res.error === 'TABLE_NOT_FOUND') {
         setTableNeedsCreation(true);
         setIsSupabaseConnected(false);
-        // Fallback to local cache if table is not created yet
-        if (typeof window !== 'undefined') {
-          const stored = localStorage.getItem('otantikos_kargo_cache');
-          if (stored) {
-            try {
-              setKayitlar(JSON.parse(stored));
-            } catch {}
-          }
-        }
       } else {
         toast.error('Kargo etiketleri yüklenirken hata oluştu: ' + res.error);
       }
