@@ -494,6 +494,68 @@ export default function AdminBannersPage() {
                     <span>{isUploading ? 'Yükleniyor...' : 'Bilgisayardan Yükle'}</span>
                   </button>
                 </div>
+
+                {/* Quick Presets */}
+                <div className="pt-2">
+                  <span className="text-[11px] font-bold text-stone-600 block mb-1.5">
+                    ✨ Hazır Miniso Tarzı Örnek Banner Görsellerinden Seç:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImageUrl('/images/miniso_otantikos_banner.jpg');
+                        if (!title) setTitle('Yeni Dönemde Tarzını Yansıt!');
+                        if (!subtitle) setSubtitle('Eminönü Tahtakale vitrinimizden sevimli kırtasiye koleksiyonları');
+                        setBadgeText('YENİ DÖNEM');
+                      }}
+                      className="p-2 border border-stone-200 rounded-xl hover:border-orange-500 bg-stone-50 hover:bg-orange-50/50 text-left transition flex items-center gap-2 cursor-pointer"
+                    >
+                      <div className="w-10 h-10 rounded-lg overflow-hidden relative shrink-0 bg-stone-200">
+                        <img src="/images/miniso_otantikos_banner.jpg" alt="1" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="text-[11px] font-bold text-stone-800 leading-tight">
+                        🎒 Kırtasiye & Okul
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImageUrl('/images/banner_sanrio_blindbox.jpg');
+                        if (!title) setTitle('Sevimli Sürpriz Figür & Blind Box');
+                        if (!subtitle) setSubtitle('En trend sevimli figürler, anime karakterleri ve sürpriz kutular');
+                        setBadgeText('SÜRPRİZ KUTU');
+                      }}
+                      className="p-2 border border-stone-200 rounded-xl hover:border-orange-500 bg-stone-50 hover:bg-orange-50/50 text-left transition flex items-center gap-2 cursor-pointer"
+                    >
+                      <div className="w-10 h-10 rounded-lg overflow-hidden relative shrink-0 bg-stone-200">
+                        <img src="/images/banner_sanrio_blindbox.jpg" alt="2" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="text-[11px] font-bold text-stone-800 leading-tight">
+                        🧸 Blind Box & Figür
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImageUrl('/images/banner_cute_plush_toys.jpg');
+                        if (!title) setTitle('Yumuşacık Peluş & Sevimli Hediyelikler');
+                        if (!subtitle) setSubtitle('Özel peluş ayıcıklar, sevimli minderler ve çalışma masası ürünleri');
+                        setBadgeText('ÖZEL KOLEKSİYON');
+                      }}
+                      className="p-2 border border-stone-200 rounded-xl hover:border-orange-500 bg-stone-50 hover:bg-orange-50/50 text-left transition flex items-center gap-2 cursor-pointer"
+                    >
+                      <div className="w-10 h-10 rounded-lg overflow-hidden relative shrink-0 bg-stone-200">
+                        <img src="/images/banner_cute_plush_toys.jpg" alt="3" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="text-[11px] font-bold text-stone-800 leading-tight">
+                        🐻 Peluş & Hediyelik
+                      </div>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Button Text & Target Link */}

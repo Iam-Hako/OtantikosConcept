@@ -3,20 +3,26 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, ArrowRight, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Edit3 } from 'lucide-react';
 import { HomeBanner } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
+import { useAuth } from '@/lib/store/auth-context';
 
 interface HeroBannerSliderProps {
   initialBanners?: HomeBanner[];
 }
 
 export default function HeroBannerSlider({ initialBanners }: HeroBannerSliderProps) {
+  const { isAdmin } = useAuth();
   const [banners, setBanners] = useState<HomeBanner[]>(initialBanners || []);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isLoading, setIsLoading] = useState(!initialBanners || initialBanners.length === 0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Touch swipe tracking
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchEndX, setTouchEndX] = useState<number | null>(null);
 
   // Fetch banners from DataService if not provided initially
   useEffect(() => {
@@ -68,6 +74,29 @@ export default function HeroBannerSlider({ initialBanners }: HeroBannerSliderPro
     };
   }, [banners.length, isPaused, nextSlide]);
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsPaused(true);
+    setTouchEndX(null);
+    setTouchStartX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEndX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    setIsPaused(false);
+    if (touchStartX === null || touchEndX === null) return;
+    const distance = touchStartX - touchEndX;
+    if (distance > 45) {
+      nextSlide();
+    } else if (distance < -45) {
+      prevSlide();
+    }
+    setTouchStartX(null);
+    setTouchEndX(null);
+  };
+
   if (isLoading) {
     return (
       <section className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8 pt-2">
@@ -88,9 +117,22 @@ export default function HeroBannerSlider({ initialBanners }: HeroBannerSliderPro
         className="relative group overflow-hidden rounded-2xl sm:rounded-[2.5rem] border border-stone-200/90 shadow-xl shadow-red-950/[0.04] bg-stone-100 select-none aspect-[4/5] min-h-[420px] sm:aspect-[16/7] sm:min-h-[340px] lg:min-h-[460px]"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
-        onTouchStart={() => setIsPaused(true)}
-        onTouchEnd={() => setIsPaused(false)}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
+        {/* Direct Admin Banner Management Button */}
+        {isAdmin && (
+          <Link
+            href="/admin/bannerlar"
+            className="absolute top-3 left-3 sm:top-5 sm:left-5 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900/80 hover:bg-stone-900 text-white text-[11px] sm:text-xs font-bold shadow-lg backdrop-blur-md border border-white/20 transition-all hover:scale-105 active:scale-95"
+            title="Afişleri ve Görselleri Yönet"
+          >
+            <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+            <span>Afişleri Yönet</span>
+          </Link>
+        )}
+
         {/* Top Pill Badge if set by Admin */}
         {currentBanner?.badge_text && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1.5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black bg-gradient-to-r from-blue-900 via-indigo-900 to-rose-600 text-white shadow-md border border-white/20 whitespace-nowrap">
@@ -100,70 +142,45 @@ export default function HeroBannerSlider({ initialBanners }: HeroBannerSliderPro
           </div>
         )}
 
-        {/* Miniso Style Bottom-Right "FIRSAT KAZAN" Promo Sticker (As shown in screenshot) */}
-        <Link
-          href="/kategori/tum-urunler"
-          className="absolute bottom-4 right-3 sm:bottom-6 sm:right-6 z-20 flex items-center justify-center group/wheel"
-          title="Fırsatları Keşfet"
-        >
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full p-1 bg-gradient-to-tr from-amber-400 via-red-500 to-yellow-300 shadow-xl border-2 border-white flex items-center justify-center group-hover/wheel:scale-110 transition-transform">
-            <div className="w-full h-full rounded-full bg-white flex flex-col items-center justify-center text-center p-0.5 shadow-inner">
-              <span className="text-[9px] sm:text-[10px] font-black text-[#e60012] leading-tight">ÇARK</span>
-              <span className="text-[8px] sm:text-[9px] font-extrabold text-amber-600 leading-tight">KAZAN</span>
-            </div>
-          </div>
-        </Link>
-
         {/* Slides Container */}
         {banners.map((banner, index) => {
           const isActive = index === currentIndex;
           return (
             <div
-              key={banner.id || index}
+              key={banner.id}
               className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
                 isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
               }`}
             >
-              {/* Background gradient if specified */}
-              <div
-                className={`absolute inset-0 bg-gradient-to-r ${
-                  banner.bg_gradient || 'from-rose-50 via-sky-50 to-amber-50'
-                }`}
-              />
+              {/* Background Color & Image */}
+              <div className="absolute inset-0 overflow-hidden">
+                <Image
+                  src={banner.image_url}
+                  alt={banner.title || 'Banner'}
+                  fill
+                  priority={index === 0}
+                  className="object-cover object-center transform scale-100 transition-transform duration-1000 ease-out"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1440px) 95vw, 1840px"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent sm:bg-gradient-to-r sm:from-black/40 sm:via-transparent sm:to-transparent" />
+              </div>
 
-              {/* Main Banner Image */}
-              {banner.image_url && (
-                <div className="absolute inset-0">
-                  <Image
-                    src={banner.image_url}
-                    alt={banner.title || 'Afiş'}
-                    fill
-                    priority={index === 0}
-                    sizes="(max-width: 768px) 100vw, 1840px"
-                    className="object-cover object-center"
-                  />
-                </div>
-              )}
-
-              {/* Content Overlay (if title or button exists and user wants overlay content) */}
-              {(banner.title || banner.button_text) && (
-                <div className="absolute inset-0 bg-gradient-to-t sm:bg-gradient-to-r from-stone-900/60 via-stone-900/20 to-transparent flex items-end sm:items-center p-5 sm:p-10 lg:p-14">
-                  <div className="max-w-xl space-y-3 sm:space-y-4 text-white">
+              {/* Text & Content Overlay */}
+              {(banner.title || banner.subtitle) && (
+                <div className="absolute inset-0 z-10 flex flex-col justify-end sm:justify-center p-6 sm:p-12 lg:p-16 max-w-2xl text-white">
+                  <div className="space-y-3 sm:space-y-4">
                     {banner.badge_text && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs sm:text-sm font-black bg-rose-500 text-white shadow-md">
-                        <Sparkles className="w-3.5 h-3.5" />
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider bg-[#e60012] text-white shadow-sm border border-white/20">
                         {banner.badge_text}
                       </span>
                     )}
 
-                    {banner.title && (
-                      <h2 className="text-xl sm:text-3xl lg:text-4xl font-black tracking-tight drop-shadow-md text-white">
-                        {banner.title}
-                      </h2>
-                    )}
+                    <h2 className="text-2xl sm:text-4xl lg:text-5xl font-serif font-black tracking-tight drop-shadow-md leading-tight">
+                      {banner.title}
+                    </h2>
 
                     {banner.subtitle && (
-                      <p className="text-xs sm:text-base font-medium text-stone-100/90 line-clamp-2 max-w-md drop-shadow">
+                      <p className="text-xs sm:text-sm lg:text-base font-medium text-white/90 drop-shadow-xs line-clamp-3 sm:line-clamp-none max-w-xl leading-relaxed">
                         {banner.subtitle}
                       </p>
                     )}
@@ -175,9 +192,6 @@ export default function HeroBannerSlider({ initialBanners }: HeroBannerSliderPro
                           className="inline-flex items-center gap-2.5 px-6 py-3 sm:px-8 sm:py-3.5 rounded-full bg-[#e60012] hover:bg-[#c90010] text-white font-black text-xs sm:text-sm shadow-xl shadow-red-600/30 hover:scale-105 active:scale-95 transition-all duration-200"
                         >
                           <span>{banner.button_text}</span>
-                          <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white text-[#e60012] flex items-center justify-center text-xs font-black shadow-xs">
-                            ➔
-                          </span>
                         </Link>
                       </div>
                     )}
@@ -197,31 +211,35 @@ export default function HeroBannerSlider({ initialBanners }: HeroBannerSliderPro
           );
         })}
 
-        {/* Previous Slide Navigation Arrow (Miniso style circular button) */}
-        {banners.length > 1 && (
-          <button
-            onClick={prevSlide}
-            aria-label="Önceki Afiş"
-            className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/90 hover:bg-white text-stone-700 hover:text-[#e60012] backdrop-blur-md shadow-md border border-stone-200/80 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer opacity-90 sm:opacity-0 group-hover:opacity-100"
-          >
-            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
-          </button>
-        )}
+        {/* Previous Slide Navigation Arrow (Always Visible) */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            prevSlide();
+          }}
+          aria-label="Önceki Afiş"
+          className="absolute left-2.5 sm:left-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/95 hover:bg-white text-stone-800 hover:text-[#e60012] shadow-xl border border-stone-200/80 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer"
+        >
+          <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+        </button>
 
-        {/* Next Slide Navigation Arrow (Miniso style circular button) */}
-        {banners.length > 1 && (
-          <button
-            onClick={nextSlide}
-            aria-label="Sonraki Afiş"
-            className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/90 hover:bg-white text-stone-700 hover:text-[#e60012] backdrop-blur-md shadow-md border border-stone-200/80 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer opacity-90 sm:opacity-0 group-hover:opacity-100"
-          >
-            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
-          </button>
-        )}
+        {/* Next Slide Navigation Arrow (Always Visible) */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            nextSlide();
+          }}
+          aria-label="Sonraki Afiş"
+          className="absolute right-2.5 sm:right-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/95 hover:bg-white text-stone-800 hover:text-[#e60012] shadow-xl border border-stone-200/80 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer"
+        >
+          <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+        </button>
 
         {/* Miniso Style Pill Pagination Bars (Bottom Center) */}
         {banners.length > 1 && (
-          <div className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/20 backdrop-blur-md border border-white/20">
+          <div className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/25 backdrop-blur-md border border-white/20">
             {banners.map((_, dotIdx) => {
               const isDotActive = dotIdx === currentIndex;
               return (

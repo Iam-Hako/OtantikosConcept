@@ -131,11 +131,37 @@ export const DEFAULT_HOME_BANNERS: HomeBanner[] = [
     badge_text: 'YENİ DÖNEM',
     image_url: '/images/miniso_otantikos_banner.jpg',
     button_text: 'Hemen Alışverişe Başla',
-    button_url: '/kategori/k-rtasiye-r-nleri',
+    button_url: '/kategori/tum-urunler',
     bg_gradient: 'from-sky-200/60 via-rose-100/50 to-amber-100/60',
     display_order: 1,
     is_active: true,
-    created_at: new Date().toISOString(),
+    created_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'banner-default-2',
+    title: 'Sevimli Sürpriz Figür & Blind Box',
+    subtitle: 'En trend sevimli figürler, anime karakterleri ve sürpriz kutuları şimdi keşfet!',
+    badge_text: 'SÜRPRİZ KUTU',
+    image_url: '/images/banner_sanrio_blindbox.jpg',
+    button_text: 'Koleksiyonu İncele',
+    button_url: '/kategori/tum-urunler',
+    bg_gradient: 'from-pink-100 via-rose-50 to-purple-100',
+    display_order: 2,
+    is_active: true,
+    created_at: '2026-01-02T00:00:00.000Z',
+  },
+  {
+    id: 'banner-default-3',
+    title: 'Yumuşacık Peluş & Sevimli Hediyelikler',
+    subtitle: 'Tahtakale Eminönü özel peluş ayıcıklar, sevimli minderler ve şık çalışma masası gereçleri.',
+    badge_text: 'ÖZEL KOLEKSİYON',
+    image_url: '/images/banner_cute_plush_toys.jpg',
+    button_text: 'Şimdi Keşfet',
+    button_url: '/kategori/tum-urunler',
+    bg_gradient: 'from-amber-100 via-yellow-50 to-orange-100',
+    display_order: 3,
+    is_active: true,
+    created_at: '2026-01-03T00:00:00.000Z',
   },
 ];
 
@@ -596,7 +622,12 @@ export const DataService = {
         .order('display_order', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        runtimeBanners = data as HomeBanner[];
+        if (data.length === 1) {
+          const others = DEFAULT_HOME_BANNERS.filter(def => !data.some(d => d.id === def.id || d.title === def.title));
+          runtimeBanners = [...(data as HomeBanner[]), ...others];
+        } else {
+          runtimeBanners = data as HomeBanner[];
+        }
         return runtimeBanners;
       }
     } catch {
@@ -616,7 +647,12 @@ export const DataService = {
         .order('display_order', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        runtimeBanners = data as HomeBanner[];
+        if (data.length === 1) {
+          const others = DEFAULT_HOME_BANNERS.filter(def => !data.some(d => d.id === def.id || d.title === def.title));
+          runtimeBanners = [...(data as HomeBanner[]), ...others];
+        } else {
+          runtimeBanners = data as HomeBanner[];
+        }
         return runtimeBanners;
       }
     } catch {

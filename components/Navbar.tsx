@@ -185,14 +185,32 @@ export default function Navbar() {
                         <span>Kargo Takibi</span>
                       </Link>
                       {isAdmin && (
-                        <Link
-                          href="/admin"
-                          onClick={() => setIsUserDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-red-700 font-bold bg-red-50 hover:bg-red-100 transition"
-                        >
-                          <Settings className="w-4 h-4 text-[#e60012]" />
-                          <span>Admin Yönetim Paneli</span>
-                        </Link>
+                        <div className="space-y-0.5 pt-1">
+                          <Link
+                            href="/admin/bannerlar"
+                            onClick={() => setIsUserDropdownOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2 text-xs text-orange-700 font-bold bg-orange-50 hover:bg-orange-100 transition"
+                          >
+                            <Sparkles className="w-4 h-4 text-orange-600" />
+                            <span>Afiş & Banner Vitrini</span>
+                          </Link>
+                          <Link
+                            href="/admin/kategoriler"
+                            onClick={() => setIsUserDropdownOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2 text-xs text-amber-800 font-bold bg-amber-50 hover:bg-amber-100 transition"
+                          >
+                            <Package className="w-4 h-4 text-amber-700" />
+                            <span>Kategori & Emoji Yöneticisi</span>
+                          </Link>
+                          <Link
+                            href="/admin"
+                            onClick={() => setIsUserDropdownOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2 text-xs text-red-700 font-bold bg-red-50 hover:bg-red-100 transition"
+                          >
+                            <Settings className="w-4 h-4 text-[#e60012]" />
+                            <span>Admin Yönetim Paneli</span>
+                          </Link>
+                        </div>
                       )}
                       <div className="border-t border-stone-100 my-1"></div>
                       <button
