@@ -11,9 +11,6 @@ export default function AboutPage() {
       <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12 pb-24 lg:pb-12 space-y-10">
         
         <div className="text-center space-y-3">
-          <div className="relative w-16 h-16 mx-auto bg-stone-950 rounded-2xl p-2 border border-stone-800 shadow-md">
-            <Image src="/images/logo.webp" alt="Otantikos Concept" fill className="object-contain p-1" />
-          </div>
           <span className="text-xs font-bold uppercase tracking-widest text-[#e60012]">Tahtakale Ruhu</span>
           <h1 className="text-3xl sm:text-4xl font-serif font-black text-stone-900">
             Otantikos Concept Hikayesi

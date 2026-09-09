@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Lock, Mail, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/store/auth-context';
@@ -43,9 +42,6 @@ export default function RegisterPage() {
       <div className="max-w-md w-full mx-auto px-4 space-y-6 pb-12">
         
         <div className="text-center space-y-2">
-          <div className="relative w-14 h-14 mx-auto bg-stone-950 rounded-2xl p-2 border border-stone-800 shadow-md">
-            <Image src="/images/logo.webp" alt="Otantikos Logo" fill sizes="56px" className="object-contain p-1" />
-          </div>
           <h1 className="text-2xl sm:text-3xl font-serif font-black text-stone-900 leading-tight">
             Yeni Hesap Oluşturun
           </h1>

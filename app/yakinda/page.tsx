@@ -42,10 +42,6 @@ export default function ComingSoonPage() {
         
         {/* Brand Icon */}
         <div className="space-y-4">
-          <div className="relative w-20 h-20 mx-auto bg-stone-950 rounded-3xl p-3 border border-stone-800 shadow-xl">
-            <Image src="/images/logo.webp" alt="Otantikos Concept" fill className="object-contain p-1.5" />
-          </div>
-
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-red-50 text-[#e60012] border border-red-200 text-xs font-bold">
             <Clock className="w-3.5 h-3.5 text-[#e60012]" />
             <span>Geri Sayım Başladı • Altyapı Hazırlanıyor</span>
