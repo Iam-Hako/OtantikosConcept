@@ -54,10 +54,12 @@ CREATE TABLE IF NOT EXISTS public.categories (
     slug TEXT UNIQUE NOT NULL,
     description TEXT,
     image_url TEXT,
+    icon TEXT,
     display_order INT DEFAULT 0 NOT NULL,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS icon TEXT;
 
 -- 5. PRODUCTS TABLE
 CREATE TABLE IF NOT EXISTS public.products (

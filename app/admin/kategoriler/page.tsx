@@ -1,16 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Layers, Plus, Trash2, Edit3, RefreshCw } from 'lucide-react';
+import { Layers, Plus, Trash2, Edit3, RefreshCw, AlertCircle } from 'lucide-react';
 import { Category } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
-import { actionSaveCategory, actionDeleteCategory } from '@/app/actions/ecommerce-actions';
+import { actionSaveCategory, actionDeleteCategory, actionGetCategories } from '@/app/actions/ecommerce-actions';
 import { slugify } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
 export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [dbError, setDbError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Form State
   const [name, setName] = useState('');
@@ -27,8 +29,24 @@ export default function AdminCategoriesPage() {
   }, []);
 
   const loadCategories = async () => {
+    setIsLoading(true);
+    setDbError(null);
+    try {
+      const res = await actionGetCategories();
+      if (res.success && res.data && res.data.length > 0) {
+        setCategories(res.data);
+        setIsLoading(false);
+        return;
+      }
+      if (res.error) {
+        setDbError(res.error);
+      }
+    } catch (err: any) {
+      setDbError(err?.message || 'Kategoriler yüklenemedi');
+    }
     const list = await DataService.getCategories();
     setCategories(list);
+    setIsLoading(false);
   };
 
   const handleOpenNew = () => {
@@ -85,11 +103,22 @@ export default function AdminCategoriesPage() {
       is_active: true,
     });
 
-    if (res.success) {
+    if (res.success && res.category) {
       toast.success(editingId ? 'Kategori güncellendi!' : 'Yeni kategori eklendi!', {
         description: 'Menüde, kaydırılabilir listelerde ve filtrelerde canlıya yansıdı.',
       });
       setIsModalOpen(false);
+
+      // Instantly reflect in UI so it never vanishes
+      const savedCat = res.category;
+      setCategories((prev) => {
+        const exists = prev.some((c) => c.id === savedCat.id || c.slug === savedCat.slug);
+        if (exists) {
+          return prev.map((c) => (c.id === savedCat.id || c.slug === savedCat.slug ? savedCat : c));
+        }
+        return [...prev, savedCat].sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+      });
+
       await loadCategories();
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('otantikos_categories_changed'));
@@ -143,10 +172,11 @@ export default function AdminCategoriesPage() {
           <button
             type="button"
             onClick={handleRefresh}
-            className="px-3.5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+            disabled={isLoading}
+            className="px-3.5 py-2.5 bg-stone-100 hover:bg-stone-200 disabled:opacity-50 text-stone-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
             title="Kategorileri Supabase'den Yenile"
           >
-            <RefreshCw className="w-4 h-4 text-stone-600" />
+            <RefreshCw className={`w-4 h-4 text-stone-600 ${isLoading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Yenile</span>
           </button>
           <button
@@ -159,6 +189,18 @@ export default function AdminCategoriesPage() {
           </button>
         </div>
       </div>
+
+      {dbError && (
+        <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 text-amber-900 text-xs flex items-start gap-3 shadow-xs">
+          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-bold">Supabase Bağlantı / Yetki Bildirimi: {dbError}</p>
+            <p className="text-amber-800 leading-relaxed">
+              Eklediğiniz kategori arayüzde görüntülenmeye devam etmektedir. Ancak veritabanına kalıcı olarak yazılabilmesi için Supabase proje ayarlarındaki API anahtarının (.env.local içindeki NEXT_PUBLIC_SUPABASE_ANON_KEY ve SUPABASE_SERVICE_ROLE_KEY) geçerli olması gerekmektedir.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Category Cards Grid or Empty State */}
       {categories.length === 0 ? (

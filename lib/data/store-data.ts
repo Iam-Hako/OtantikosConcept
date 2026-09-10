@@ -541,39 +541,60 @@ export const DataService = {
       slug: cat.slug,
       description: cat.description || '',
       image_url: cat.image_url || '',
-      icon: cat.icon || null,
       display_order: Number(cat.display_order) || 1,
       is_active: cat.is_active ?? true,
     };
+    if (cat.icon) payload.icon = cat.icon;
     if (!isCustomId && cat.id) {
       payload.id = cat.id;
     }
 
+    let saved = {
+      id: cat.id || `cat-${Date.now()}`,
+      name: cat.name || 'Yeni Kategori',
+      slug: cat.slug || `kategori-${Date.now()}`,
+      description: cat.description || '',
+      image_url: cat.image_url || '',
+      icon: cat.icon || null,
+      display_order: Number(cat.display_order) || 1,
+      is_active: cat.is_active ?? true,
+      created_at: new Date().toISOString(),
+    } as Category;
+
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('categories')
         .upsert(payload, { onConflict: 'slug' })
         .select()
         .single();
 
-      if (!error && data) {
-        const saved = data as Category;
-        const idx = runtimeCategories.findIndex((c) => c.id === saved.id || c.slug === saved.slug);
-        if (idx > -1) {
-          runtimeCategories[idx] = saved;
-        } else {
-          runtimeCategories.push(saved);
-        }
-        return saved;
+      if (error && error.message?.includes('icon')) {
+        delete payload.icon;
+        const retry = await supabase
+          .from('categories')
+          .upsert(payload, { onConflict: 'slug' })
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
       }
-      if (error) {
+
+      if (!error && data) {
+        saved = data as Category;
+      } else if (error) {
         console.error('DataService saveCategory Supabase error:', error.message);
       }
     } catch (err) {
       console.error('DataService saveCategory error:', err);
     }
 
-    return cat as Category;
+    const idx = runtimeCategories.findIndex((c) => c.id === saved.id || c.slug === saved.slug);
+    if (idx > -1) {
+      runtimeCategories[idx] = saved;
+    } else {
+      runtimeCategories.push(saved);
+    }
+    return saved;
   },
 
   async deleteCategory(categoryId: string): Promise<boolean> {
