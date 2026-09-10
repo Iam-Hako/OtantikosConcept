@@ -116,9 +116,52 @@ export const DEFAULT_STORE_CATEGORIES: Category[] = [];
 
 let runtimeCategories: Category[] = [];
 
-export const DEFAULT_HOME_BANNERS: HomeBanner[] = [];
+export const DEFAULT_HOME_BANNERS: HomeBanner[] = [
+  {
+    id: 'banner-default-1',
+    title: 'Yeni Dönemde Tarzını Yansıt!',
+    subtitle: 'Eminönü Tahtakale vitrinimizden sevimli kırtasiye, defter ve tasarım hediyelik koleksiyonları.',
+    badge_text: 'YENİ DÖNEM',
+    image_url: '/images/miniso_otantikos_banner.jpg',
+    mobile_image_url: '/images/miniso_otantikos_banner_mobile.jpg?v=20260909_1',
+    button_text: 'Hemen Alışverişe Başla',
+    button_url: '/kategori/tum-urunler',
+    bg_gradient: 'from-sky-200/60 via-rose-100/50 to-amber-100/60',
+    display_order: 1,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'banner-default-2',
+    title: 'Sevimli Sürpriz Figür & Blind Box',
+    subtitle: 'En trend sevimli figürler, anime karakterleri ve sürpriz kutuları şimdi keşfet!',
+    badge_text: 'SÜRPRİZ KUTU',
+    image_url: '/images/banner_sanrio_blindbox.jpg',
+    mobile_image_url: '/images/banner_sanrio_blindbox_mobile.jpg?v=20260909_1',
+    button_text: 'Koleksiyonu İncele',
+    button_url: '/kategori/tum-urunler',
+    bg_gradient: 'from-pink-100 via-rose-50 to-purple-100',
+    display_order: 2,
+    is_active: true,
+    created_at: '2026-01-02T00:00:00.000Z',
+  },
+  {
+    id: 'banner-default-3',
+    title: 'Yumuşacık Peluş & Sevimli Hediyelikler',
+    subtitle: 'Tahtakale Eminönü özel peluş ayıcıklar, sevimli minderler ve şık çalışma masası gereçleri.',
+    badge_text: 'ÖZEL KOLEKSİYON',
+    image_url: '/images/banner_cute_plush_toys.jpg',
+    mobile_image_url: '/images/banner_cute_plush_toys_mobile.jpg?v=20260909_1',
+    button_text: 'Şimdi Keşfet',
+    button_url: '/kategori/tum-urunler',
+    bg_gradient: 'from-amber-100 via-yellow-50 to-orange-100',
+    display_order: 3,
+    is_active: true,
+    created_at: '2026-01-03T00:00:00.000Z',
+  },
+];
 
-let runtimeBanners: HomeBanner[] = [];
+let runtimeBanners: HomeBanner[] = [...DEFAULT_HOME_BANNERS];
 
 export const DataService = {
   // ==========================================
@@ -558,7 +601,7 @@ export const DataService = {
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
-      if (!error && data) {
+      if (!error && data && data.length > 0) {
         runtimeBanners = data as HomeBanner[];
         return runtimeBanners;
       }
@@ -569,7 +612,8 @@ export const DataService = {
       console.error('DataService getHomeBanners error:', err);
     }
 
-    return runtimeBanners.filter((b) => b.is_active);
+    const activeList = runtimeBanners.filter((b) => b.is_active);
+    return activeList.length > 0 ? activeList : DEFAULT_HOME_BANNERS;
   },
 
   async getAllAdminBanners(): Promise<HomeBanner[]> {
@@ -580,7 +624,7 @@ export const DataService = {
         .select('*')
         .order('display_order', { ascending: true });
 
-      if (!error && data) {
+      if (!error && data && data.length > 0) {
         runtimeBanners = data as HomeBanner[];
         return runtimeBanners;
       }
@@ -591,11 +635,11 @@ export const DataService = {
       console.error('DataService getAllAdminBanners error:', err);
     }
 
-    return runtimeBanners;
+    return runtimeBanners.length > 0 ? runtimeBanners : DEFAULT_HOME_BANNERS;
   },
 
   async saveBanner(banner: Partial<HomeBanner>): Promise<HomeBanner> {
-    const list = [...runtimeBanners];
+    const list = runtimeBanners.length > 0 ? [...runtimeBanners] : [...DEFAULT_HOME_BANNERS];
     const idx = list.findIndex(b => b.id === banner.id);
 
     let savedBanner: HomeBanner;
@@ -609,6 +653,7 @@ export const DataService = {
         subtitle: banner.subtitle || '',
         badge_text: banner.badge_text || '',
         image_url: banner.image_url || '/images/miniso_otantikos_banner.jpg',
+        mobile_image_url: banner.mobile_image_url || banner.image_url || '/images/miniso_otantikos_banner_mobile.jpg?v=20260909_1',
         button_text: banner.button_text || 'Hemen Keşfet',
         button_url: banner.button_url || '/kategori/tum-urunler',
         bg_gradient: banner.bg_gradient || 'from-sky-200/60 via-rose-100/50 to-amber-100/60',
@@ -632,6 +677,7 @@ export const DataService = {
           subtitle: savedBanner.subtitle,
           badge_text: savedBanner.badge_text,
           image_url: savedBanner.image_url,
+          mobile_image_url: savedBanner.mobile_image_url,
           button_text: savedBanner.button_text,
           button_url: savedBanner.button_url,
           bg_gradient: savedBanner.bg_gradient,
@@ -678,6 +724,11 @@ export const DataService = {
       // Ignore
     }
     return true;
+  },
+
+  async resetDefaultBanners(): Promise<HomeBanner[]> {
+    runtimeBanners = [...DEFAULT_HOME_BANNERS];
+    return runtimeBanners;
   },
 
   // ==========================================

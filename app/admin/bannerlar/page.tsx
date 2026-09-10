@@ -219,6 +219,19 @@ export default function AdminBannersPage() {
     }
   };
 
+  const handleResetDefaults = async () => {
+    setIsLoading(true);
+    try {
+      const defs = await DataService.resetDefaultBanners();
+      setBanners(defs);
+      toast.success('Varsayılan Miniso afişleri başarıyla geri getirildi!');
+    } catch {
+      toast.error('Afişler geri getirilemedi.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6 sm:space-y-8">
       
@@ -237,7 +250,7 @@ export default function AdminBannersPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <button
             onClick={loadBanners}
             disabled={isLoading}
@@ -246,6 +259,16 @@ export default function AdminBannersPage() {
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Yenile</span>
+          </button>
+
+          <button
+            onClick={handleResetDefaults}
+            disabled={isLoading}
+            className="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+            title="Varsayılan Afişleri Geri Getir"
+          >
+            <Sparkles className="w-4 h-4 text-amber-600" />
+            <span>Afişleri Geri Getir</span>
           </button>
 
           <button
@@ -284,14 +307,23 @@ export default function AdminBannersPage() {
             </div>
             <h3 className="text-sm font-bold text-stone-900">Henüz Afiş Bulunmuyor</h3>
             <p className="text-xs text-stone-500 max-w-sm mx-auto">
-              Ana sayfa slider&apos;ında gösterilecek ilk Miniso tarzı afişinizi hemen ekleyin.
+              Ana sayfa slider&apos;ında gösterilecek ilk Miniso tarzı afişinizi ekleyebilir veya varsayılan afişleri tek tıkla geri getirebilirsiniz.
             </p>
-            <button
-              onClick={openNewBannerModal}
-              className="mt-2 px-4 py-2 bg-orange-600 text-white text-xs font-bold rounded-xl"
-            >
-              Afiş Ekle
-            </button>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={handleResetDefaults}
+                className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Varsayılan Afişleri Geri Getir</span>
+              </button>
+              <button
+                onClick={openNewBannerModal}
+                className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl transition cursor-pointer"
+              >
+                Yeni Afiş Ekle
+              </button>
+            </div>
           </div>
         ) : (
           <div className="divide-y divide-stone-100">
