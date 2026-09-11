@@ -84,9 +84,11 @@ export async function POST(request: Request) {
       tracking_number: dhlRes.trackingNumber,
       carrier: 'DHL Kargo',
       label_url: dhlRes.labelUrl,
-      label_pdf_base64: dhlRes.labelPdfBase64,
+      zpl: dhlRes.zpl,
+      barcode: dhlRes.barcode,
+      invoice_id: dhlRes.invoiceId,
       is_simulated: dhlRes.isSimulated,
-      message: dhlRes.message || 'DHL gönderi kaydı ve takip barkodu başarıyla oluşturuldu.',
+      message: dhlRes.message || 'DHL gönderi kaydı ve 10x10 ZPL barkodu başarıyla oluşturuldu.',
     });
   } catch (err: any) {
     console.error('[DHL API Route Error]', err);

@@ -39,6 +39,7 @@ export default function OrderDetailPage() {
   const [adminNotes, setAdminNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isCreatingDhl, setIsCreatingDhl] = useState(false);
+  const [zplData, setZplData] = useState<string | null>(null);
 
   // Cancellation State
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -84,7 +85,10 @@ export default function OrderDetailPage() {
       setTrackingNumber(data.tracking_number);
       setTrackingCarrier('DHL Kargo');
       setStatus('kargoya_verildi');
-      toast.success('DHL Kargo Takip Kodu Oluşturuldu!', {
+      if (data.zpl) {
+        setZplData(data.zpl);
+      }
+      toast.success('DHL Kargo Takip Kodu ve 10×10 Barkod Oluşturuldu!', {
         description: `Takip No: ${data.tracking_number}`,
       });
     } catch (err: any) {
@@ -92,6 +96,21 @@ export default function OrderDetailPage() {
     } finally {
       setIsCreatingDhl(false);
     }
+  };
+
+  const handleDownloadZpl = () => {
+    if (!trackingNumber) return;
+    const content = zplData || `^XA^PW831^LL0959^FO50,50^A0N,40,40^FDOTANTIKOS CONCEPT - DHL eCom TR^FS^FO50,120^A0N,30,30^FDSiparis No: ${order?.order_number || ''}^FS^FO50,170^A0N,30,30^FDTakip No: ${trackingNumber}^FS^BY3,3,160^FO50,230^BCN,,Y,N^FD${trackingNumber}^FS^XZ`;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `DHL_BARKOD_${order?.order_number || trackingNumber}.zpl`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('10×10 ZPL Barkod dosyası indirildi (Termal Yazıcı Uyumlu).');
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -294,16 +313,28 @@ export default function OrderDetailPage() {
               </button>
             </div>
             {trackingNumber && (
-              <div className="mt-1.5 flex items-center justify-between text-[11px]">
-                <span className="text-stone-500">Taşıyıcı: {trackingCarrier}</span>
-                <a
-                  href={`https://www.dhl.com/tr-tr/home/tracking.html?tracking-id=${encodeURIComponent(trackingNumber)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-bold text-amber-700 hover:underline flex items-center gap-1"
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs pt-1 border-t border-stone-200/60">
+                <div className="flex items-center gap-2">
+                  <span className="text-stone-500 font-medium">Taşıyıcı: <strong className="text-stone-800">{trackingCarrier}</strong></span>
+                  <a
+                    href={`https://kargotakip.mngkargo.com.tr/?k=${encodeURIComponent(trackingNumber)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-amber-700 hover:underline flex items-center gap-1"
+                  >
+                    <span>Kargo Canlı Takip ↗</span>
+                  </a>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadZpl}
+                  className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-lg transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                  title="Termal yazıcılar için 10x10 ZPL barkod dosyasını indir"
                 >
-                  <span>DHL Canlı Takip Sayfasını Aç ↗</span>
-                </a>
+                  <Printer className="w-3.5 h-3.5 text-amber-400" />
+                  <span>10×10 ZPL Barkod İndir</span>
+                </button>
               </div>
             )}
 

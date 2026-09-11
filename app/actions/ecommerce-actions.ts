@@ -5,6 +5,7 @@ import { DataService } from '@/lib/data/store-data';
 import { Product, Category, Order, ReturnRequest, AccountingTransaction } from '@/lib/types/ecommerce';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { cancelDhlShipment } from '@/lib/services/dhl-service';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -466,6 +467,17 @@ export async function actionCancelOrder(
   const isAdmin = await verifyAdmin();
   if (!isAdmin) {
     return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+  }
+
+  // Eğer sipariş DHL'e iletilmişse DHL eCommerce sisteminden de iptal kaydı oluştur
+  try {
+    const orders = await DataService.getOrders();
+    const targetOrder = orders.find((o) => o.id === orderId || o.order_number === orderId);
+    if (targetOrder && targetOrder.tracking_number) {
+      await cancelDhlShipment(targetOrder.order_number);
+    }
+  } catch (dhlCancelErr) {
+    console.warn('[DHL Kargo İptal Bildirimi]', dhlCancelErr);
   }
 
   const result = await DataService.cancelOrder(orderId, reason, restockItems);
