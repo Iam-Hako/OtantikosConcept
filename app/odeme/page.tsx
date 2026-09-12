@@ -622,7 +622,7 @@ function CheckoutContent() {
                       <span>DHL Kargo ile Adrese Teslim</span>
                     </div>
                     <p className="text-[11px] text-stone-500 mt-1">
-                      1-3 iş gününde güvenli, sigortalı kapıya teslimat (+₺200,00)
+                      1-3 iş gününde güvenli, sigortalı kapıya teslimat (+{formatPrice(shippingFee)})
                     </p>
                   </div>
                 </label>

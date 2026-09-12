@@ -35,7 +35,8 @@ import { toast } from 'sonner';
 
 export default function ProductDetailPage() {
   const params = useParams();
-  const slug = params?.slug as string;
+  const rawSlug = (params?.slug as string) || '';
+  const slug = rawSlug ? decodeURIComponent(rawSlug) : '';
 
   const { addItem } = useCart();
   const { toggleFavorite, isFavorite } = useWishlist();

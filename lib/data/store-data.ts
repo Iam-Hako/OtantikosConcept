@@ -244,6 +244,8 @@ export const DataService = {
   },
 
   async getProductBySlug(slug: string): Promise<Product | null> {
+    const raw = (slug || '').trim();
+    const decoded = decodeURIComponent(raw).trim().toLowerCase();
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -255,7 +257,7 @@ export const DataService = {
           variants:product_variants(*),
           specifications:product_specifications(*)
         `)
-        .eq('slug', slug)
+        .or(`slug.eq.${raw},slug.eq.${decoded}`)
         .maybeSingle();
 
       if (!error && data) {
@@ -265,7 +267,7 @@ export const DataService = {
       // Fallback
     }
     const products = await this.getProducts();
-    return products.find(p => p.slug === slug) || null;
+    return products.find(p => p.slug === raw || p.slug === decoded || p.id === raw) || null;
   },
 
   async getProductById(id: string): Promise<Product | null> {

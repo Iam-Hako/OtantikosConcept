@@ -335,7 +335,7 @@ export default function AccountPage() {
 
                   <div className="pt-3 border-t border-stone-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
                     <div className="text-stone-600">
-                      Teslimat: <strong>{ord.delivery_type === 'pickup' ? 'Mağaza Teslim' : `${ord.shipping_address?.province || ''} / ${ord.shipping_address?.district || ''}`}</strong>
+                      Teslimat: <strong>{ord.delivery_type === 'pickup' || ord.delivery_type === 'magaza_teslim' ? 'Tahtakale Mağaza Teslim' : `${ord.shipping_address?.province || ''} / ${ord.shipping_address?.district || ''}`}</strong>
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-4">

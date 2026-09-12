@@ -419,12 +419,12 @@ export default function OrderDetailPage() {
           {/* Recipient */}
           <div className="space-y-1">
             <span className="text-[10px] uppercase font-bold text-stone-400 block">Alıcı Müşteri & Teslimat</span>
-            <div className="font-bold text-stone-900 text-sm">{order.shipping_address.full_name}</div>
+            <div className="font-bold text-stone-900 text-sm">{order.shipping_address?.full_name || order.guest_name || 'Müşteri'}</div>
             <div className="text-stone-700 font-medium">
-              {order.shipping_address.province} / {order.shipping_address.district}
+              {order.shipping_address?.province || ''} {order.shipping_address?.district ? `/ ${order.shipping_address.district}` : ''}
             </div>
-            <div className="text-stone-600">{order.shipping_address.full_address}</div>
-            <div className="text-stone-900 font-bold">Tel: {order.shipping_address.phone}</div>
+            <div className="text-stone-600">{order.shipping_address?.full_address || 'Adres detayı belirtilmedi'}</div>
+            <div className="text-stone-900 font-bold">Tel: {order.shipping_address?.phone || order.guest_phone || '-'}</div>
           </div>
 
         </div>

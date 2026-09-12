@@ -233,8 +233,8 @@ function OrderTrackingContent() {
                     </div>
                     <a
                       href={
-                        order.tracking_carrier?.toLowerCase().includes('dhl') || order.tracking_number.startsWith('DHL-')
-                          ? `https://www.dhl.com/tr-tr/home/tracking.html?tracking-id=${encodeURIComponent(order.tracking_number)}`
+                        order.tracking_carrier?.toLowerCase().includes('dhl') || order.tracking_carrier?.toLowerCase().includes('mng') || /^\d{10,14}$/.test(order.tracking_number)
+                          ? `https://kargotakip.mngkargo.com.tr/?k=${encodeURIComponent(order.tracking_number)}`
                           : `https://www.google.com/search?q=${encodeURIComponent((order.tracking_carrier || 'kargo') + ' ' + order.tracking_number)}`
                       }
                       target="_blank"

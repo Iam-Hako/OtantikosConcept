@@ -25,7 +25,8 @@ import { formatPrice } from '@/lib/utils/format';
 function CategoryContent() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const slug = params?.slug as string;
+  const rawSlug = (params?.slug as string) || '';
+  const slug = rawSlug ? decodeURIComponent(rawSlug) : '';
   const urlSearch = searchParams?.get('ara') || '';
 
   const { addItem } = useCart();
