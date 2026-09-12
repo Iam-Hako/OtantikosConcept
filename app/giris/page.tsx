@@ -7,6 +7,7 @@ import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/store/auth-context';
 import GoogleAuthButton from '@/components/GoogleAuthButton';
 import { toast } from 'sonner';
+import { safeDecodeURIComponent } from '@/lib/utils/format';
 
 function LoginForm() {
   const router = useRouter();
@@ -28,7 +29,7 @@ function LoginForm() {
       toast.error(
         authError === 'auth-failed'
           ? 'Giriş işlemi tamamlanamadı veya iptal edildi.'
-          : decodeURIComponent(authError)
+          : safeDecodeURIComponent(authError)
       );
     }
   }, [authError]);

@@ -18,6 +18,9 @@ import {
   HomeBanner
 } from '@/lib/types/ecommerce';
 import { createClient } from '@/lib/supabase/client';
+import { safeDecodeURIComponent } from '@/lib/utils/format';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function normalizeTurkish(text: string): string {
   if (!text) return '';
@@ -245,7 +248,7 @@ export const DataService = {
 
   async getProductBySlug(slug: string): Promise<Product | null> {
     const raw = (slug || '').trim();
-    const decoded = decodeURIComponent(raw).trim().toLowerCase();
+    const decoded = safeDecodeURIComponent(raw).trim().toLowerCase();
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -389,14 +392,14 @@ export const DataService = {
           is_published: savedProduct.is_published,
           stock: savedProduct.stock,
           sku: savedProduct.sku,
-          category_id: savedProduct.category_id && !savedProduct.category_id.startsWith('cat-') ? savedProduct.category_id : null,
+          category_id: savedProduct.category_id && UUID_REGEX.test(savedProduct.category_id) ? savedProduct.category_id : null,
           is_featured: savedProduct.is_featured,
           is_new: savedProduct.is_new,
           is_active: savedProduct.is_active,
           video_url: savedProduct.video_url,
         }, { onConflict: conflictTarget })
         .select()
-        .single();
+        .maybeSingle();
 
       if (!prodErr && upsertedProduct) {
         const prodDbId = upsertedProduct.id;
@@ -571,7 +574,7 @@ export const DataService = {
         .from('categories')
         .upsert(payload, { onConflict: conflictTarget })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error && error.message?.includes('icon')) {
         delete payload.icon;
@@ -579,7 +582,7 @@ export const DataService = {
           .from('categories')
           .upsert(payload, { onConflict: conflictTarget })
           .select()
-          .single();
+          .maybeSingle();
         data = retry.data;
         error = retry.error;
       }
@@ -711,7 +714,7 @@ export const DataService = {
           is_active: savedBanner.is_active,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (!error && data) {
         savedBanner.id = data.id;
@@ -794,12 +797,30 @@ export const DataService = {
   },
 
   async getOrderByNumber(orderNumber: string, emailOrName?: string): Promise<Order | null> {
+    const cleanNumber = orderNumber ? orderNumber.trim().toUpperCase() : '';
+    if (!cleanNumber) return null;
+
+    if (typeof window !== 'undefined') {
+      try {
+        const url = `/api/orders/track?order_number=${encodeURIComponent(cleanNumber)}${emailOrName ? `&email=${encodeURIComponent(emailOrName.trim())}` : ''}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.order) {
+            return json.order as Order;
+          }
+        }
+      } catch {
+        // Fallback to direct client
+      }
+    }
+
     try {
       const supabase = createClient();
       const { data, error } = await supabase
         .from('orders')
         .select('*, items:order_items(*)')
-        .eq('order_number', orderNumber.trim().toUpperCase())
+        .eq('order_number', cleanNumber)
         .maybeSingle();
 
       if (!error && data) {
@@ -817,7 +838,6 @@ export const DataService = {
     }
 
     const orders = await this.getOrders();
-    const cleanNumber = orderNumber.trim().toUpperCase();
     const found = orders.find(o => o.order_number.toUpperCase() === cleanNumber);
     if (!found) return null;
 
@@ -833,13 +853,32 @@ export const DataService = {
   async getOrderById(orderId: string): Promise<Order | null> {
     if (!orderId) return null;
     const cleanId = orderId.trim();
+
+    if (typeof window !== 'undefined') {
+      try {
+        const url = `/api/orders/track?order_number=${encodeURIComponent(cleanId)}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.order) {
+            return json.order as Order;
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
     try {
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*, items:order_items(*)')
-        .eq('id', cleanId)
-        .maybeSingle();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
+      let query = supabase.from('orders').select('*, items:order_items(*)');
+      if (isUuid) {
+        query = query.eq('id', cleanId);
+      } else {
+        query = query.eq('order_number', cleanId.toUpperCase());
+      }
+      const { data, error } = await query.maybeSingle();
 
       if (!error && data) {
         return data as Order;
@@ -849,7 +888,7 @@ export const DataService = {
     }
 
     const orders = await this.getOrders();
-    return orders.find(o => o.id === cleanId || o.order_number === cleanId) || null;
+    return orders.find(o => o.id === cleanId || o.order_number === cleanId || o.order_number === cleanId.toUpperCase()) || null;
   },
 
   syncRuntimeProductId(oldId: string, newUuid: string) {
@@ -938,7 +977,7 @@ export const DataService = {
           payment_method: newOrder.payment_method,
         })
         .select('id')
-        .single();
+        .maybeSingle();
 
       if (!orderErr && orderRow && newOrder.items && newOrder.items.length > 0) {
         newOrder.id = orderRow.id;
@@ -1230,16 +1269,24 @@ export const DataService = {
 
     try {
       const supabase = createClient();
-      const { data } = await supabase.from('returns').insert({
-        order_id: newReturn.order?.id && !newReturn.order.id.startsWith('ord-') ? newReturn.order.id : req.order_id,
-        user_id: newReturn.user_id,
-        reason: newReturn.reason,
-        details: newReturn.details,
-        status: newReturn.status,
-      }).select('id').single();
+      let orderDbId: string = (newReturn.order?.id && UUID_REGEX.test(newReturn.order.id) ? newReturn.order.id : req.order_id) || '';
+      if (orderDbId && !UUID_REGEX.test(orderDbId)) {
+        const { data: ordFound } = await supabase.from('orders').select('id').eq('order_number', orderDbId).maybeSingle();
+        if (ordFound?.id) orderDbId = ordFound.id;
+      }
 
-      if (data) {
-        newReturn.id = data.id;
+      if (orderDbId && UUID_REGEX.test(orderDbId)) {
+        const { data } = await supabase.from('returns').insert({
+          order_id: orderDbId,
+          user_id: newReturn.user_id && UUID_REGEX.test(newReturn.user_id) ? newReturn.user_id : null,
+          reason: newReturn.reason,
+          details: newReturn.details,
+          status: newReturn.status,
+        }).select('id').maybeSingle();
+
+        if (data) {
+          newReturn.id = data.id;
+        }
       }
     } catch {
       // Fallback
@@ -1365,12 +1412,12 @@ export const DataService = {
     try {
       const supabase = createClient();
       const { data } = await supabase.from('questions').insert({
-        product_id: !productId.startsWith('prod-') ? productId : null,
+        product_id: productId && UUID_REGEX.test(productId) ? productId : null,
         user_name: userName,
         user_email: userEmail,
         question_text: questionText,
         is_approved: false,
-      }).select('id').single();
+      }).select('id').maybeSingle();
 
       if (data) {
         newQ.id = data.id;
@@ -1500,12 +1547,12 @@ export const DataService = {
     try {
       const supabase = createClient();
       const { data } = await supabase.from('reviews').insert({
-        product_id: !productId.startsWith('prod-') ? productId : null,
+        product_id: productId && UUID_REGEX.test(productId) ? productId : null,
         user_name: userName,
         rating,
         comment,
         is_approved: true,
-      }).select('id').single();
+      }).select('id').maybeSingle();
 
       if (data) {
         newRev.id = data.id;
@@ -1940,7 +1987,7 @@ export const DataService = {
         city: req.address || req.city,
         notes: req.notes ? `[Adres: ${req.address || req.city}] ${req.notes}` : `Adres: ${req.address || req.city}`,
         status: 'beklemede',
-      }).select('id').single();
+      }).select('id').maybeSingle();
 
       if (data) {
         newReq.id = data.id;
@@ -2133,7 +2180,7 @@ export const DataService = {
         .from('accounting_transactions')
         .upsert(payload)
         .select()
-        .single();
+        .maybeSingle();
 
       if (!error && data?.id) {
         tx.id = data.id;
@@ -2447,7 +2494,7 @@ export const DataService = {
   },
 
   async saveUserAddress(addr: Partial<UserAddress>): Promise<UserAddress> {
-    const isCustomId = !addr.id || addr.id.startsWith('addr-');
+    const isUuid = addr.id ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(addr.id) : false;
     const supabase = createClient();
     const payload: any = {
       user_id: addr.user_id,
@@ -2461,7 +2508,7 @@ export const DataService = {
       postal_code: addr.postal_code || '',
       is_default: addr.is_default ?? false,
     };
-    if (!isCustomId && addr.id) {
+    if (isUuid && addr.id) {
       payload.id = addr.id;
     }
 
@@ -2477,7 +2524,7 @@ export const DataService = {
         .from('user_addresses')
         .upsert(payload)
         .select()
-        .single();
+        .maybeSingle();
 
       if (!error && data) {
         const saved = data as UserAddress;
@@ -2500,10 +2547,13 @@ export const DataService = {
   },
 
   async deleteUserAddress(addressId: string, userId?: string): Promise<boolean> {
+    runtimeAddresses = runtimeAddresses.filter((a) => a.id !== addressId);
     try {
-      const supabase = createClient();
-      await supabase.from('user_addresses').delete().eq('id', addressId);
-      runtimeAddresses = runtimeAddresses.filter((a) => a.id !== addressId);
+      const isUuid = addressId ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(addressId) : false;
+      if (isUuid) {
+        const supabase = createClient();
+        await supabase.from('user_addresses').delete().eq('id', addressId);
+      }
       return true;
     } catch (err) {
       console.error('DataService deleteUserAddress Supabase error:', err);
@@ -2515,7 +2565,10 @@ export const DataService = {
     try {
       const supabase = createClient();
       await supabase.from('user_addresses').update({ is_default: false }).eq('user_id', userId);
-      await supabase.from('user_addresses').update({ is_default: true }).eq('id', addressId);
+      const isUuid = addressId ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(addressId) : false;
+      if (isUuid) {
+        await supabase.from('user_addresses').update({ is_default: true }).eq('id', addressId);
+      }
       runtimeAddresses.forEach((a) => {
         if (a.user_id === userId) {
           a.is_default = a.id === addressId;

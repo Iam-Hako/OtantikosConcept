@@ -20,13 +20,13 @@ import { DataService, normalizeTurkish } from '@/lib/data/store-data';
 import ProductCard from '@/components/ProductCard';
 import { useCart } from '@/lib/store/cart-store';
 import { useWishlist } from '@/lib/store/wishlist-store';
-import { formatPrice } from '@/lib/utils/format';
+import { formatPrice, safeDecodeURIComponent } from '@/lib/utils/format';
 
 function CategoryContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const rawSlug = (params?.slug as string) || '';
-  const slug = rawSlug ? decodeURIComponent(rawSlug) : '';
+  const slug = safeDecodeURIComponent(rawSlug);
   const urlSearch = searchParams?.get('ara') || '';
 
   const { addItem } = useCart();

@@ -5,35 +5,47 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatPrice(price: number): string {
+export function formatPrice(price: number | string | null | undefined): string {
+  const num = typeof price === 'number' ? price : Number(price || 0);
+  const safeNum = Number.isFinite(num) ? num : 0;
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency: 'TRY',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(price);
+  }).format(safeNum);
 }
 
-export function formatDate(dateString: string): string {
+export function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return '';
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('tr-TR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    return new Intl.DateTimeFormat('tr-TR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  } catch {
+    return '';
+  }
 }
 
-export function formatShortDate(dateString: string): string {
+export function formatShortDate(dateString: string | null | undefined): string {
   if (!dateString) return '';
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('tr-TR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(date);
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    return new Intl.DateTimeFormat('tr-TR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(date);
+  } catch {
+    return '';
+  }
 }
 
 export function generateOrderNumber(): string {
@@ -53,6 +65,20 @@ export function slugify(text: string): string {
     .replace(/[\s\W-]+/g, '-')
     .replace(/^-+|-+$/g, '');
 }
+
+export function safeDecodeURIComponent(str: string | null | undefined): string {
+  if (!str) return '';
+  try {
+    return decodeURIComponent(str);
+  } catch {
+    try {
+      return decodeURI(str);
+    } catch {
+      return String(str);
+    }
+  }
+}
+
 
 /**
  * Converts any Google Drive sharing link into high-speed Google User Content CDN link

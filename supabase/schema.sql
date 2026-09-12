@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS public.products (
     short_description TEXT,
     price NUMERIC(10, 2) NOT NULL,
     wholesale_price NUMERIC(10, 2),
+    cost_price NUMERIC(10, 2),
     stock INT NOT NULL DEFAULT 0,
     sku TEXT UNIQUE,
     is_published BOOLEAN DEFAULT TRUE NOT NULL,

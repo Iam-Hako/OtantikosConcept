@@ -29,14 +29,14 @@ import { Product, ProductVariant, Question, Review } from '@/lib/types/ecommerce
 import { DataService } from '@/lib/data/store-data';
 import { useCart } from '@/lib/store/cart-store';
 import { useWishlist } from '@/lib/store/wishlist-store';
-import { formatPrice, convertGoogleDriveVideoUrl } from '@/lib/utils/format';
+import { formatPrice, convertGoogleDriveVideoUrl, safeDecodeURIComponent } from '@/lib/utils/format';
 import ProductCard from '@/components/ProductCard';
 import { toast } from 'sonner';
 
 export default function ProductDetailPage() {
   const params = useParams();
   const rawSlug = (params?.slug as string) || '';
-  const slug = rawSlug ? decodeURIComponent(rawSlug) : '';
+  const slug = safeDecodeURIComponent(rawSlug);
 
   const { addItem } = useCart();
   const { toggleFavorite, isFavorite } = useWishlist();

@@ -8,13 +8,14 @@ import { DataService, deduplicateLiveChatMessages } from '@/lib/data/store-data'
 import { sounds } from '@/lib/utils/sound';
 import { useAuth } from '@/lib/store/auth-context';
 import { createClient } from '@/lib/supabase/client';
+import { safeDecodeURIComponent } from '@/lib/utils/format';
 
 const CHAT_COOKIE_NAME = 'otantikos_chat_sess';
 
 function getChatCookie(): string | null {
   if (typeof document === 'undefined') return null;
   const match = document.cookie.match(new RegExp('(^| )' + CHAT_COOKIE_NAME + '=([^;]+)'));
-  return match ? decodeURIComponent(match[2]) : null;
+  return match ? safeDecodeURIComponent(match[2]) : null;
 }
 
 function setChatCookie(sessionId: string) {

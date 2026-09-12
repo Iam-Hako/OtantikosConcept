@@ -39,7 +39,7 @@ export default function Navbar() {
   const userDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    DataService.getCategories().then(setCategories);
+    DataService.getCategories().then((list) => setCategories(list.filter(c => c.is_active !== false)));
 
     const handleCustomOpenSearch = () => {
       setIsSearchModalOpen(true);
@@ -48,7 +48,7 @@ export default function Navbar() {
       setIsMobileMenuOpen(true);
     };
     const handleCategoriesChanged = () => {
-      DataService.getCategories().then(setCategories);
+      DataService.getCategories().then((list) => setCategories(list.filter(c => c.is_active !== false)));
     };
     window.addEventListener('otantikos:open_search', handleCustomOpenSearch);
     window.addEventListener('otantikos:open_menu', handleCustomOpenMenu);

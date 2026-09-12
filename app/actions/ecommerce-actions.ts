@@ -95,7 +95,7 @@ export async function actionSaveProduct(productData: Partial<Product>) {
         .from('products')
         .upsert(payload, { onConflict: 'id' })
         .select()
-        .single();
+        .maybeSingle();
       if (!error && data) upsertedProduct = data;
     } else {
       // New product: upsert by slug
@@ -103,7 +103,7 @@ export async function actionSaveProduct(productData: Partial<Product>) {
         .from('products')
         .upsert(payload, { onConflict: 'slug' })
         .select()
-        .single();
+        .maybeSingle();
       if (!error && data) upsertedProduct = data;
     }
 
@@ -324,13 +324,13 @@ export async function actionSaveCategory(catData: Partial<Category>) {
         .from('categories')
         .upsert(payload, { onConflict: 'id' })
         .select()
-        .single();
+        .maybeSingle();
     } else {
       dbRes = await supabaseAdmin
         .from('categories')
         .upsert(payload, { onConflict: 'slug' })
         .select()
-        .single();
+        .maybeSingle();
     }
 
     // If icon column does not exist yet in Supabase table, retry without icon
@@ -341,13 +341,13 @@ export async function actionSaveCategory(catData: Partial<Category>) {
           .from('categories')
           .upsert(payload, { onConflict: 'id' })
           .select()
-          .single();
+          .maybeSingle();
       } else {
         dbRes = await supabaseAdmin
           .from('categories')
           .upsert(payload, { onConflict: 'slug' })
           .select()
-          .single();
+          .maybeSingle();
       }
     }
 
@@ -884,7 +884,7 @@ export async function actionSaveAccountingTransaction(txData: Partial<Accounting
           .from('products')
           .insert(newProdPayload)
           .select('id')
-          .single();
+          .maybeSingle();
 
         if (createdProd?.id) {
           savedTx.product_id = createdProd.id;

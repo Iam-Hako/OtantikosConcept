@@ -78,7 +78,8 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
 
   // Dynamic discount calculation for Miniso-style price pill
   const discountRate = product.is_featured ? 35 : product.is_new ? 25 : (product.id ? (product.id.charCodeAt(0) % 3 === 0 ? 30 : 20) : 20);
-  const originalPrice = Math.round(product.price / (1 - discountRate / 100));
+  const numericPrice = Number(product.price || 0);
+  const originalPrice = Math.round(numericPrice / (1 - discountRate / 100));
   const ratingValue = product.rating ? Number(product.rating).toFixed(1) : '5.0';
   const reviewCount = product.review_count && product.review_count > 0 ? product.review_count : ((product.id ? (product.id.charCodeAt(0) % 8) : 3) + 2);
 

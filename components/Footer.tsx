@@ -28,9 +28,9 @@ export default function Footer() {
   const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
-    DataService.getCategories().then(setCategories);
+    DataService.getCategories().then((list) => setCategories(list.filter((c) => c.is_active !== false)));
     const handleCategoriesChanged = () => {
-      DataService.getCategories().then(setCategories);
+      DataService.getCategories().then((list) => setCategories(list.filter((c) => c.is_active !== false)));
     };
     window.addEventListener('otantikos_categories_changed', handleCategoriesChanged);
     return () => {

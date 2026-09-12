@@ -30,7 +30,7 @@ import { useAuth } from '@/lib/store/auth-context';
 import { TURKISH_PROVINCES } from '@/lib/data/provinces-and-districts';
 import { DataService } from '@/lib/data/store-data';
 import { UserAddress } from '@/lib/types/ecommerce';
-import { formatPrice } from '@/lib/utils/format';
+import { formatPrice, safeDecodeURIComponent } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
 // Online sales active flag (can be toggled via NEXT_PUBLIC_ONLINE_SALES_ACTIVE in .env.local)
@@ -116,7 +116,7 @@ function CheckoutContent() {
   // Catch URL errors from iyzico callback
   useEffect(() => {
     if (urlError) {
-      toast.error(decodeURIComponent(urlError), { duration: 6000 });
+      toast.error(safeDecodeURIComponent(urlError), { duration: 6000 });
     }
   }, [urlError]);
 

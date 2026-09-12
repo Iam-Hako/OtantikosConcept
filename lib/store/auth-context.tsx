@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle();
 
           if (profile) {
             setUser(profile as UserProfile);
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
 
         if (profile) {
           setUser(profile as UserProfile);
@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .from('profiles')
           .select('*')
           .eq('id', data.user.id)
-          .single();
+          .maybeSingle();
 
         if (profile) {
           setUser(profile as UserProfile);
