@@ -474,7 +474,7 @@ export async function actionCancelOrder(
     const orders = await DataService.getOrders();
     const targetOrder = orders.find((o) => o.id === orderId || o.order_number === orderId);
     if (targetOrder && targetOrder.tracking_number) {
-      await cancelDhlShipment(targetOrder.order_number);
+      await cancelDhlShipment(targetOrder.order_number, targetOrder.tracking_number);
     }
   } catch (dhlCancelErr) {
     console.warn('[DHL Kargo İptal Bildirimi]', dhlCancelErr);

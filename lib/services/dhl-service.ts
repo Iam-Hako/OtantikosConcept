@@ -519,7 +519,7 @@ export async function createDhlShipment(
 /**
  * Gönderi İptali (cancelshipment)
  */
-export async function cancelDhlShipment(referenceId: string): Promise<{ success: boolean; message?: string; error?: string }> {
+export async function cancelDhlShipment(referenceId: string, shipmentId?: string): Promise<{ success: boolean; message?: string; error?: string }> {
   if (!isDhlEcomConfigured) {
     return { success: true, message: 'Simülasyon gönderisi iptal edildi.' };
   }
@@ -528,15 +528,21 @@ export async function cancelDhlShipment(referenceId: string): Promise<{ success:
     const token = await getDhlEcomToken();
     if (!token) return { success: false, error: 'DHL token alınamadı.' };
 
+    const cleanRef = referenceId.trim();
+    const cleanShipment = (shipmentId || referenceId).trim();
+
     const res = await fetch(`${DHL_ECOM_BASE_URL}/barcodecmdapi/cancelshipment`, {
-      method: 'POST',
+      method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
         'x-ibm-client-id': dhlClientId,
         'x-ibm-client-secret': dhlClientSecret,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ referenceId }),
+      body: JSON.stringify({
+        referenceId: cleanRef,
+        shipmentId: cleanShipment,
+      }),
     });
 
     if (!res.ok) {
