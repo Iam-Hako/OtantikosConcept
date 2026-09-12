@@ -132,16 +132,16 @@ export default function Footer() {
           
           {/* Col 1: Brand, Logo & Social */}
           <div className="space-y-4">
-            <Link href="/" className="inline-flex items-center gap-2.5">
-              <div className="w-11 h-11 bg-[#e60012] rounded-xl flex flex-col items-center justify-center text-white shadow-xs">
+            <Link href="/" className="inline-flex items-center gap-2.5 group">
+              <div className="w-11 h-11 bg-black rounded-xl flex flex-col items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
                 <span className="text-[10px] font-black tracking-tighter leading-none">OTAN</span>
                 <span className="text-[10px] font-black tracking-tighter leading-none mt-0.5">TIKOS</span>
               </div>
               <div className="flex flex-col">
-                <span className="font-sans font-black text-lg text-stone-900 tracking-tight leading-none">
+                <span className="font-sans font-black text-lg text-stone-900 tracking-tight leading-none group-hover:text-black transition">
                   Otantikos
                 </span>
-                <span className="text-[9px] font-extrabold text-[#e60012] tracking-widest uppercase mt-0.5">
+                <span className="text-[9px] font-extrabold text-stone-900 tracking-widest uppercase mt-0.5">
                   CONCEPT
                 </span>
               </div>

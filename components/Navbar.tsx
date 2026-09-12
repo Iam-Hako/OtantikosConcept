@@ -98,17 +98,17 @@ export default function Navbar() {
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
 
-            {/* Miniso Style Brand Logo */}
+            {/* Siyah Üstü Beyaz Otantikos Logo */}
             <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-[#e60012] rounded-xl flex flex-col items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-black rounded-xl flex flex-col items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform">
                 <span className="text-[10px] sm:text-[11px] font-black tracking-tighter leading-none">OTAN</span>
                 <span className="text-[10px] sm:text-[11px] font-black tracking-tighter leading-none mt-0.5">TIKOS</span>
               </div>
               <div className="flex flex-col">
-                <span className="font-sans font-black text-lg sm:text-xl text-stone-900 tracking-tight leading-none group-hover:text-[#e60012] transition">
+                <span className="font-sans font-black text-lg sm:text-xl text-stone-900 tracking-tight leading-none group-hover:text-black transition">
                   Otantikos
                 </span>
-                <span className="text-[9px] font-extrabold text-[#e60012] tracking-widest uppercase mt-0.5">
+                <span className="text-[9px] font-extrabold text-stone-900 tracking-widest uppercase mt-0.5">
                   CONCEPT
                 </span>
               </div>
@@ -402,7 +402,7 @@ export default function Navbar() {
             {/* Drawer Top Header matching Image 4 */}
             <div className="flex items-center justify-between p-4 border-b border-stone-100 bg-white">
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 bg-[#e60012] rounded-xl flex flex-col items-center justify-center text-white shadow-xs">
+                <div className="w-9 h-9 bg-black rounded-xl flex flex-col items-center justify-center text-white shadow-xs">
                   <span className="text-[9px] font-black tracking-tighter leading-none">OTAN</span>
                   <span className="text-[9px] font-black tracking-tighter leading-none mt-0.5">TIKOS</span>
                 </div>
@@ -410,7 +410,7 @@ export default function Navbar() {
                   <span className="font-sans font-black text-base text-stone-900 tracking-tight leading-none">
                     Otantikos
                   </span>
-                  <span className="text-[8px] font-extrabold text-[#e60012] tracking-widest uppercase mt-0.5">
+                  <span className="text-[8px] font-extrabold text-stone-900 tracking-widest uppercase mt-0.5">
                     CONCEPT
                   </span>
                 </div>
