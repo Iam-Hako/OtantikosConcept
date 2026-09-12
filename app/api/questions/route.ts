@@ -45,44 +45,48 @@ function saveStoredQuestions(list: Question[]) {
 }
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const productId = searchParams.get('product_id');
-
-  // If requesting all questions without product_id, must be authenticated Admin
-  if (!productId) {
-    const auth = await verifyAdminAuth();
-    if (!auth.isAuthorized) {
-      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
-    }
-  }
-
   try {
-    const supabase = createAdminClient();
-    let query = supabase.from('questions').select('*').order('created_at', { ascending: false });
-    if (productId) {
-      query = query.eq('product_id', productId).eq('is_approved', true);
-    }
-    const { data, error } = await query;
-    if (!error && data && data.length > 0) {
-      // Redact email for public visitors
-      if (productId) {
-        return NextResponse.json(data.map((q) => ({ ...q, user_email: null })));
-      }
-      return NextResponse.json(data);
-    }
-  } catch {
-    // Fallback
-  }
+    const { searchParams } = new URL(request.url);
+    const productId = searchParams.get('product_id');
 
-  const stored = getStoredQuestions();
-  if (productId) {
-    return NextResponse.json(
-      stored
-        .filter((q) => q.product_id === productId && q.is_approved)
-        .map((q) => ({ ...q, user_email: null }))
-    );
+    // If requesting all questions without product_id, must be authenticated Admin
+    if (!productId) {
+      const auth = await verifyAdminAuth();
+      if (!auth.isAuthorized) {
+        return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+      }
+    }
+
+    try {
+      const supabase = createAdminClient();
+      let query = supabase.from('questions').select('*').order('created_at', { ascending: false });
+      if (productId) {
+        query = query.eq('product_id', productId).eq('is_approved', true);
+      }
+      const { data, error } = await query;
+      if (!error && data && data.length > 0) {
+        // Redact email for public visitors
+        if (productId) {
+          return NextResponse.json(data.map((q) => ({ ...q, user_email: null })));
+        }
+        return NextResponse.json(data);
+      }
+    } catch {
+      // Fallback
+    }
+
+    const stored = getStoredQuestions();
+    if (productId) {
+      return NextResponse.json(
+        stored
+          .filter((q) => q.product_id === productId && q.is_approved)
+          .map((q) => ({ ...q, user_email: null }))
+      );
+    }
+    return NextResponse.json(stored);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Sorular getirilemedi.' }, { status: 500 });
   }
-  return NextResponse.json(stored);
 }
 
 export async function POST(request: Request) {
@@ -151,13 +155,13 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  // Admin Authentication Required
-  const auth = await verifyAdminAuth();
-  if (!auth.isAuthorized) {
-    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
-  }
-
   try {
+    // Admin Authentication Required
+    const auth = await verifyAdminAuth();
+    if (!auth.isAuthorized) {
+      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, answer_text, is_approved } = body;
 
@@ -203,13 +207,13 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  // Admin Authentication Required
-  const auth = await verifyAdminAuth();
-  if (!auth.isAuthorized) {
-    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
-  }
-
   try {
+    // Admin Authentication Required
+    const auth = await verifyAdminAuth();
+    if (!auth.isAuthorized) {
+      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

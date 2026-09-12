@@ -169,6 +169,7 @@ export async function actionSaveProduct(productData: Partial<Product>) {
     console.error('Supabase admin save error:', err);
   }
 
+  revalidatePath('/', 'layout');
   revalidatePath('/');
   revalidatePath('/kategori/[slug]', 'page');
   revalidatePath(`/urun/${saved.slug}`);
@@ -215,6 +216,7 @@ export async function actionDeleteProduct(productId: string) {
   }
 
   const ok = await DataService.deleteProduct(productId);
+  revalidatePath('/', 'layout');
   revalidatePath('/');
   revalidatePath('/kategori/[slug]', 'page');
   revalidatePath('/admin/urunler');
@@ -264,6 +266,7 @@ export async function actionUpdateQuickStock(
   }
 
   const ok = await DataService.updateQuickStockAndPrice(productId, stock, price, costPrice, wholesalePrice, isPublished);
+  revalidatePath('/', 'layout');
   revalidatePath('/');
   revalidatePath('/kategori/[slug]', 'page');
   revalidatePath('/admin/hizli-stok');
@@ -364,6 +367,7 @@ export async function actionSaveCategory(catData: Partial<Category>) {
     console.error('Supabase admin save category exception:', err);
   }
 
+  revalidatePath('/', 'layout');
   revalidatePath('/');
   revalidatePath('/kategori/[slug]', 'page');
   revalidatePath('/admin/kategoriler');
@@ -415,6 +419,7 @@ export async function actionDeleteCategory(categoryId: string) {
   }
 
   const ok = await DataService.deleteCategory(categoryId);
+  revalidatePath('/', 'layout');
   revalidatePath('/');
   revalidatePath('/kategori/[slug]', 'page');
   revalidatePath('/admin/kategoriler');
@@ -808,6 +813,7 @@ export async function actionToggleProductPublish(productId: string, isPublished:
     console.warn('Supabase toggle publish sync warning:', err);
   }
 
+  revalidatePath('/', 'layout');
   revalidatePath('/');
   revalidatePath('/admin/urunler');
   revalidatePath('/admin/hizli-stok');

@@ -372,11 +372,13 @@ export const DataService = {
     try {
       const supabase = createClient();
       const isCustomId = savedProduct.id.startsWith('prod-');
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(savedProduct.id);
+      const conflictTarget = isUuid ? 'id' : 'slug';
       
       const { data: upsertedProduct, error: prodErr } = await supabase
         .from('products')
         .upsert({
-          id: isCustomId ? undefined : savedProduct.id,
+          id: isUuid ? savedProduct.id : undefined,
           name: savedProduct.name,
           slug: savedProduct.slug,
           description: savedProduct.description,
@@ -392,7 +394,7 @@ export const DataService = {
           is_new: savedProduct.is_new,
           is_active: savedProduct.is_active,
           video_url: savedProduct.video_url,
-        }, { onConflict: 'slug' })
+        }, { onConflict: conflictTarget })
         .select()
         .single();
 
@@ -536,7 +538,7 @@ export const DataService = {
   },
 
   async saveCategory(cat: Partial<Category>): Promise<Category> {
-    const isCustomId = !cat.id || cat.id.startsWith('cat-');
+    const isUuid = cat.id ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cat.id) : false;
     const supabase = createClient();
     const payload: any = {
       name: cat.name,
@@ -547,7 +549,7 @@ export const DataService = {
       is_active: cat.is_active ?? true,
     };
     if (cat.icon) payload.icon = cat.icon;
-    if (!isCustomId && cat.id) {
+    if (isUuid && cat.id) {
       payload.id = cat.id;
     }
 
@@ -564,9 +566,10 @@ export const DataService = {
     } as Category;
 
     try {
+      const conflictTarget = isUuid ? 'id' : 'slug';
       let { data, error } = await supabase
         .from('categories')
-        .upsert(payload, { onConflict: 'slug' })
+        .upsert(payload, { onConflict: conflictTarget })
         .select()
         .single();
 
@@ -574,7 +577,7 @@ export const DataService = {
         delete payload.icon;
         const retry = await supabase
           .from('categories')
-          .upsert(payload, { onConflict: 'slug' })
+          .upsert(payload, { onConflict: conflictTarget })
           .select()
           .single();
         data = retry.data;
@@ -691,11 +694,11 @@ export const DataService = {
 
     try {
       const supabase = createClient();
-      const isCustomId = savedBanner.id.startsWith('banner-');
+      const isUuid = savedBanner.id ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(savedBanner.id) : false;
       const { data, error } = await supabase
         .from('home_banners')
         .upsert({
-          id: isCustomId ? undefined : savedBanner.id,
+          id: isUuid ? savedBanner.id : undefined,
           title: savedBanner.title,
           subtitle: savedBanner.subtitle,
           badge_text: savedBanner.badge_text,
@@ -726,8 +729,11 @@ export const DataService = {
     runtimeBanners = runtimeBanners.filter(b => b.id !== bannerId);
 
     try {
-      const supabase = createClient();
-      await supabase.from('home_banners').delete().eq('id', bannerId);
+      const isUuid = bannerId ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bannerId) : false;
+      if (isUuid) {
+        const supabase = createClient();
+        await supabase.from('home_banners').delete().eq('id', bannerId);
+      }
     } catch {
       // Ignore
     }
@@ -741,8 +747,11 @@ export const DataService = {
     }
 
     try {
-      const supabase = createClient();
-      await supabase.from('home_banners').update({ is_active: isActive }).eq('id', bannerId);
+      const isUuid = bannerId ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bannerId) : false;
+      if (isUuid) {
+        const supabase = createClient();
+        await supabase.from('home_banners').update({ is_active: isActive }).eq('id', bannerId);
+      }
     } catch {
       // Ignore
     }
@@ -819,6 +828,28 @@ export const DataService = {
       if (!guestEmail.includes(q) && !name.includes(q)) return null;
     }
     return found;
+  },
+
+  async getOrderById(orderId: string): Promise<Order | null> {
+    if (!orderId) return null;
+    const cleanId = orderId.trim();
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, items:order_items(*)')
+        .eq('id', cleanId)
+        .maybeSingle();
+
+      if (!error && data) {
+        return data as Order;
+      }
+    } catch {
+      // Fallback
+    }
+
+    const orders = await this.getOrders();
+    return orders.find(o => o.id === cleanId || o.order_number === cleanId) || null;
   },
 
   syncRuntimeProductId(oldId: string, newUuid: string) {

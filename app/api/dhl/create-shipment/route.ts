@@ -14,8 +14,14 @@ export async function POST(request: Request) {
     }
 
     // 1. Fetch order
-    const allOrders = await DataService.getOrders();
-    const order = allOrders.find((o) => (order_id && o.id === order_id) || (order_number && o.order_number === order_number));
+    let order = order_id ? await DataService.getOrderById(order_id) : null;
+    if (!order && order_number) {
+      order = await DataService.getOrderByNumber(order_number);
+    }
+    if (!order) {
+      const allOrders = await DataService.getOrders();
+      order = allOrders.find((o) => (order_id && o.id === order_id) || (order_number && o.order_number === order_number)) || null;
+    }
 
     if (!order) {
       return NextResponse.json({ error: 'Sipariş bulunamadı.' }, { status: 404 });

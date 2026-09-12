@@ -17,16 +17,16 @@ const ALLOWED_MIME_TYPES = new Set([
 const MAX_FILE_SIZE = 150 * 1024 * 1024; // 150 MB
 
 export async function POST(request: Request) {
-  // 1. Admin Authentication Check
-  const auth = await verifyAdminAuth();
-  if (!auth.isAuthorized) {
-    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
-  }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://tuphsfeowfcyzzciyvav.supabase.co';
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
   try {
+    // 1. Admin Authentication Check
+    const auth = await verifyAdminAuth();
+    if (!auth.isAuthorized) {
+      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://tuphsfeowfcyzzciyvav.supabase.co';
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
     const contentTypeHeader = request.headers.get('content-type') || '';
 
     // 2. JSON Request for Direct Presigned Upload (for large videos & photos)

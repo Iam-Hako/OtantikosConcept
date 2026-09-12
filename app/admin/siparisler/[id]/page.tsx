@@ -49,8 +49,7 @@ export default function OrderDetailPage() {
 
   useEffect(() => {
     async function loadOrder() {
-      const orders = await DataService.getOrders();
-      const found = orders.find((o) => o.id === orderId || o.order_number === orderId);
+      const found = await DataService.getOrderById(orderId);
       if (found) {
         setOrder(found);
         setStatus(found.status);

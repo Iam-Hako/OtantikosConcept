@@ -45,40 +45,44 @@ function saveStoredReturns(list: ReturnRequest[]) {
 }
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('user_id');
-
-  // Verify caller authorization
-  const auth = await verifyAdminAuth();
-  if (!userId) {
-    // If requesting all returns without user_id, must be authenticated Admin
-    if (!auth.isAuthorized) {
-      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
-    }
-  } else if (!auth.isAuthorized && (!auth.user || auth.user.id !== userId)) {
-    // Non-admin can only query their own user_id
-    return NextResponse.json({ error: 'Yalnızca kendi iade taleplerinizi görüntüleyebilirsiniz.' }, { status: 403 });
-  }
-
   try {
-    const supabase = createAdminClient();
-    let query = supabase.from('returns').select('*').order('created_at', { ascending: false });
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
-    const { data, error } = await query;
-    if (!error && data && data.length > 0) {
-      return NextResponse.json(data);
-    }
-  } catch {
-    // Fallback
-  }
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('user_id');
 
-  const stored = getStoredReturns();
-  if (userId) {
-    return NextResponse.json(stored.filter((r) => r.user_id === userId));
+    // Verify caller authorization
+    const auth = await verifyAdminAuth();
+    if (!userId) {
+      // If requesting all returns without user_id, must be authenticated Admin
+      if (!auth.isAuthorized) {
+        return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+      }
+    } else if (!auth.isAuthorized && (!auth.user || auth.user.id !== userId)) {
+      // Non-admin can only query their own user_id
+      return NextResponse.json({ error: 'Yalnızca kendi iade taleplerinizi görüntüleyebilirsiniz.' }, { status: 403 });
+    }
+
+    try {
+      const supabase = createAdminClient();
+      let query = supabase.from('returns').select('*').order('created_at', { ascending: false });
+      if (userId) {
+        query = query.eq('user_id', userId);
+      }
+      const { data, error } = await query;
+      if (!error && data && data.length > 0) {
+        return NextResponse.json(data);
+      }
+    } catch {
+      // Fallback
+    }
+
+    const stored = getStoredReturns();
+    if (userId) {
+      return NextResponse.json(stored.filter((r) => r.user_id === userId));
+    }
+    return NextResponse.json(stored);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'İade talepleri getirilemedi.' }, { status: 500 });
   }
-  return NextResponse.json(stored);
 }
 
 export async function POST(request: Request) {
@@ -145,13 +149,13 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  // Admin Authentication Required
-  const auth = await verifyAdminAuth();
-  if (!auth.isAuthorized) {
-    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
-  }
-
   try {
+    // Admin Authentication Required
+    const auth = await verifyAdminAuth();
+    if (!auth.isAuthorized) {
+      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, status, admin_response } = body;
 

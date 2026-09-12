@@ -45,36 +45,40 @@ function saveStoredReviews(list: Review[]) {
 }
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const productId = searchParams.get('product_id');
-
-  // If requesting all reviews without product_id, must be authenticated Admin
-  if (!productId) {
-    const auth = await verifyAdminAuth();
-    if (!auth.isAuthorized) {
-      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
-    }
-  }
-
   try {
-    const supabase = createAdminClient();
-    let query = supabase.from('reviews').select('*').order('created_at', { ascending: false });
-    if (productId) {
-      query = query.eq('product_id', productId).eq('is_approved', true);
-    }
-    const { data, error } = await query;
-    if (!error && data && data.length > 0) {
-      return NextResponse.json(data);
-    }
-  } catch {
-    // Fallback
-  }
+    const { searchParams } = new URL(request.url);
+    const productId = searchParams.get('product_id');
 
-  const stored = getStoredReviews();
-  if (productId) {
-    return NextResponse.json(stored.filter((r) => r.product_id === productId && r.is_approved));
+    // If requesting all reviews without product_id, must be authenticated Admin
+    if (!productId) {
+      const auth = await verifyAdminAuth();
+      if (!auth.isAuthorized) {
+        return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+      }
+    }
+
+    try {
+      const supabase = createAdminClient();
+      let query = supabase.from('reviews').select('*').order('created_at', { ascending: false });
+      if (productId) {
+        query = query.eq('product_id', productId).eq('is_approved', true);
+      }
+      const { data, error } = await query;
+      if (!error && data && data.length > 0) {
+        return NextResponse.json(data);
+      }
+    } catch {
+      // Fallback
+    }
+
+    const stored = getStoredReviews();
+    if (productId) {
+      return NextResponse.json(stored.filter((r) => r.product_id === productId && r.is_approved));
+    }
+    return NextResponse.json(stored);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Yorumlar getirilemedi.' }, { status: 500 });
   }
-  return NextResponse.json(stored);
 }
 
 export async function POST(request: Request) {
@@ -140,13 +144,13 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  // Admin Authentication Required
-  const auth = await verifyAdminAuth();
-  if (!auth.isAuthorized) {
-    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
-  }
-
   try {
+    // Admin Authentication Required
+    const auth = await verifyAdminAuth();
+    if (!auth.isAuthorized) {
+      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, is_approved } = body;
 
@@ -178,13 +182,13 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  // Admin Authentication Required
-  const auth = await verifyAdminAuth();
-  if (!auth.isAuthorized) {
-    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
-  }
-
   try {
+    // Admin Authentication Required
+    const auth = await verifyAdminAuth();
+    if (!auth.isAuthorized) {
+      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

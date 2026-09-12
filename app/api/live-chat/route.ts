@@ -49,95 +49,99 @@ function saveStoredSessions(sessions: LiveChatSession[]) {
 }
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const sessionId = searchParams.get('session_id');
-  const customerEmail = searchParams.get('customer_email');
-
-  // If requesting without session_id (i.e. all sessions or querying by customer_email), require admin authentication
-  if (!sessionId) {
-    const auth = await verifyAdminAuth();
-    if (!auth.isAuthorized) {
-      return NextResponse.json({ error: auth.error || 'Bu sorgu için yönetici yetkisi gereklidir.' }, { status: 401 });
-    }
-  }
-
-  // Try Supabase first if tables exist
   try {
-    const supabase = createAdminClient();
-    if (sessionId) {
-      const { data, error } = await supabase
-        .from('live_chat_sessions')
-        .select(`*, messages:live_chat_messages(*)`)
-        .eq('session_id', sessionId)
-        .maybeSingle();
+    const { searchParams } = new URL(request.url);
+    const sessionId = searchParams.get('session_id');
+    const customerEmail = searchParams.get('customer_email');
 
-      if (!error && data) {
-        if (data.messages && Array.isArray(data.messages)) {
-          data.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-          data.messages = deduplicateLiveChatMessages(data.messages);
-          data.last_message = data.messages[data.messages.length - 1] || null;
-        }
-        return NextResponse.json(data);
+    // If requesting without session_id (i.e. all sessions or querying by customer_email), require admin authentication
+    if (!sessionId) {
+      const auth = await verifyAdminAuth();
+      if (!auth.isAuthorized) {
+        return NextResponse.json({ error: auth.error || 'Bu sorgu için yönetici yetkisi gereklidir.' }, { status: 401 });
       }
-    } else if (customerEmail) {
-      const { data, error } = await supabase
-        .from('live_chat_sessions')
-        .select(`*, messages:live_chat_messages(*)`)
-        .eq('customer_email', customerEmail)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    }
 
-      if (!error && data) {
-        if (data.messages && Array.isArray(data.messages)) {
-          data.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-          data.messages = deduplicateLiveChatMessages(data.messages);
-          data.last_message = data.messages[data.messages.length - 1] || null;
-        }
-        return NextResponse.json(data);
-      }
-    } else {
-      const { data, error } = await supabase
-        .from('live_chat_sessions')
-        .select(`*, messages:live_chat_messages(*)`)
-        .order('updated_at', { ascending: false });
+    // Try Supabase first if tables exist
+    try {
+      const supabase = createAdminClient();
+      if (sessionId) {
+        const { data, error } = await supabase
+          .from('live_chat_sessions')
+          .select(`*, messages:live_chat_messages(*)`)
+          .eq('session_id', sessionId)
+          .maybeSingle();
 
-      if (!error && data) {
-        data.forEach((s: any) => {
-          if (s.messages && Array.isArray(s.messages)) {
-            s.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-            s.messages = deduplicateLiveChatMessages(s.messages);
-            s.last_message = s.messages[s.messages.length - 1] || null;
+        if (!error && data) {
+          if (data.messages && Array.isArray(data.messages)) {
+            data.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            data.messages = deduplicateLiveChatMessages(data.messages);
+            data.last_message = data.messages[data.messages.length - 1] || null;
           }
-        });
-        return NextResponse.json(data);
+          return NextResponse.json(data);
+        }
+      } else if (customerEmail) {
+        const { data, error } = await supabase
+          .from('live_chat_sessions')
+          .select(`*, messages:live_chat_messages(*)`)
+          .eq('customer_email', customerEmail)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && data) {
+          if (data.messages && Array.isArray(data.messages)) {
+            data.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            data.messages = deduplicateLiveChatMessages(data.messages);
+            data.last_message = data.messages[data.messages.length - 1] || null;
+          }
+          return NextResponse.json(data);
+        }
+      } else {
+        const { data, error } = await supabase
+          .from('live_chat_sessions')
+          .select(`*, messages:live_chat_messages(*)`)
+          .order('updated_at', { ascending: false });
+
+        if (!error && data) {
+          data.forEach((s: any) => {
+            if (s.messages && Array.isArray(s.messages)) {
+              s.messages.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+              s.messages = deduplicateLiveChatMessages(s.messages);
+              s.last_message = s.messages[s.messages.length - 1] || null;
+            }
+          });
+          return NextResponse.json(data);
+        }
       }
+    } catch {
+      // Supabase fallback
     }
-  } catch {
-    // Supabase fallback
-  }
 
-  // Server-side persistent file/memory fallback
-  const sessions = getStoredSessions();
-  if (sessionId) {
-    const session = sessions.find((s) => s.session_id === sessionId) || null;
-    if (session && session.messages) {
-      session.messages = deduplicateLiveChatMessages(session.messages);
+    // Server-side persistent file/memory fallback
+    const sessions = getStoredSessions();
+    if (sessionId) {
+      const session = sessions.find((s) => s.session_id === sessionId) || null;
+      if (session && session.messages) {
+        session.messages = deduplicateLiveChatMessages(session.messages);
+      }
+      return NextResponse.json(session);
     }
-    return NextResponse.json(session);
-  }
-  if (customerEmail) {
-    const session = sessions.find((s) => s.customer_email === customerEmail) || null;
-    if (session && session.messages) {
-      session.messages = deduplicateLiveChatMessages(session.messages);
+    if (customerEmail) {
+      const session = sessions.find((s) => s.customer_email === customerEmail) || null;
+      if (session && session.messages) {
+        session.messages = deduplicateLiveChatMessages(session.messages);
+      }
+      return NextResponse.json(session);
     }
-    return NextResponse.json(session);
-  }
 
-  sessions.forEach(s => {
-    if (s.messages) s.messages = deduplicateLiveChatMessages(s.messages);
-  });
-  return NextResponse.json(sessions);
+    sessions.forEach(s => {
+      if (s.messages) s.messages = deduplicateLiveChatMessages(s.messages);
+    });
+    return NextResponse.json(sessions);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Canlı destek oturumları alınamadı.' }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -233,13 +237,13 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  // Admin Authentication Required
-  const auth = await verifyAdminAuth();
-  if (!auth.isAuthorized) {
-    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
-  }
-
   try {
+    // Admin Authentication Required
+    const auth = await verifyAdminAuth();
+    if (!auth.isAuthorized) {
+      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { session_id, status } = body;
 
@@ -272,13 +276,13 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  // Admin Authentication Required
-  const auth = await verifyAdminAuth();
-  if (!auth.isAuthorized) {
-    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
-  }
-
   try {
+    // Admin Authentication Required
+    const auth = await verifyAdminAuth();
+    if (!auth.isAuthorized) {
+      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('session_id');
 

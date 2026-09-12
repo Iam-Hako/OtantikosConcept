@@ -45,28 +45,32 @@ function saveStoredRequests(list: WholesaleRequest[]) {
 }
 
 export async function GET() {
-  // Admin Authentication Required to view customer wholesale leads
-  const auth = await verifyAdminAuth();
-  if (!auth.isAuthorized) {
-    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
-  }
-
   try {
-    const supabase = createAdminClient();
-    const { data, error } = await supabase
-      .from('wholesale_requests')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (!error && data && data.length > 0) {
-      return NextResponse.json(data);
+    // Admin Authentication Required to view customer wholesale leads
+    const auth = await verifyAdminAuth();
+    if (!auth.isAuthorized) {
+      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
     }
-  } catch {
-    // Supabase fallback
-  }
 
-  const stored = getStoredRequests();
-  return NextResponse.json(stored);
+    try {
+      const supabase = createAdminClient();
+      const { data, error } = await supabase
+        .from('wholesale_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        return NextResponse.json(data);
+      }
+    } catch {
+      // Supabase fallback
+    }
+
+    const stored = getStoredRequests();
+    return NextResponse.json(stored);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Talepler alınamadı.' }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -144,13 +148,13 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  // Admin Authentication Required
-  const auth = await verifyAdminAuth();
-  if (!auth.isAuthorized) {
-    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
-  }
-
   try {
+    // Admin Authentication Required
+    const auth = await verifyAdminAuth();
+    if (!auth.isAuthorized) {
+      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, status, admin_notes } = body;
 
@@ -189,13 +193,13 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  // Admin Authentication Required
-  const auth = await verifyAdminAuth();
-  if (!auth.isAuthorized) {
-    return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
-  }
-
   try {
+    // Admin Authentication Required
+    const auth = await verifyAdminAuth();
+    if (!auth.isAuthorized) {
+      return NextResponse.json({ error: auth.error || 'Yetkisiz erişim.' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
