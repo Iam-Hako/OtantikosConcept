@@ -14,14 +14,18 @@ export async function GET(request: Request) {
 
     const cleanNumber = orderNumber.trim().toUpperCase();
 
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderNumber.trim());
+
     // 1. Try Supabase with Admin Client (bypasses guest RLS limitation safely)
     try {
       const supabase = createAdminClient();
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*, items:order_items(*)')
-        .eq('order_number', cleanNumber)
-        .maybeSingle();
+      let query = supabase.from('orders').select('*, items:order_items(*)');
+      if (isUuid) {
+        query = query.eq('id', orderNumber.trim());
+      } else {
+        query = query.eq('order_number', cleanNumber);
+      }
+      const { data, error } = await query.maybeSingle();
 
       if (!error && data) {
         if (emailOrName && emailOrName.trim()) {
@@ -39,7 +43,7 @@ export async function GET(request: Request) {
     }
 
     // 2. Fallback to store data service
-    const localOrder = await DataService.getOrderByNumber(cleanNumber, emailOrName);
+    const localOrder = await DataService.getOrderById(orderNumber.trim());
     if (localOrder) {
       return NextResponse.json({ success: true, order: localOrder });
     }

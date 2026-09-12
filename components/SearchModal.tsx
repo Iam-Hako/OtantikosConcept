@@ -26,7 +26,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50);
-      DataService.getCategories().then(setCategories);
+      DataService.getCategories().then((list) => setCategories(list.filter((c) => c.is_active !== false)));
       try {
         const saved = localStorage.getItem('otk_recent_searches');
         if (saved) setRecentSearches(JSON.parse(saved));

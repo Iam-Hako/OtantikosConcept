@@ -30,7 +30,14 @@ EXCEPTION
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE return_status AS ENUM ('talep_alindi', 'onaylandi', 'reddedildi', 'tamamlandi');
+    CREATE TYPE return_status AS ENUM ('talep_alindi', 'kargo_bekleniyor', 'inceleniyor', 'onaylandi', 'reddedildi', 'tamamlandi');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    ALTER TYPE return_status ADD VALUE IF NOT EXISTS 'kargo_bekleniyor';
+    ALTER TYPE return_status ADD VALUE IF NOT EXISTS 'inceleniyor';
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
@@ -360,10 +367,12 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public;
 
 -- Profiles policies
+DROP POLICY IF EXISTS "Public profiles are readable by authenticated users and admins" ON public.profiles;
 CREATE POLICY "Public profiles are readable by authenticated users and admins"
 ON public.profiles FOR SELECT
 USING (auth.uid() = id OR public.is_admin());
 
+DROP POLICY IF EXISTS "Users can update their own profile without role escalation" ON public.profiles;
 CREATE POLICY "Users can update their own profile without role escalation"
 ON public.profiles FOR UPDATE
 USING (auth.uid() = id)
@@ -372,6 +381,7 @@ WITH CHECK (
   (role = 'customer'::user_role OR public.is_admin())
 );
 
+DROP POLICY IF EXISTS "Admins can update all profiles" ON public.profiles;
 CREATE POLICY "Admins can update all profiles"
 ON public.profiles FOR UPDATE
 TO authenticated
@@ -379,53 +389,67 @@ USING (public.is_admin())
 WITH CHECK (public.is_admin());
 
 -- Categories policies
+DROP POLICY IF EXISTS "Categories are viewable by everyone" ON public.categories;
 CREATE POLICY "Categories are viewable by everyone"
 ON public.categories FOR SELECT
 USING (is_active = TRUE OR public.is_admin());
 
+DROP POLICY IF EXISTS "Admins can manage categories" ON public.categories;
 CREATE POLICY "Admins can manage categories"
 ON public.categories FOR ALL
 USING (public.is_admin());
 
 -- Products policies
+DROP POLICY IF EXISTS "Products are viewable by everyone" ON public.products;
 CREATE POLICY "Products are viewable by everyone"
 ON public.products FOR SELECT
 USING (is_active = TRUE OR public.is_admin());
 
+DROP POLICY IF EXISTS "Admins can manage products" ON public.products;
 CREATE POLICY "Admins can manage products"
 ON public.products FOR ALL
 USING (public.is_admin());
 
 -- Product details
+DROP POLICY IF EXISTS "Product details viewable by everyone" ON public.product_images;
 CREATE POLICY "Product details viewable by everyone"
 ON public.product_images FOR SELECT USING (TRUE);
+DROP POLICY IF EXISTS "Admins can manage product images" ON public.product_images;
 CREATE POLICY "Admins can manage product images"
 ON public.product_images FOR ALL USING (public.is_admin());
 
+DROP POLICY IF EXISTS "Product variants viewable by everyone" ON public.product_variants;
 CREATE POLICY "Product variants viewable by everyone"
 ON public.product_variants FOR SELECT USING (TRUE);
+DROP POLICY IF EXISTS "Admins can manage product variants" ON public.product_variants;
 CREATE POLICY "Admins can manage product variants"
 ON public.product_variants FOR ALL USING (public.is_admin());
 
+DROP POLICY IF EXISTS "Product specs viewable by everyone" ON public.product_specifications;
 CREATE POLICY "Product specs viewable by everyone"
 ON public.product_specifications FOR SELECT USING (TRUE);
+DROP POLICY IF EXISTS "Admins can manage product specs" ON public.product_specifications;
 CREATE POLICY "Admins can manage product specs"
 ON public.product_specifications FOR ALL USING (public.is_admin());
 
 -- Orders policies
+DROP POLICY IF EXISTS "Users can view their own orders or admins all" ON public.orders;
 CREATE POLICY "Users can view their own orders or admins all"
 ON public.orders FOR SELECT
 USING (auth.uid() = user_id OR public.is_admin());
 
+DROP POLICY IF EXISTS "Anyone can create orders" ON public.orders;
 CREATE POLICY "Anyone can create orders"
 ON public.orders FOR INSERT
 WITH CHECK (TRUE);
 
+DROP POLICY IF EXISTS "Admins can update orders" ON public.orders;
 CREATE POLICY "Admins can update orders"
 ON public.orders FOR UPDATE
 USING (public.is_admin());
 
 -- Order items
+DROP POLICY IF EXISTS "Order items viewable with order access" ON public.order_items;
 CREATE POLICY "Order items viewable with order access"
 ON public.order_items FOR SELECT
 USING (
@@ -436,80 +460,98 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "Order items insertable" ON public.order_items;
 CREATE POLICY "Order items insertable"
 ON public.order_items FOR INSERT
 WITH CHECK (TRUE);
 
 -- Returns policies
+DROP POLICY IF EXISTS "Users can view and create their own return requests" ON public.returns;
 CREATE POLICY "Users can view and create their own return requests"
 ON public.returns FOR SELECT
 USING (auth.uid() = user_id OR public.is_admin());
 
+DROP POLICY IF EXISTS "Users can create return requests" ON public.returns;
 CREATE POLICY "Users can create return requests"
 ON public.returns FOR INSERT
 WITH CHECK (auth.uid() = user_id OR user_id IS NULL OR public.is_admin());
 
+DROP POLICY IF EXISTS "Admins can update return requests" ON public.returns;
 CREATE POLICY "Admins can update return requests"
 ON public.returns FOR UPDATE
 USING (public.is_admin());
 
 -- Questions policies
+DROP POLICY IF EXISTS "Approved questions viewable by everyone" ON public.questions;
 CREATE POLICY "Approved questions viewable by everyone"
 ON public.questions FOR SELECT
 USING (is_approved = TRUE OR auth.uid() = user_id OR public.is_admin());
 
+DROP POLICY IF EXISTS "Anyone can submit questions" ON public.questions;
 CREATE POLICY "Anyone can submit questions"
 ON public.questions FOR INSERT
 WITH CHECK (TRUE);
 
+DROP POLICY IF EXISTS "Admins can manage questions" ON public.questions;
 CREATE POLICY "Admins can manage questions"
 ON public.questions FOR ALL
 USING (public.is_admin());
 
 -- Reviews policies
+DROP POLICY IF EXISTS "Approved reviews viewable by everyone" ON public.reviews;
 CREATE POLICY "Approved reviews viewable by everyone"
 ON public.reviews FOR SELECT
 USING (is_approved = TRUE OR public.is_admin());
 
+DROP POLICY IF EXISTS "Anyone can submit reviews" ON public.reviews;
 CREATE POLICY "Anyone can submit reviews"
 ON public.reviews FOR INSERT
 WITH CHECK (TRUE);
 
+DROP POLICY IF EXISTS "Admins can manage reviews" ON public.reviews;
 CREATE POLICY "Admins can manage reviews"
 ON public.reviews FOR ALL
 USING (public.is_admin());
 
 -- Favorites and Cart
+DROP POLICY IF EXISTS "Users manage their own favorites" ON public.favorites;
 CREATE POLICY "Users manage their own favorites"
 ON public.favorites FOR ALL
 USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users manage their own cart" ON public.cart_items;
 CREATE POLICY "Users manage their own cart"
 ON public.cart_items FOR ALL
 USING (auth.uid() = user_id);
 
 -- Wholesale Requests (Hardened)
+DROP POLICY IF EXISTS "Wholesale insertable by anyone" ON public.wholesale_requests;
 CREATE POLICY "Wholesale insertable by anyone"
 ON public.wholesale_requests FOR INSERT
 WITH CHECK (TRUE);
 
+DROP POLICY IF EXISTS "Wholesale manageable by admin only" ON public.wholesale_requests;
 CREATE POLICY "Wholesale manageable by admin only"
 ON public.wholesale_requests FOR SELECT
 USING (public.is_admin());
 
+DROP POLICY IF EXISTS "Wholesale updatable by admin only" ON public.wholesale_requests;
 CREATE POLICY "Wholesale updatable by admin only"
 ON public.wholesale_requests FOR UPDATE
 USING (public.is_admin());
 
+DROP POLICY IF EXISTS "Wholesale deletable by admin only" ON public.wholesale_requests;
 CREATE POLICY "Wholesale deletable by admin only"
 ON public.wholesale_requests FOR DELETE
 USING (public.is_admin());
 
 -- In-Stock Alerts (Hardened)
+DROP POLICY IF EXISTS "Stock alerts insertable by anyone" ON public.in_stock_alerts;
 CREATE POLICY "Stock alerts insertable by anyone"
 ON public.in_stock_alerts FOR INSERT
 WITH CHECK (TRUE);
 
+DROP POLICY IF EXISTS "Stock alerts manageable by admin only" ON public.in_stock_alerts;
 CREATE POLICY "Stock alerts manageable by admin only"
 ON public.in_stock_alerts FOR ALL
 USING (public.is_admin());
@@ -532,18 +574,22 @@ CREATE INDEX IF NOT EXISTS idx_cart_items_user ON public.cart_items(user_id);
 CREATE INDEX IF NOT EXISTS idx_favorites_user ON public.favorites(user_id);
 
 -- Live Chat policies (Hardened)
+DROP POLICY IF EXISTS "Live chat sessions viewable by owner or admin" ON public.live_chat_sessions;
 CREATE POLICY "Live chat sessions viewable by owner or admin"
 ON public.live_chat_sessions FOR SELECT
 USING (auth.uid() = user_id OR public.is_admin());
 
+DROP POLICY IF EXISTS "Live chat sessions insertable" ON public.live_chat_sessions;
 CREATE POLICY "Live chat sessions insertable"
 ON public.live_chat_sessions FOR INSERT
 WITH CHECK (TRUE);
 
+DROP POLICY IF EXISTS "Live chat sessions updatable by admin or owner" ON public.live_chat_sessions;
 CREATE POLICY "Live chat sessions updatable by admin or owner"
 ON public.live_chat_sessions FOR UPDATE
 USING (auth.uid() = user_id OR public.is_admin());
 
+DROP POLICY IF EXISTS "Live chat messages viewable by session or admin" ON public.live_chat_messages;
 CREATE POLICY "Live chat messages viewable by session or admin"
 ON public.live_chat_messages FOR SELECT
 USING (
@@ -555,6 +601,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "Live chat messages insertable" ON public.live_chat_messages;
 CREATE POLICY "Live chat messages insertable"
 ON public.live_chat_messages FOR INSERT
 WITH CHECK (TRUE);
@@ -563,28 +610,34 @@ WITH CHECK (TRUE);
 INSERT INTO storage.buckets (id, name, public)
 VALUES 
   ('product-images', 'product-images', true),
+  ('products', 'products', true),
   ('chat-attachments', 'chat-attachments', true)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "Public Access to product-images" ON storage.objects;
 CREATE POLICY "Public Access to product-images"
 ON storage.objects FOR SELECT
-USING (bucket_id IN ('product-images', 'chat-attachments'));
+USING (bucket_id IN ('product-images', 'products', 'chat-attachments'));
 
+DROP POLICY IF EXISTS "Only Admins upload to product-images" ON storage.objects;
 CREATE POLICY "Only Admins upload to product-images"
 ON storage.objects FOR INSERT
-WITH CHECK (bucket_id IN ('product-images', 'chat-attachments') AND public.is_admin());
+WITH CHECK (bucket_id IN ('product-images', 'products', 'chat-attachments') AND public.is_admin());
 
+DROP POLICY IF EXISTS "Only Admins manage storage objects" ON storage.objects;
 CREATE POLICY "Only Admins manage storage objects"
 ON storage.objects FOR UPDATE
-USING (bucket_id IN ('product-images', 'chat-attachments') AND public.is_admin());
+USING (bucket_id IN ('product-images', 'products', 'chat-attachments') AND public.is_admin());
 
+DROP POLICY IF EXISTS "Only Admins delete storage objects" ON storage.objects;
 CREATE POLICY "Only Admins delete storage objects"
 ON storage.objects FOR DELETE
-USING (bucket_id IN ('product-images', 'chat-attachments') AND public.is_admin());
+USING (bucket_id IN ('product-images', 'products', 'chat-attachments') AND public.is_admin());
 
 -- 23. CARGO LABELS POLICIES
 ALTER TABLE public.cargo_labels ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins full access to cargo_labels" ON public.cargo_labels;
 CREATE POLICY "Admins full access to cargo_labels"
 ON public.cargo_labels FOR ALL
 TO authenticated
@@ -625,6 +678,7 @@ ALTER TABLE public.accounting_transactions ADD COLUMN IF NOT EXISTS due_date DAT
 
 ALTER TABLE public.accounting_transactions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins full access to accounting_transactions" ON public.accounting_transactions;
 CREATE POLICY "Admins full access to accounting_transactions"
 ON public.accounting_transactions FOR ALL
 TO authenticated
@@ -660,16 +714,20 @@ CREATE INDEX IF NOT EXISTS idx_user_addresses_created_at ON public.user_addresse
 ALTER TABLE public.user_addresses ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow read user addresses" ON public.user_addresses;
-CREATE POLICY "Allow read user addresses" ON public.user_addresses FOR SELECT USING (TRUE);
+CREATE POLICY "Allow read user addresses"
+ON public.user_addresses FOR SELECT USING (TRUE);
 
 DROP POLICY IF EXISTS "Allow insert user addresses" ON public.user_addresses;
-CREATE POLICY "Allow insert user addresses" ON public.user_addresses FOR INSERT WITH CHECK (TRUE);
+CREATE POLICY "Allow insert user addresses"
+ON public.user_addresses FOR INSERT WITH CHECK (TRUE);
 
 DROP POLICY IF EXISTS "Allow update user addresses" ON public.user_addresses;
-CREATE POLICY "Allow update user addresses" ON public.user_addresses FOR UPDATE USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY "Allow update user addresses"
+ON public.user_addresses FOR UPDATE USING (TRUE) WITH CHECK (TRUE);
 
 DROP POLICY IF EXISTS "Allow delete user addresses" ON public.user_addresses;
-CREATE POLICY "Allow delete user addresses" ON public.user_addresses FOR DELETE USING (TRUE);
+CREATE POLICY "Allow delete user addresses"
+ON public.user_addresses FOR DELETE USING (TRUE);
 
 DO $$ BEGIN
   CREATE TRIGGER set_user_addresses_updated_at 
@@ -703,9 +761,11 @@ CREATE INDEX IF NOT EXISTS idx_home_banners_order ON public.home_banners (displa
 ALTER TABLE public.home_banners ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Public Read Active Banners" ON public.home_banners;
-CREATE POLICY "Public Read Active Banners" ON public.home_banners
+CREATE POLICY "Public Read Active Banners"
+ON public.home_banners
     FOR SELECT USING (is_active = true OR auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "Admin Manage Banners" ON public.home_banners;
-CREATE POLICY "Admin Manage Banners" ON public.home_banners
+CREATE POLICY "Admin Manage Banners"
+ON public.home_banners
     FOR ALL TO authenticated USING (true) WITH CHECK (true);

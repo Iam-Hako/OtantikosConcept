@@ -58,12 +58,18 @@ export async function POST(request: Request) {
     // 3. Update order in Supabase and DataService
     try {
       const supabaseAdmin = createAdminClient();
-      await supabaseAdmin.from('orders').update({
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(order.id);
+      let updateQuery = supabaseAdmin.from('orders').update({
         status: 'kargoya_verildi',
         tracking_number: dhlRes.trackingNumber,
         tracking_carrier: 'DHL Kargo',
         updated_at: new Date().toISOString(),
-      }).eq('id', order.id);
+      });
+      if (isUuid) {
+        await updateQuery.eq('id', order.id);
+      } else {
+        await updateQuery.eq('order_number', order.order_number);
+      }
     } catch (err) {
       console.warn('Supabase direct order update notice:', err);
     }
