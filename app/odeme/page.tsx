@@ -1177,7 +1177,7 @@ function CheckoutContent() {
           <div className="space-y-3 pt-2 border-t border-stone-100">
             <div className="text-[11px] text-stone-500 text-center flex items-center justify-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Sipariş anında stok kilidi aktif edilir</span>
+              <span>Sipariş anında ürünleriniz adınıza rezerve edilir</span>
             </div>
 
             {/* Official iyzico, Visa, Mastercard, Troy Band */}

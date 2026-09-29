@@ -17,20 +17,25 @@ export async function uploadMediaFile(file: File): Promise<string> {
     });
 
     if (presignRes.ok) {
-      const { uploadUrl, publicUrl } = await presignRes.json();
+      const presignData = await presignRes.json();
+      const uploadUrl = presignData.uploadUrl;
+      const publicUrl = presignData.publicUrl;
+      const safeMime = presignData.contentType || file.type || 'application/octet-stream';
 
       if (uploadUrl && publicUrl) {
         // 2. Direct binary stream upload to Supabase Storage
         const uploadRes = await fetch(uploadUrl, {
           method: 'PUT',
           headers: {
-            'Content-Type': file.type || 'application/octet-stream',
+            'Content-Type': safeMime,
           },
           body: file,
         });
 
         if (uploadRes.ok) {
           return publicUrl;
+        } else {
+          console.warn('Direct PUT upload returned status:', uploadRes.status);
         }
       }
     }
@@ -48,7 +53,7 @@ export async function uploadMediaFile(file: File): Promise<string> {
 
   if (!fallbackRes.ok) {
     const errorJson = await fallbackRes.json().catch(() => ({}));
-    throw new Error(errorJson.error || 'Dosya yükleme başarısız oldu.');
+    throw new Error(errorJson.error || 'Dosya yükleme başarısız oldu. Lütfen dosya boyutunu ve bağlantınızı kontrol edin.');
   }
 
   const data = await fallbackRes.json();

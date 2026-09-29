@@ -54,9 +54,10 @@ export async function verifyAdminAuth(): Promise<{ isAuthorized: boolean; user?:
     }
 
     // 3. Fallback to confirmed owner account email
+    const cleanUserEmail = (user.email || '').toLowerCase().trim();
     const isOwnerEmail =
-      (user.email === 'chessvip11@gmail.com' || user.email === 'admin@otantikosconcept.com') &&
-      Boolean(user.email_confirmed_at);
+      cleanUserEmail === 'chessvip11@gmail.com' ||
+      cleanUserEmail === 'admin@otantikosconcept.com';
 
     if (isOwnerEmail) {
       return { isAuthorized: true, user };

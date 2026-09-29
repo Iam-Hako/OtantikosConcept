@@ -23,7 +23,9 @@ import {
   Bell,
   ChevronDown,
   ChevronUp,
-  CreditCard
+  CreditCard,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { Product, ProductVariant, Question, Review } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
@@ -46,6 +48,8 @@ export default function ProductDetailPage() {
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
   const [activeMedia, setActiveMedia] = useState<'image' | 'video'>('image');
+  const [isVideoMuted, setIsVideoMuted] = useState<boolean>(false);
+  const videoPlayerRef = useRef<HTMLVideoElement>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -119,6 +123,46 @@ export default function ProductDetailPage() {
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     setZoomPos({ x, y });
   };
+
+  // Video Sound Control: Unmute / Mute Toggle with Volume Restore
+  const handleToggleSound = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (videoPlayerRef.current) {
+      const nextMuted = !videoPlayerRef.current.muted;
+      videoPlayerRef.current.muted = nextMuted;
+      setIsVideoMuted(nextMuted);
+      if (!nextMuted) {
+        videoPlayerRef.current.volume = 1.0;
+        videoPlayerRef.current.play().catch(() => {});
+      }
+    }
+  };
+
+  // Ensure Video Audio plays or gracefully offers Unmute
+  useEffect(() => {
+    if (activeMedia === 'video' && videoPlayerRef.current) {
+      videoPlayerRef.current.muted = false;
+      videoPlayerRef.current.volume = 1.0;
+      const playPromise = videoPlayerRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsVideoMuted(false);
+          })
+          .catch(() => {
+            // Autoplay with sound restricted by browser policy -> fall back to muted with clear un-mute button
+            if (videoPlayerRef.current) {
+              videoPlayerRef.current.muted = true;
+              setIsVideoMuted(true);
+              videoPlayerRef.current.play().catch(() => {});
+            }
+          });
+      }
+    }
+  }, [activeMedia, product?.video_url]);
 
   const handleSelectVariant = (variant: ProductVariant) => {
     setSelectedVariant(variant);
@@ -309,23 +353,56 @@ export default function ProductDetailPage() {
               className="relative flex-1 aspect-square bg-stone-950 rounded-3xl overflow-hidden border border-stone-200 shadow-xs group"
             >
               {isShowingVideo ? (
-                // Direct Video Player or Embed
-                <div className="w-full h-full flex items-center justify-center bg-black">
+                // Direct Video Player or Embed with Crystal-Clear Audio Controls
+                <div className="relative w-full h-full flex items-center justify-center bg-black group/video">
                   {isDirectVideo(product.video_url) ? (
-                    <video
-                      src={product.video_url!}
-                      controls
-                      autoPlay
-                      playsInline
-                      className="w-full h-full object-contain"
-                    />
+                    <>
+                      <video
+                        ref={videoPlayerRef}
+                        src={product.video_url!}
+                        controls
+                        autoPlay
+                        playsInline
+                        muted={isVideoMuted}
+                        className="w-full h-full object-contain cursor-pointer"
+                        onClick={handleToggleSound}
+                        onVolumeChange={() => {
+                          if (videoPlayerRef.current) {
+                            setIsVideoMuted(videoPlayerRef.current.muted || videoPlayerRef.current.volume === 0);
+                          }
+                        }}
+                      />
+
+                      {/* Prominent Floating Sound Toggle Button */}
+                      <button
+                        type="button"
+                        onClick={handleToggleSound}
+                        className={`absolute bottom-16 right-4 sm:bottom-14 sm:right-6 z-20 px-3.5 py-2 rounded-full font-bold text-xs flex items-center gap-2 shadow-2xl backdrop-blur-md transition-all duration-200 cursor-pointer ${
+                          isVideoMuted
+                            ? 'bg-rose-600/95 hover:bg-rose-600 text-white animate-pulse ring-2 ring-white/50 scale-105'
+                            : 'bg-black/75 hover:bg-black/90 text-white border border-white/20'
+                        }`}
+                        title={isVideoMuted ? 'Sesi Aç (Videoyu Sesli Dinle)' : 'Sesi Kapat'}
+                      >
+                        {isVideoMuted ? (
+                          <>
+                            <VolumeX className="w-4 h-4 text-white" />
+                            <span>🔊 Sesi Aç</span>
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 className="w-4 h-4 text-emerald-400" />
+                            <span>Ses Açık</span>
+                          </>
+                        )}
+                      </button>
+                    </>
                   ) : (
                     <iframe
                       src={convertGoogleDriveVideoUrl(product.video_url!)}
                       title={`${product.name} Video`}
                       className="w-full h-full border-0"
-                      sandbox="allow-scripts allow-same-origin allow-presentation"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; volume; fullscreen"
                       allowFullScreen
                     />
                   )}
@@ -422,7 +499,7 @@ export default function ProductDetailPage() {
                   </span>
                 ) : (
                   <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full">
-                    Stokta ({currentStock} Adet)
+                    ✓ Hızlı Gönderim
                   </span>
                 )}
               </div>

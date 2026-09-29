@@ -198,6 +198,25 @@ export default function EditProductPage() {
     }
   };
 
+  const handleVideoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingVideo(true);
+    try {
+      const uploadedUrl = await uploadMediaFile(file);
+      if (uploadedUrl) {
+        setVideoUrl(uploadedUrl);
+        toast.success('Tanıtım videosu başarıyla yüklendi!');
+      }
+    } catch (err: any) {
+      toast.error(`Video yüklenirken hata: ${err.message || 'Bağlantı hatası'}`);
+    } finally {
+      setIsUploadingVideo(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
   const setCoverImage = (index: number) => {
     setImages((prev) =>
       prev.map((img, i) => ({
@@ -725,6 +744,53 @@ export default function EditProductPage() {
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+
+          {/* 4. VIDEO UPLOAD */}
+          <div className="bg-white rounded-2xl border border-stone-200 p-6 space-y-3 shadow-xs">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-stone-900 border-b border-stone-100 pb-2 flex items-center gap-1.5">
+              <Video className="w-4 h-4 text-brand-600" />
+              <span>Ürün Tanıtım Videosu (Opsiyonel)</span>
+            </h2>
+
+            <input
+              ref={videoInputRef}
+              type="file"
+              accept="video/*"
+              onChange={handleVideoFileUpload}
+              className="hidden"
+            />
+            <button
+              type="button"
+              disabled={isUploadingVideo}
+              onClick={() => videoInputRef.current?.click()}
+              className="w-full py-2.5 px-3 rounded-lg border border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-700 font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-60"
+            >
+              {isUploadingVideo ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-brand-600" />
+                  <span>Video Yükleniyor...</span>
+                </>
+              ) : (
+                <>
+                  <UploadCloud className="w-4 h-4 text-brand-600" />
+                  <span>🎥 Cihazdan Video Yükle</span>
+                </>
+              )}
+            </button>
+
+            <input
+              type="text"
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              placeholder="Veya Video MP4 / Drive Linki..."
+              className="w-full text-base sm:text-xs p-2 bg-stone-50 border border-stone-300 rounded-lg"
+            />
+            {videoUrl && (
+              <p className="text-[10px] text-emerald-700 font-medium truncate">
+                ✓ Video bağlı: {videoUrl}
+              </p>
             )}
           </div>
 

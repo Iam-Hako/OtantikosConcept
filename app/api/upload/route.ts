@@ -2,19 +2,48 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
 
-const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'mp4', 'webm', 'mov']);
-const ALLOWED_MIME_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-  'image/avif',
-  'video/mp4',
-  'video/webm',
-  'video/quicktime',
+const ALLOWED_EXTENSIONS = new Set([
+  'jpg',
+  'jpeg',
+  'png',
+  'webp',
+  'gif',
+  'avif',
+  'mp4',
+  'webm',
+  'mov',
+  'm4v',
+  'mkv',
+  'avi',
+  '3gp',
+  'ogg',
 ]);
 
-const MAX_FILE_SIZE = 150 * 1024 * 1024; // 150 MB
+const EXT_TO_MIME: Record<string, string> = {
+  mp4: 'video/mp4',
+  m4v: 'video/mp4',
+  webm: 'video/webm',
+  mov: 'video/quicktime',
+  mkv: 'video/x-matroska',
+  avi: 'video/x-msvideo',
+  '3gp': 'video/3gpp',
+  ogg: 'video/ogg',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  avif: 'image/avif',
+};
+
+const MAX_FILE_SIZE = 250 * 1024 * 1024; // 250 MB
+
+function resolveSafeMimeType(ext: string, providedType?: string): string {
+  if (providedType && providedType !== 'application/octet-stream' && providedType.trim() !== '') {
+    return providedType.toLowerCase().split(';')[0].trim();
+  }
+  return EXT_TO_MIME[ext] || 'application/octet-stream';
+}
 
 export async function POST(request: Request) {
   try {
@@ -33,54 +62,64 @@ export async function POST(request: Request) {
     if (contentTypeHeader.includes('application/json')) {
       const body = await request.json();
       const rawName = String(body.filename || 'media').trim();
-      const contentType = String(body.contentType || '').toLowerCase().trim();
 
       // Validate Extension
       const parts = rawName.split('.');
       const ext = (parts.pop() || '').toLowerCase();
       if (!ALLOWED_EXTENSIONS.has(ext)) {
         return NextResponse.json(
-          { error: `Geçersiz dosya uzantısı (.${ext}). İzin verilenler: jpg, png, webp, gif, mp4, webm, mov.` },
+          { error: `Geçersiz dosya uzantısı (.${ext}). İzin verilenler: jpg, png, webp, mp4, webm, mov, m4v.` },
           { status: 400 }
         );
       }
 
-      if (contentType && !ALLOWED_MIME_TYPES.has(contentType)) {
-        return NextResponse.json(
-          { error: `Geçersiz dosya türü (${contentType}). Yalnızca güvenli görsel ve video dosyaları yüklenebilir.` },
-          { status: 400 }
-        );
-      }
-
+      const safeMime = resolveSafeMimeType(ext, body.contentType);
       const baseName = parts.join('.').slice(0, 50).toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
       const filename = `${Date.now()}-${baseName || 'file'}.${ext}`;
 
-      const presignRes = await fetch(`${supabaseUrl}/storage/v1/object/upload/sign/product-images/${filename}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${serviceKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          expiresIn: 3600,
-        }),
-      });
+      // Try primary bucket 'product-images', fallback to 'products' if needed
+      const bucketsToTry = ['product-images', 'products'];
+      let signedUrl: string | null = null;
+      let usedBucket = 'product-images';
 
-      if (!presignRes.ok) {
-        const errText = await presignRes.text();
-        console.error('Presign generation failed:', errText);
-        return NextResponse.json({ error: 'Yükleme bağlantısı oluşturulamadı.' }, { status: 500 });
+      for (const bucket of bucketsToTry) {
+        try {
+          const presignRes = await fetch(`${supabaseUrl}/storage/v1/object/upload/sign/${bucket}/${filename}`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${serviceKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              expiresIn: 7200,
+            }),
+          });
+
+          if (presignRes.ok) {
+            const presignData = await presignRes.json();
+            if (presignData?.url) {
+              signedUrl = `${supabaseUrl}/storage/v1${presignData.url}`;
+              usedBucket = bucket;
+              break;
+            }
+          }
+        } catch {
+          // Continue to next bucket
+        }
       }
 
-      const presignData = await presignRes.json();
-      const fullUploadUrl = `${supabaseUrl}/storage/v1${presignData.url}`;
-      const publicUrl = `${supabaseUrl}/storage/v1/object/public/product-images/${filename}`;
+      if (!signedUrl) {
+        return NextResponse.json({ error: 'Yükleme bağlantısı oluşturulamadı. Lütfen tekrar deneyin.' }, { status: 500 });
+      }
+
+      const publicUrl = `${supabaseUrl}/storage/v1/object/public/${usedBucket}/${filename}`;
 
       return NextResponse.json({
         success: true,
-        uploadUrl: fullUploadUrl,
+        uploadUrl: signedUrl,
         publicUrl: publicUrl,
         filename: filename,
+        contentType: safeMime,
       });
     }
 
@@ -93,25 +132,19 @@ export async function POST(request: Request) {
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: 'Dosya boyutu 150MB sınırını aşıyor.' }, { status: 400 });
+      return NextResponse.json({ error: 'Dosya boyutu 250MB sınırını aşıyor.' }, { status: 400 });
     }
 
     const parts = file.name.split('.');
     const ext = (parts.pop() || '').toLowerCase();
     if (!ALLOWED_EXTENSIONS.has(ext)) {
       return NextResponse.json(
-        { error: `Geçersiz dosya uzantısı (.${ext}). İzin verilenler: jpg, png, webp, gif, mp4, webm, mov.` },
+        { error: `Geçersiz dosya uzantısı (.${ext}). İzin verilenler: jpg, png, webp, mp4, webm, mov, m4v.` },
         { status: 400 }
       );
     }
 
-    if (file.type && !ALLOWED_MIME_TYPES.has(file.type.toLowerCase())) {
-      return NextResponse.json(
-        { error: `Geçersiz dosya türü (${file.type}). Yalnızca güvenli görsel ve video dosyaları yüklenebilir.` },
-        { status: 400 }
-      );
-    }
-
+    const safeMime = resolveSafeMimeType(ext, file.type);
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
@@ -120,23 +153,37 @@ export async function POST(request: Request) {
     const baseName = parts.join('.').slice(0, 40).toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
     const filename = `${timestamp}-${randomToken}-${baseName || 'file'}.${ext}`;
 
-    const res = await fetch(`${supabaseUrl}/storage/v1/object/product-images/${filename}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${serviceKey}`,
-        'Content-Type': file.type || 'application/octet-stream',
-        'x-upsert': 'true',
-      },
-      body: buffer,
-    });
+    const bucketsToTry = ['product-images', 'products'];
+    let uploadSuccess = false;
+    let usedBucket = 'product-images';
 
-    if (!res.ok) {
-      const err = await res.text();
-      console.error('Storage upload error:', err);
-      return NextResponse.json({ error: 'Yükleme başarısız oldu.' }, { status: 500 });
+    for (const bucket of bucketsToTry) {
+      try {
+        const res = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${filename}`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${serviceKey}`,
+            'Content-Type': safeMime,
+            'x-upsert': 'true',
+          },
+          body: buffer,
+        });
+
+        if (res.ok) {
+          uploadSuccess = true;
+          usedBucket = bucket;
+          break;
+        }
+      } catch {
+        // Try next bucket
+      }
     }
 
-    const publicUrl = `${supabaseUrl}/storage/v1/object/public/product-images/${filename}`;
+    if (!uploadSuccess) {
+      return NextResponse.json({ error: 'Yükleme başarısız oldu. Sunucu veya depolama bağlantısı kurulamadı.' }, { status: 500 });
+    }
+
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${usedBucket}/${filename}`;
 
     return NextResponse.json({
       success: true,
@@ -144,7 +191,7 @@ export async function POST(request: Request) {
       publicUrl: publicUrl,
       name: file.name,
       size: file.size,
-      type: file.type,
+      type: safeMime,
     });
   } catch (error: any) {
     console.error('Upload handler exception:', error);
