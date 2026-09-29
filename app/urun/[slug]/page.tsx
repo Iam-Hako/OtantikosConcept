@@ -48,7 +48,8 @@ export default function ProductDetailPage() {
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
   const [activeMedia, setActiveMedia] = useState<'image' | 'video'>('image');
-  const [isVideoMuted, setIsVideoMuted] = useState<boolean>(false);
+  const [isVideoMuted, setIsVideoMuted] = useState<boolean>(true);
+  const [hasAudioTrack, setHasAudioTrack] = useState<boolean | null>(null);
   const videoPlayerRef = useRef<HTMLVideoElement>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -124,11 +125,63 @@ export default function ProductDetailPage() {
     setZoomPos({ x, y });
   };
 
+  // Detect if video file has audio stream or is completely silent recording
+  const detectAudioCapability = () => {
+    const v = videoPlayerRef.current;
+    if (!v) return;
+
+    // 1. AudioTracks API (Safari / standard HTML5)
+    if ((v as any).audioTracks && typeof (v as any).audioTracks.length === 'number') {
+      const hasTracks = (v as any).audioTracks.length > 0;
+      setHasAudioTrack(hasTracks);
+      return;
+    }
+
+    // 2. Firefox mozHasAudio
+    if (typeof (v as any).mozHasAudio !== 'undefined') {
+      const hasMoz = Boolean((v as any).mozHasAudio);
+      setHasAudioTrack(hasMoz);
+      return;
+    }
+
+    // 3. captureStream API (Chromium / Firefox standard)
+    try {
+      const getStream = (v as any).captureStream || (v as any).mozCaptureStream;
+      if (typeof getStream === 'function') {
+        const stream = getStream.call(v);
+        if (stream && typeof stream.getAudioTracks === 'function') {
+          const audioTracks = stream.getAudioTracks();
+          setHasAudioTrack(audioTracks.length > 0);
+          return;
+        }
+      }
+    } catch {
+      // Fallback if captureStream is restricted or throws
+    }
+
+    // 4. Chromium webkitAudioDecodedByteCount
+    if (typeof (v as any).webkitAudioDecodedByteCount !== 'undefined') {
+      const audioBytes = (v as any).webkitAudioDecodedByteCount;
+      const videoBytes = (v as any).webkitVideoDecodedByteCount;
+      if (videoBytes > 0 && audioBytes === 0) {
+        setHasAudioTrack(false);
+      } else if (audioBytes > 0) {
+        setHasAudioTrack(true);
+      }
+    }
+  };
+
   // Video Sound Control: Unmute / Mute Toggle with Volume Restore
   const handleToggleSound = (e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
+    }
+    if (hasAudioTrack === false) {
+      toast.info('Bu video sessiz çekimdir.', {
+        description: 'Yüklenen bu video dosyasında ses kaydı (mikrofon) bulunmamaktadır. Cihazınızdan mikrofonu açık olarak çekilmiş bir video yüklendiğinde sesi tam çalacaktır.',
+      });
+      return;
     }
     if (videoPlayerRef.current) {
       const nextMuted = !videoPlayerRef.current.muted;
@@ -137,6 +190,9 @@ export default function ProductDetailPage() {
       if (!nextMuted) {
         videoPlayerRef.current.volume = 1.0;
         videoPlayerRef.current.play().catch(() => {});
+        toast.success('Ses açıldı!');
+      } else {
+        toast.info('Ses kapatıldı.');
       }
     }
   };
@@ -144,25 +200,10 @@ export default function ProductDetailPage() {
   // Ensure Video Audio plays or gracefully offers Unmute
   useEffect(() => {
     if (activeMedia === 'video' && videoPlayerRef.current) {
-      videoPlayerRef.current.muted = false;
-      videoPlayerRef.current.volume = 1.0;
-      const playPromise = videoPlayerRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsVideoMuted(false);
-          })
-          .catch(() => {
-            // Autoplay with sound restricted by browser policy -> fall back to muted with clear un-mute button
-            if (videoPlayerRef.current) {
-              videoPlayerRef.current.muted = true;
-              setIsVideoMuted(true);
-              videoPlayerRef.current.play().catch(() => {});
-            }
-          });
-      }
+      videoPlayerRef.current.muted = isVideoMuted;
+      videoPlayerRef.current.play().catch(() => {});
     }
-  }, [activeMedia, product?.video_url]);
+  }, [activeMedia, product?.video_url, isVideoMuted]);
 
   const handleSelectVariant = (variant: ProductVariant) => {
     setSelectedVariant(variant);
@@ -363,13 +404,19 @@ export default function ProductDetailPage() {
                         controls
                         autoPlay
                         playsInline
+                        crossOrigin="anonymous"
                         muted={isVideoMuted}
                         className="w-full h-full object-contain cursor-pointer"
                         onClick={handleToggleSound}
+                        onLoadedMetadata={detectAudioCapability}
+                        onCanPlay={detectAudioCapability}
+                        onPlaying={detectAudioCapability}
+                        onTimeUpdate={detectAudioCapability}
                         onVolumeChange={() => {
                           if (videoPlayerRef.current) {
                             setIsVideoMuted(videoPlayerRef.current.muted || videoPlayerRef.current.volume === 0);
                           }
+                          detectAudioCapability();
                         }}
                       />
 
@@ -378,13 +425,26 @@ export default function ProductDetailPage() {
                         type="button"
                         onClick={handleToggleSound}
                         className={`absolute bottom-16 right-4 sm:bottom-14 sm:right-6 z-20 px-3.5 py-2 rounded-full font-bold text-xs flex items-center gap-2 shadow-2xl backdrop-blur-md transition-all duration-200 cursor-pointer ${
-                          isVideoMuted
+                          hasAudioTrack === false
+                            ? 'bg-stone-900/85 text-stone-300 border border-stone-700/60 hover:bg-stone-900'
+                            : isVideoMuted
                             ? 'bg-rose-600/95 hover:bg-rose-600 text-white animate-pulse ring-2 ring-white/50 scale-105'
                             : 'bg-black/75 hover:bg-black/90 text-white border border-white/20'
                         }`}
-                        title={isVideoMuted ? 'Sesi Aç (Videoyu Sesli Dinle)' : 'Sesi Kapat'}
+                        title={
+                          hasAudioTrack === false
+                            ? 'Bu videoda ses kaydı bulunmuyor (Sessiz Çekim)'
+                            : isVideoMuted
+                            ? 'Sesi Aç (Videoyu Sesli Dinle)'
+                            : 'Sesi Kapat'
+                        }
                       >
-                        {isVideoMuted ? (
+                        {hasAudioTrack === false ? (
+                          <>
+                            <VolumeX className="w-4 h-4 text-stone-400" />
+                            <span>🔇 Sessiz Çekim (Ses Yok)</span>
+                          </>
+                        ) : isVideoMuted ? (
                           <>
                             <VolumeX className="w-4 h-4 text-white" />
                             <span>🔊 Sesi Aç</span>
