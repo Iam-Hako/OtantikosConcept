@@ -11,6 +11,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.49.1",
+    "@types/web-push": "^3.6.4",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "iyzipay": "^2.0.69",
@@ -19,7 +20,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "sonner": "^2.0.1",
-    "tailwind-merge": "^3.0.1"
+    "tailwind-merge": "^3.0.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/canvas-confetti": "^1.9.0",
@@ -29,6 +31,7 @@
     "@types/react-dom": "^18.3.5",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.2",
+    "sharp": "^0.35.5",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3"
   }

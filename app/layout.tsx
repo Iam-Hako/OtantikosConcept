@@ -12,6 +12,8 @@ import CartDrawer from '@/components/CartDrawer';
 import LiveChatWidget from '@/components/LiveChatWidget';
 import CookieConsent from '@/components/CookieConsent';
 import NavigationLoader from '@/components/NavigationLoader';
+import NotificationPrompt from '@/components/NotificationPrompt';
+import PwaInstallPrompt from '@/components/PwaInstallPrompt';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -20,16 +22,22 @@ export const viewport: Viewport = {
   userScalable: true,
   viewportFit: 'cover',
   interactiveWidget: 'resizes-content',
-  themeColor: '#cf8644',
+  themeColor: '#e60012',
 };
 
 export const metadata: Metadata = {
   title: 'Otantikos Concept | Eminönü Tahtakale Hediyelik Eşya & Trend Ürünler',
   description: 'İstanbul Eminönü Tahtakale merkezli el yapımı mozaik lambalar, trend mekanik oyuncaklar ve özel hediyelik koleksiyonlar. Doğrudan net ve şeffaf fiyatlar.',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Otantikos',
+  },
   icons: {
-    icon: '/images/logo.webp',
-    shortcut: '/images/logo.webp',
-    apple: '/images/logo.webp',
+    icon: '/icons/icon-192.png',
+    shortcut: '/icons/icon-192.png',
+    apple: '/icons/apple-touch-icon.png',
   },
   keywords: [
     'Otantikos Concept',
@@ -69,6 +77,12 @@ export default function RootLayout({
                 <LiveChatWidget />
               </Suspense>
               <CookieConsent />
+              <Suspense fallback={null}>
+                <NotificationPrompt />
+              </Suspense>
+              <Suspense fallback={null}>
+                <PwaInstallPrompt />
+              </Suspense>
               <Suspense fallback={null}>
                 <NavigationLoader />
               </Suspense>
