@@ -12,6 +12,7 @@
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.49.1",
     "@types/web-push": "^3.6.4",
+    "better-sqlite3": "^13.0.3",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "iyzipay": "^2.0.69",

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getOfficialStreets } from '@/lib/turkey-streets';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,10 +61,29 @@ export async function GET(request: Request) {
     const cleanDist = district.replace(/\s*\(.*?\)/, '').trim();
     const cleanHood = neighborhood.replace(/\s*(Mah\.|Mahallesi|Mah)$/i, '').trim();
 
+    // 1. Try Primary High-Speed Official National Database (1,083,396 streets)
+    const officialStreets = getOfficialStreets(cleanDist, cleanHood, query);
+
+    if (officialStreets.length > 0) {
+      return NextResponse.json(
+        {
+          success: true,
+          source: 'nvi_official_uavt',
+          count: officialStreets.length,
+          streets: officialStreets,
+        },
+        {
+          headers: {
+            'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800',
+          },
+        }
+      );
+    }
+
+    // 2. Fallback to OpenStreetMap/Photon if official db didn't have this specific neighborhood
     const streetsSet = new Set<string>();
 
     if (query && query.trim().length >= 2) {
-      // User is searching for a specific street/cadde
       const q = query.trim();
       const queries = [
         `${q} ${cleanHood} ${cleanDist} ${province}`,
@@ -73,7 +93,6 @@ export async function GET(request: Request) {
       const results = await Promise.all(queries.map((qs) => fetchFromPhoton(qs)));
       results.flat().forEach((st) => streetsSet.add(st));
     } else {
-      // Initial load for neighborhood streets: search parallel patterns
       const queries = [
         `Sokak ${cleanHood} ${cleanDist} ${province}`,
         `Caddesi ${cleanHood} ${cleanDist} ${province}`,
@@ -89,6 +108,8 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         success: true,
+        source: 'osm_fallback',
+        count: streets.length,
         streets,
       },
       {

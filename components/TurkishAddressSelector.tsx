@@ -220,10 +220,12 @@ export default function TurkishAddressSelector({
     });
   };
 
-  // Filtered street options based on what the user types in street input
-  const filteredStreets = streetOptions.filter((s) =>
-    s.toLowerCase().includes((value.street || '').toLowerCase())
-  );
+  // Filtered street options based on what the user types in street input (Turkish locale aware)
+  const filteredStreets = streetOptions.filter((s) => {
+    const q = (value.street || '').trim().toLocaleLowerCase('tr-TR');
+    if (!q) return true;
+    return s.toLocaleLowerCase('tr-TR').includes(q);
+  });
 
   return (
     <div className="space-y-4">
