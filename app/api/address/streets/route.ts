@@ -2,6 +2,49 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+const streetKeywords = /(Caddesi|Cad\.|Cad|Sokağı|Sokak|Sk\.|Sk|Bulvarı|Bulvar|Blv\.|Meydanı|Yolu|Küme Evler|Çıkmazı)/i;
+const blacklistKeywords = /(Belediyesi|Kaymakamlığı|Okulu|Lisesi|Ortaokulu|İlkokulu|Hastanesi|Karakolu|Müdürlüğü|Muhtarlığı|Durağı|İstasyonu|Metrosu|Parkı|Camii|Mescidi|Eczanesi)/i;
+
+async function fetchFromPhoton(queryStr: string): Promise<string[]> {
+  try {
+    const url = 'https://photon.komoot.io/api/?q=' + encodeURIComponent(queryStr) + '&limit=40';
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'OtantikosConceptECommerce/1.0',
+        Accept: 'application/json',
+      },
+      next: { revalidate: 86400 },
+    });
+
+    if (!res.ok) return [];
+    const data = await res.json();
+    const result: string[] = [];
+
+    (data.features || []).forEach((f: any) => {
+      const p = f.properties || {};
+
+      const checkAndAdd = (name?: string) => {
+        if (!name) return;
+        const clean = name.trim();
+        if (
+          clean.length > 2 &&
+          !blacklistKeywords.test(clean) &&
+          (streetKeywords.test(clean) || p.osm_key === 'highway' || p.type === 'street')
+        ) {
+          result.push(clean);
+        }
+      };
+
+      checkAndAdd(p.name);
+      checkAndAdd(p.street);
+    });
+
+    return result;
+  } catch (err) {
+    return [];
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -17,52 +60,29 @@ export async function GET(request: Request) {
     const cleanDist = district.replace(/\s*\(.*?\)/, '').trim();
     const cleanHood = neighborhood.replace(/\s*(Mah\.|Mahallesi|Mah)$/i, '').trim();
 
-    const searchTerms: string[] = [];
-    if (query && query.trim().length >= 2) {
-      searchTerms.push(query.trim());
-    }
-    if (cleanHood) searchTerms.push(cleanHood);
-    if (cleanDist) searchTerms.push(cleanDist);
-    if (province) searchTerms.push(province);
-    searchTerms.push('Türkiye');
-
-    const qStr = searchTerms.join(' ');
-    const url = 'https://photon.komoot.io/api/?q=' + encodeURIComponent(qStr) + '&limit=50';
-
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'OtantikosConceptECommerce/1.0',
-        Accept: 'application/json',
-      },
-      next: { revalidate: 86400 }, // Cache 24 hours
-    });
-
-    if (!res.ok) {
-      return NextResponse.json({ streets: [] });
-    }
-
-    const data = await res.json();
     const streetsSet = new Set<string>();
 
-    const streetKeywords = /(Caddesi|Cad\.|Cad|Sokağı|Sokak|Sk\.|Sk|Bulvarı|Bulvar|Blv\.|Meydanı|Yolu|Küme Evler|Çıkmazı)/i;
+    if (query && query.trim().length >= 2) {
+      // User is searching for a specific street/cadde
+      const q = query.trim();
+      const queries = [
+        `${q} ${cleanHood} ${cleanDist} ${province}`,
+        `${q} ${cleanDist} ${province}`,
+      ];
 
-    (data.features || []).forEach((f: any) => {
-      const p = f.properties || {};
+      const results = await Promise.all(queries.map((qs) => fetchFromPhoton(qs)));
+      results.flat().forEach((st) => streetsSet.add(st));
+    } else {
+      // Initial load for neighborhood streets: search parallel patterns
+      const queries = [
+        `Sokak ${cleanHood} ${cleanDist} ${province}`,
+        `Caddesi ${cleanHood} ${cleanDist} ${province}`,
+        `${cleanHood} ${cleanDist} ${province}`,
+      ];
 
-      if (p.name && (p.osm_key === 'highway' || p.type === 'street' || streetKeywords.test(p.name))) {
-        // Expose cleaned street name
-        const cleanName = p.name.trim();
-        if (cleanName.length > 2 && !cleanName.includes('Belediyesi') && !cleanName.includes('Kaymakamlığı')) {
-          streetsSet.add(cleanName);
-        }
-      }
-      if (p.street) {
-        const cleanStreet = p.street.trim();
-        if (cleanStreet.length > 2) {
-          streetsSet.add(cleanStreet);
-        }
-      }
-    });
+      const results = await Promise.all(queries.map((qs) => fetchFromPhoton(qs)));
+      results.flat().forEach((st) => streetsSet.add(st));
+    }
 
     const streets = Array.from(streetsSet).sort((a, b) => a.localeCompare(b, 'tr'));
 

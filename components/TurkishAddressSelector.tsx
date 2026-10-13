@@ -121,6 +121,38 @@ export default function TurkishAddressSelector({
     };
   }, [value.province, value.district, value.neighborhood]);
 
+  // Live debounced search when user types in street field
+  useEffect(() => {
+    if (!value.province || !value.district || !value.neighborhood) {
+      return;
+    }
+    const query = (value.street || '').trim();
+    if (query.length < 2) return;
+
+    const timer = setTimeout(() => {
+      const cleanDist = value.district.replace(/\s*\(.*?\)/, '').trim();
+      fetch(
+        `/api/address/streets?province=${encodeURIComponent(value.province)}&district=${encodeURIComponent(
+          cleanDist
+        )}&neighborhood=${encodeURIComponent(value.neighborhood)}&query=${encodeURIComponent(query)}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.streets && Array.isArray(data.streets) && data.streets.length > 0) {
+            setStreetOptions((prev) => {
+              const merged = Array.from(new Set([...data.streets, ...prev])).sort((a, b) =>
+                a.localeCompare(b, 'tr')
+              );
+              return merged;
+            });
+          }
+        })
+        .catch(() => {});
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [value.province, value.district, value.neighborhood, value.street]);
+
   // Close street dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -337,16 +369,35 @@ export default function TurkishAddressSelector({
           </div>
 
           {/* Scrollable Street Dropdown Menu */}
-          {isStreetDropdownOpen && streetOptions.length > 0 && (
-            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-stone-300 rounded-2xl shadow-xl z-50 max-h-56 overflow-y-auto divide-y divide-stone-100 text-xs">
+          {isStreetDropdownOpen && (streetOptions.length > 0 || (value.street && value.street.trim().length > 0)) && (
+            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-stone-300 rounded-2xl shadow-xl z-50 max-h-60 overflow-y-auto divide-y divide-stone-100 text-xs">
+              {value.street && value.street.trim().length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsStreetDropdownOpen(false)}
+                  className="w-full text-left p-2.5 bg-amber-50/80 hover:bg-amber-100 text-amber-950 font-semibold flex items-center justify-between transition cursor-pointer border-b border-amber-200"
+                >
+                  <span className="flex items-center gap-1.5 truncate">
+                    <span>✍️</span>
+                    <span className="text-stone-600 font-normal">Yazdığınız haliyle kullan:</span>
+                    <span className="text-[#e60012] font-bold">&quot;{value.street}&quot;</span>
+                  </span>
+                  <Check className="w-3.5 h-3.5 text-amber-700 shrink-0 ml-1" />
+                </button>
+              )}
+
               <div className="p-2 bg-stone-50 text-[10px] text-stone-500 font-bold sticky top-0 flex items-center justify-between">
-                <span>{value.neighborhood} Caddeleri ve Sokakları:</span>
+                <span>{value.neighborhood} Önerilen Cadde ve Sokakları:</span>
                 <span>{filteredStreets.length} sonuç</span>
               </div>
 
               {filteredStreets.length === 0 ? (
-                <div className="p-3 text-stone-400 text-center text-[11px]">
-                  Eşleşen sokak bulunamadı. Yazdığınız isim kullanılacaktır.
+                <div className="p-3 text-stone-500 text-center text-[11px] bg-stone-50/50">
+                  {value.street ? (
+                    <span>Listede eşleşen sokak bulunamadı. Yazdığınız <b>&quot;{value.street}&quot;</b> adrese eklenecektir.</span>
+                  ) : (
+                    <span>Aramak için sokak adını yazmaya başlayabilirsiniz.</span>
+                  )}
                 </div>
               ) : (
                 filteredStreets.map((st) => (
@@ -368,6 +419,9 @@ export default function TurkishAddressSelector({
               )}
             </div>
           )}
+          <p className="text-[10px] text-stone-400 mt-1">
+            💡 Listeden seçebilir veya sokak adınızı doğrudan klavyenizle yazabilirsiniz.
+          </p>
         </div>
       </div>
 
