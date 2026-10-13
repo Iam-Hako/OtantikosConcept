@@ -25,6 +25,7 @@ import { DataService } from '@/lib/data/store-data';
 import { TURKISH_PROVINCES } from '@/lib/data/provinces-and-districts';
 import { formatPrice, formatDate } from '@/lib/utils/format';
 import { toast } from 'sonner';
+import TurkishAddressSelector from '@/components/TurkishAddressSelector';
 
 export default function AccountPage() {
   const { user, logout, isAdmin } = useAuth();
@@ -51,6 +52,10 @@ export default function AccountPage() {
   const [addrProvince, setAddrProvince] = useState('İstanbul');
   const [addrDistrict, setAddrDistrict] = useState('Fatih');
   const [addrNeighborhood, setAddrNeighborhood] = useState('');
+  const [addrStreet, setAddrStreet] = useState('');
+  const [addrBuildingNo, setAddrBuildingNo] = useState('');
+  const [addrApartmentNo, setAddrApartmentNo] = useState('');
+  const [addrCourierNote, setAddrCourierNote] = useState('');
   const [addrDetail, setAddrDetail] = useState('');
   const [addrPostalCode, setAddrPostalCode] = useState('');
   const [addrIsDefault, setAddrIsDefault] = useState(false);
@@ -96,6 +101,10 @@ export default function AccountPage() {
     setAddrProvince('İstanbul');
     setAddrDistrict('Fatih');
     setAddrNeighborhood('');
+    setAddrStreet('');
+    setAddrBuildingNo('');
+    setAddrApartmentNo('');
+    setAddrCourierNote('');
     setAddrDetail('');
     setAddrPostalCode('');
     setAddrIsDefault(addresses.length === 0);
@@ -110,6 +119,10 @@ export default function AccountPage() {
     setAddrProvince(addr.province || 'İstanbul');
     setAddrDistrict(addr.district || 'Fatih');
     setAddrNeighborhood(addr.neighborhood || '');
+    setAddrStreet('');
+    setAddrBuildingNo('');
+    setAddrApartmentNo('');
+    setAddrCourierNote('');
     setAddrDetail(addr.address_detail || '');
     setAddrPostalCode(addr.postal_code || '');
     setAddrIsDefault(!!addr.is_default);
@@ -638,84 +651,41 @@ export default function AccountPage() {
                 </div>
               </div>
 
-              {/* Province & District */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-stone-700 mb-1">
-                    İl *
-                  </label>
-                  <select
-                    value={addrProvince}
-                    onChange={(e) => handleProvinceChange(e.target.value)}
-                    className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012] text-stone-900 transition"
-                  >
-                    {TURKISH_PROVINCES.map((prov) => (
-                      <option key={prov.name} value={prov.name}>
-                        {prov.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {/* Turkish Hierarchical Address Selector: İl -> İlçe -> Mahalle -> Sokak */}
+              <TurkishAddressSelector
+                value={{
+                  province: addrProvince,
+                  district: addrDistrict,
+                  neighborhood: addrNeighborhood,
+                  street: addrStreet,
+                  buildingNo: addrBuildingNo,
+                  apartmentNo: addrApartmentNo,
+                  fullAddress: addrDetail,
+                  courierNote: addrCourierNote,
+                }}
+                onChange={(updated) => {
+                  setAddrProvince(updated.province);
+                  setAddrDistrict(updated.district);
+                  setAddrNeighborhood(updated.neighborhood);
+                  setAddrStreet(updated.street);
+                  setAddrBuildingNo(updated.buildingNo);
+                  setAddrApartmentNo(updated.apartmentNo);
+                  setAddrDetail(updated.fullAddress);
+                  setAddrCourierNote(updated.courierNote || '');
+                }}
+              />
 
-                <div>
-                  <label className="block text-[11px] font-bold text-stone-700 mb-1">
-                    İlçe *
-                  </label>
-                  <select
-                    value={addrDistrict}
-                    onChange={(e) => setAddrDistrict(e.target.value)}
-                    className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012] text-stone-900 transition"
-                  >
-                    {districtList.map((dist) => (
-                      <option key={dist} value={dist}>
-                        {dist}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Neighborhood & Postal Code */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-stone-700 mb-1">
-                    Mahalle / Semt
-                  </label>
-                  <input
-                    type="text"
-                    value={addrNeighborhood}
-                    onChange={(e) => setAddrNeighborhood(e.target.value)}
-                    placeholder="Örn: Süleymaniye Mah."
-                    className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012] text-stone-900 transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-stone-700 mb-1">
-                    Posta Kodu
-                  </label>
-                  <input
-                    type="text"
-                    value={addrPostalCode}
-                    onChange={(e) => setAddrPostalCode(e.target.value)}
-                    placeholder="Örn: 34116"
-                    className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012] text-stone-900 transition"
-                  />
-                </div>
-              </div>
-
-              {/* Open Address Detail */}
+              {/* Postal Code */}
               <div>
                 <label className="block text-[11px] font-bold text-stone-700 mb-1">
-                  Açık Adres (Cadde, Sokak, Bina No, Daire, Kat vb.) *
+                  Posta Kodu
                 </label>
-                <textarea
-                  rows={3}
-                  required
-                  value={addrDetail}
-                  onChange={(e) => setAddrDetail(e.target.value)}
-                  placeholder="Cadde, sokak adı, bina ve kapı numarası, daire, kat ve kurye için açık teslimat tarifi..."
-                  className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012] text-stone-900 transition leading-relaxed"
+                <input
+                  type="text"
+                  value={addrPostalCode}
+                  onChange={(e) => setAddrPostalCode(e.target.value)}
+                  placeholder="Örn: 34116"
+                  className="w-full text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-[#e60012] text-stone-900 transition font-medium"
                 />
               </div>
 

@@ -32,6 +32,7 @@ import { DataService } from '@/lib/data/store-data';
 import { UserAddress } from '@/lib/types/ecommerce';
 import { formatPrice, safeDecodeURIComponent } from '@/lib/utils/format';
 import { toast } from 'sonner';
+import TurkishAddressSelector from '@/components/TurkishAddressSelector';
 
 // Online sales active flag (can be toggled via NEXT_PUBLIC_ONLINE_SALES_ACTIVE in .env.local)
 const isOnlineSalesActive = process.env.NEXT_PUBLIC_ONLINE_SALES_ACTIVE === 'true';
@@ -74,7 +75,11 @@ function CheckoutContent() {
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [province, setProvince] = useState('İstanbul');
-  const [district, setDistrict] = useState('Fatih (Eminönü/Tahtakale)');
+  const [district, setDistrict] = useState('Fatih');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [street, setStreet] = useState('');
+  const [buildingNo, setBuildingNo] = useState('');
+  const [apartmentNo, setApartmentNo] = useState('');
   const [fullAddress, setFullAddress] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [courierNote, setCourierNote] = useState('');
@@ -93,6 +98,7 @@ function CheckoutContent() {
           setPhone(defaultAddr.phone);
           setProvince(defaultAddr.province);
           setDistrict(defaultAddr.district);
+          setNeighborhood(defaultAddr.neighborhood || '');
           setFullAddress(defaultAddr.address_detail);
           setPostalCode(defaultAddr.postal_code || '');
         }
@@ -214,8 +220,14 @@ function CheckoutContent() {
         phone: phone.trim(),
         province,
         district,
+        neighborhood,
+        street,
+        building_no: buildingNo,
+        apartment_no: apartmentNo,
         address_detail: deliveryType === 'magaza_teslim' ? 'Tahtakale Eminönü Mağaza Teslim' : fullAddress.trim(),
+        full_address: deliveryType === 'magaza_teslim' ? 'Tahtakale Eminönü Mağaza Teslim' : fullAddress.trim(),
         zip_code: postalCode.trim(),
+        courier_note: courierNote.trim() || undefined,
         invoice_type: invoiceType,
         identity_number: identityNumber.trim(),
         company_title: companyTitle.trim(),
@@ -732,68 +744,41 @@ function CheckoutContent() {
                 </div>
 
               {deliveryType === 'kargo' && (
-                <>
-                  <div>
-                    <label className="block text-[11px] font-bold text-stone-700 mb-1">İl *</label>
-                    <select
-                      value={province}
-                      onChange={(e) => handleProvinceChange(e.target.value)}
-                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#e60012]"
-                    >
-                      {TURKISH_PROVINCES.map((p) => (
-                        <option key={p.name} value={p.name}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-stone-700 mb-1">İlçe *</label>
-                    <select
-                      value={district}
-                      onChange={(e) => setDistrict(e.target.value)}
-                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#e60012]"
-                    >
-                      {currentDistricts.map((d) => (
-                        <option key={d} value={d}>
-                          {d}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-bold text-stone-700 mb-1">Açık Adres (Mahalle, Cadde, Sokak, No, Daire) *</label>
-                    <textarea
-                      required
-                      rows={2}
-                      value={fullAddress}
-                      onChange={(e) => setFullAddress(e.target.value)}
-                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#e60012]"
-                    />
-                  </div>
+                <div className="sm:col-span-2 space-y-3">
+                  <TurkishAddressSelector
+                    value={{
+                      province,
+                      district,
+                      neighborhood,
+                      street,
+                      buildingNo,
+                      apartmentNo,
+                      fullAddress,
+                      courierNote,
+                    }}
+                    onChange={(updated) => {
+                      setProvince(updated.province);
+                      setDistrict(updated.district);
+                      setNeighborhood(updated.neighborhood);
+                      setStreet(updated.street);
+                      setBuildingNo(updated.buildingNo);
+                      setApartmentNo(updated.apartmentNo);
+                      setFullAddress(updated.fullAddress);
+                      setCourierNote(updated.courierNote || '');
+                    }}
+                  />
 
                   <div>
                     <label className="block text-[11px] font-bold text-stone-700 mb-1">Posta Kodu</label>
                     <input
                       type="text"
+                      placeholder="Örn: 34116"
                       value={postalCode}
                       onChange={(e) => setPostalCode(e.target.value)}
-                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#e60012]"
+                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-[#e60012] font-medium"
                     />
                   </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-stone-700 mb-1">Kurye / Teslimat Notu</label>
-                    <input
-                      type="text"
-                      value={courierNote}
-                      onChange={(e) => setCourierNote(e.target.value)}
-                      className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#e60012]"
-                    />
-                  </div>
-                </>
+                </div>
               )}
 
               {deliveryType === 'magaza_teslim' && (
