@@ -80,7 +80,7 @@ function writeLocalSubscriptions(subs: PushSubscriptionRecord[]) {
     ensureDataDir();
     fs.writeFileSync(SUBS_FILE, JSON.stringify(subs, null, 2), 'utf8');
   } catch (err) {
-    console.error('[WebPush] Failed to save local subscriptions:', err);
+    console.error('[WebPush] Failed to write local subscriptions:', err);
   }
 }
 
@@ -124,6 +124,7 @@ export const PushNotificationService = {
     endpoint: string;
     keys: PushSubscriptionKeys;
     user_id?: string | null;
+    phone?: string | null;
     user_agent?: string | null;
   }): Promise<{ success: boolean; isNew: boolean }> {
     if (!data.endpoint || !data.keys?.p256dh || !data.keys?.auth) {
@@ -136,6 +137,7 @@ export const PushNotificationService = {
       endpoint: data.endpoint,
       keys: data.keys,
       user_id: data.user_id || null,
+      phone: data.phone || null,
       user_agent: data.user_agent || null,
       platform,
       created_at: new Date().toISOString(),
@@ -151,7 +153,7 @@ export const PushNotificationService = {
           p256dh: data.keys.p256dh,
           auth: data.keys.auth,
           user_id: data.user_id || null,
-          phone: (data as any).phone || null,
+          phone: data.phone || null,
           user_agent: data.user_agent || null,
           platform,
           updated_at: new Date().toISOString(),
@@ -160,9 +162,11 @@ export const PushNotificationService = {
       );
       if (!error) {
         savedInSupabase = true;
+      } else {
+        console.warn('[WebPush] Supabase upsert notice:', error.message);
       }
-    } catch {
-      // Supabase table may not be migrated yet
+    } catch (err: any) {
+      console.warn('[WebPush] Supabase connection notice:', err.message);
     }
 
     // 2. Always maintain local file resilience
@@ -174,6 +178,7 @@ export const PushNotificationService = {
         ...local[existingIdx],
         keys: data.keys,
         user_id: data.user_id || local[existingIdx].user_id,
+        phone: data.phone || local[existingIdx].phone,
         platform,
       };
     } else {
@@ -196,7 +201,7 @@ export const PushNotificationService = {
       // Ignore
     }
 
-    // 2. Local
+    // 2. Remove locally
     const local = readLocalSubscriptions();
     const filtered = local.filter((s) => s.endpoint !== endpoint);
     writeLocalSubscriptions(filtered);
@@ -204,29 +209,44 @@ export const PushNotificationService = {
   },
 
   async getAllSubscriptions(): Promise<PushSubscriptionRecord[]> {
-    // Try Supabase first
+    const subsMap = new Map<string, PushSubscriptionRecord>();
+
+    // 1. Try Supabase cloud table first
     try {
       const supabaseAdmin = createAdminClient();
       const { data, error } = await supabaseAdmin.from('push_subscriptions').select('*');
-      if (!error && data && data.length > 0) {
-        return data.map((d: any) => ({
-          id: d.id,
-          endpoint: d.endpoint,
-          keys: {
-            p256dh: d.p256dh,
-            auth: d.auth,
-          },
-          user_id: d.user_id,
-          user_agent: d.user_agent,
-          platform: d.platform || detectPlatform(d.user_agent),
-          created_at: d.created_at || d.updated_at,
-        }));
+      if (!error && data && Array.isArray(data)) {
+        data.forEach((d: any) => {
+          if (d.endpoint) {
+            subsMap.set(d.endpoint, {
+              id: d.id,
+              endpoint: d.endpoint,
+              keys: {
+                p256dh: d.p256dh,
+                auth: d.auth,
+              },
+              user_id: d.user_id,
+              phone: d.phone,
+              user_agent: d.user_agent,
+              platform: d.platform || detectPlatform(d.user_agent),
+              created_at: d.created_at || d.updated_at,
+            });
+          }
+        });
       }
-    } catch {
-      // Fallback
+    } catch (err) {
+      console.warn('[WebPush] Supabase fetch fallback:', err);
     }
 
-    return readLocalSubscriptions();
+    // 2. Merge local subscriptions so no subscriber is lost
+    const local = readLocalSubscriptions();
+    local.forEach((l) => {
+      if (l.endpoint && !subsMap.has(l.endpoint)) {
+        subsMap.set(l.endpoint, l);
+      }
+    });
+
+    return Array.from(subsMap.values());
   },
 
   async sendBroadcastNotification(payload: PushNotificationPayload): Promise<{
@@ -276,7 +296,6 @@ export const PushNotificationService = {
           sent++;
         } catch (err: any) {
           failed++;
-          // HTTP 410 (Gone) or 404 (Not Found) means user uninstalled or revoked permission
           if (err.statusCode === 410 || err.statusCode === 404) {
             deadEndpoints.push(sub.endpoint);
           } else {
