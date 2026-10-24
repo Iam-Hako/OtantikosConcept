@@ -168,8 +168,12 @@ export default function AdminPushNotificationsPage() {
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-stone-900 mt-3">
-            {stats.totalSubscribers}
+          <div className="text-3xl font-black text-stone-900 mt-3 min-h-[36px] flex items-center">
+            {isLoading ? (
+              <div className="h-7 w-12 bg-stone-100 rounded-lg animate-pulse" />
+            ) : (
+              stats.totalSubscribers
+            )}
           </div>
           <p className="text-[11px] text-emerald-600 font-semibold mt-1">
             ✓ Bildirim Almaya Açık Cihaz
@@ -184,8 +188,12 @@ export default function AdminPushNotificationsPage() {
               <Smartphone className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-stone-900 mt-3">
-            {stats.iosCount}
+          <div className="text-3xl font-black text-stone-900 mt-3 min-h-[36px] flex items-center">
+            {isLoading ? (
+              <div className="h-7 w-10 bg-stone-100 rounded-lg animate-pulse" />
+            ) : (
+              stats.iosCount
+            )}
           </div>
           <p className="text-[11px] text-stone-500 mt-1">
             Apple Web Push Altyapısı
@@ -200,8 +208,12 @@ export default function AdminPushNotificationsPage() {
               <Smartphone className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-stone-900 mt-3">
-            {stats.androidCount}
+          <div className="text-3xl font-black text-stone-900 mt-3 min-h-[36px] flex items-center">
+            {isLoading ? (
+              <div className="h-7 w-10 bg-stone-100 rounded-lg animate-pulse" />
+            ) : (
+              stats.androidCount
+            )}
           </div>
           <p className="text-[11px] text-stone-500 mt-1">
             Google Chrome & Samsung Browser
@@ -216,8 +228,12 @@ export default function AdminPushNotificationsPage() {
               <Monitor className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-stone-900 mt-3">
-            {stats.desktopCount}
+          <div className="text-3xl font-black text-stone-900 mt-3 min-h-[36px] flex items-center">
+            {isLoading ? (
+              <div className="h-7 w-10 bg-stone-100 rounded-lg animate-pulse" />
+            ) : (
+              stats.desktopCount
+            )}
           </div>
           <p className="text-[11px] text-stone-500 mt-1">
             Chrome, Edge, Safari & Firefox
