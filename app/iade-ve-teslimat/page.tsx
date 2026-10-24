@@ -76,7 +76,7 @@ export default function ReturnsAndDeliveryPage() {
               <span>4. İade Süreci ve Ücret İadesi</span>
             </h3>
             <ol className="list-decimal list-inside space-y-2 text-xs">
-              <li>Sitemizde oturum açarak <strong>Hesabım ➔ İade Taleplerim</strong> bölümünden veya <strong>aylindurmus54@gmail.com</strong> / <strong>+90 (507) 773 77 77</strong> iletişim hatlarımızdan iade talebinizi oluşturun.</li>
+              <li>Sitemizde oturum açarak <strong>Hesabım ➔ İade Taleplerim</strong> bölümünden veya <strong>info@otantikosconcept.com</strong> / <strong>+90 (507) 773 77 77</strong> iletişim hatlarımızdan iade talebinizi oluşturun.</li>
               <li>Ürünü faturası, orijinal kutusu ve tüm aksesuarlarıyla birlikte sağlam şekilde paketleyin.</li>
               <li>Paketinizi anlaşmalı kargo firmamız olan <strong>DHL Kargo</strong> şubesine teslim edin.</li>
               <li>İade kargonuz depomuza ulaştıktan sonra kalite kontrol ekibimiz tarafından incelenir ve onaylandığında ücret iadeniz <strong>en geç 14 gün</strong> içerisinde siparişte kullandığınız kredi/banka kartınıza yapılır.</li>

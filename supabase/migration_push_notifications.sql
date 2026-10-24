@@ -1,24 +1,31 @@
 -- =====================================================================
--- OTANTIKOS CONCEPT - PUSH NOTIFICATIONS & PWA MIGRATION
--- Web Push Abonelikleri ve Bildirim Gönderim Geçmişi Tabloları
+-- OTANTIKOS CONCEPT - TELEFON / PUSH BİLDİRİMLERİ & PWA MİGRASYONU
+-- Mobil & Web Push Abonelikleri ve Bildirim Gönderim Geçmişi
 -- =====================================================================
 
--- 1. Push Bildirim Abonelikleri Tablosu
+-- 1. Push / Telefon Bildirim Abonelikleri Tablosu
 CREATE TABLE IF NOT EXISTS public.push_subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     endpoint TEXT NOT NULL UNIQUE,
     p256dh TEXT NOT NULL,
     auth TEXT NOT NULL,
     user_id TEXT,
+    phone TEXT,
     user_agent TEXT,
     platform TEXT DEFAULT 'unknown',
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
+-- Kolon zaten varsa hata vermemesi için
+ALTER TABLE public.push_subscriptions ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE public.push_subscriptions ADD COLUMN IF NOT EXISTS platform TEXT DEFAULT 'unknown';
+ALTER TABLE public.push_subscriptions ADD COLUMN IF NOT EXISTS user_agent TEXT;
+
 -- 2. Hızlı Erişim İndeksleri
 CREATE INDEX IF NOT EXISTS idx_push_subs_endpoint ON public.push_subscriptions(endpoint);
 CREATE INDEX IF NOT EXISTS idx_push_subs_user_id ON public.push_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_push_subs_phone ON public.push_subscriptions(phone);
 CREATE INDEX IF NOT EXISTS idx_push_subs_created_at ON public.push_subscriptions(created_at DESC);
 
 -- 3. Row Level Security (RLS)

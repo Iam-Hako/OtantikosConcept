@@ -6,7 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 // VAPID Configuration
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BMlzKI8nGrboLygwoidtTwbotj7bQ80CO07H8wbfsccqz6EO7KsPv3o3beDHHANNnaEenpmYkzkojGsDJMsikD8';
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'VdYl-0JtUtSRiWjW3Sq7ehACThEol7isFspf61v1h7Q';
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:destek@otantikosconcept.com';
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:info@otantikosconcept.com';
 
 // Initialize web-push
 try {
@@ -25,6 +25,7 @@ export interface PushSubscriptionRecord {
   endpoint: string;
   keys: PushSubscriptionKeys;
   user_id?: string | null;
+  phone?: string | null;
   user_agent?: string | null;
   platform?: 'ios' | 'android' | 'desktop' | 'unknown';
   created_at: string;
@@ -150,6 +151,7 @@ export const PushNotificationService = {
           p256dh: data.keys.p256dh,
           auth: data.keys.auth,
           user_id: data.user_id || null,
+          phone: (data as any).phone || null,
           user_agent: data.user_agent || null,
           platform,
           updated_at: new Date().toISOString(),

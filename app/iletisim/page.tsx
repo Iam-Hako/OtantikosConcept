@@ -153,8 +153,8 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h4 className="font-bold text-stone-900 text-sm">E-Posta Adresimiz</h4>
-                  <a href="mailto:aylindurmus54@gmail.com" className="text-stone-700 hover:text-[#e60012] font-semibold block mt-1 text-xs">
-                    aylindurmus54@gmail.com
+                  <a href="mailto:info@otantikosconcept.com" className="text-stone-700 hover:text-[#e60012] font-semibold block mt-1 text-xs">
+                    info@otantikosconcept.com
                   </a>
                 </div>
               </div>

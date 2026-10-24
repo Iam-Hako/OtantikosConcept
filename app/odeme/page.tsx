@@ -74,6 +74,24 @@ function CheckoutContent() {
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
+
+  const handlePhoneChange = (val: string) => {
+    const raw = val.replace(/\D/g, '');
+    if (!raw) {
+      setPhone('');
+      return;
+    }
+    const digits = raw.startsWith('0') ? raw.slice(0, 11) : ('0' + raw).slice(0, 11);
+    if (digits.length <= 4) {
+      setPhone(digits);
+    } else if (digits.length <= 7) {
+      setPhone(`${digits.slice(0, 4)} ${digits.slice(4)}`);
+    } else if (digits.length <= 9) {
+      setPhone(`${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`);
+    } else {
+      setPhone(`${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7, 9)} ${digits.slice(9, 11)}`);
+    }
+  };
   const [province, setProvince] = useState('İstanbul');
   const [district, setDistrict] = useState('Fatih');
   const [neighborhood, setNeighborhood] = useState('');
@@ -189,9 +207,35 @@ function CheckoutContent() {
       return;
     }
 
-    if (deliveryType !== 'magaza_teslim' && !fullAddress.trim()) {
-      toast.error('Lütfen açık teslimat adresinizi giriniz.');
+    // Telefon Numarası Doğrulaması (Eksik veya hatalı numara girişini kesinlikle engeller)
+    const cleanPhoneDigits = phone.replace(/\D/g, '');
+    const isValidTrPhone =
+      (cleanPhoneDigits.length === 11 && cleanPhoneDigits.startsWith('05')) ||
+      (cleanPhoneDigits.length === 10 && cleanPhoneDigits.startsWith('5')) ||
+      (cleanPhoneDigits.length === 12 && cleanPhoneDigits.startsWith('905'));
+
+    if (!isValidTrPhone) {
+      toast.error('Lütfen 11 haneli geçerli ve eksiksiz bir cep telefonu giriniz (Örn: 0554 XXX XX XX).');
       return;
+    }
+
+    if (deliveryType !== 'magaza_teslim') {
+      if (!province || !district || !neighborhood) {
+        toast.error('Lütfen İl, İlçe ve Mahalle seçimlerinizi tamamlayınız.');
+        return;
+      }
+      if (!street || !street.trim()) {
+        toast.error('Lütfen Cadde veya Sokak bilginizi seçiniz / giriniz.');
+        return;
+      }
+      if (!buildingNo || !buildingNo.trim()) {
+        toast.error('Lütfen Bina / Kapı No bilginizi giriniz.');
+        return;
+      }
+      if (!fullAddress.trim() || fullAddress.trim().length < 8) {
+        toast.error('Lütfen açık teslimat adresinizi eksiksiz giriniz.');
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -726,9 +770,11 @@ function CheckoutContent() {
                   <input
                     type="tel"
                     required
+                    placeholder="05XX XXX XX XX"
+                    maxLength={14}
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#e60012]"
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:outline-none focus:border-[#e60012] font-mono"
                   />
                 </div>
 

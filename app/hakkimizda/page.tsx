@@ -57,7 +57,7 @@ export default function AboutPage() {
               <div><strong>Ticaret Sicil No:</strong> 1146371</div>
               <div className="sm:col-span-2"><strong>Kayıtlı Adres:</strong> Süleymaniye Mah. Uzunçarşı Cad. Tamburacı ve Görenli Han No: 187 / 2G Fatih / İSTANBUL</div>
               <div><strong>Telefon / WhatsApp:</strong> +90 (507) 773 77 77</div>
-              <div><strong>E-posta:</strong> aylindurmus54@gmail.com</div>
+              <div><strong>E-posta:</strong> info@otantikosconcept.com</div>
             </div>
           </div>
 

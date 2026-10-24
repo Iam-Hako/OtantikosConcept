@@ -136,6 +136,17 @@ export default function AccountPage() {
       return;
     }
 
+    const cleanAddrPhone = addrPhone.replace(/\D/g, '');
+    const isValidTrAddrPhone =
+      (cleanAddrPhone.length === 11 && cleanAddrPhone.startsWith('05')) ||
+      (cleanAddrPhone.length === 10 && cleanAddrPhone.startsWith('5')) ||
+      (cleanAddrPhone.length === 12 && cleanAddrPhone.startsWith('905'));
+
+    if (!isValidTrAddrPhone) {
+      toast.error('Lütfen 11 haneli geçerli ve eksiksiz bir cep telefonu giriniz (Örn: 05XX XXX XX XX).');
+      return;
+    }
+
     setIsSavingAddress(true);
     try {
       await DataService.saveUserAddress({

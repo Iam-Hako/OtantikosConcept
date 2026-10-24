@@ -57,7 +57,7 @@ export default function KvkkPage() {
             <p><strong>Şirket:</strong> Otantikos Hediyelik Eşya Oyuncak Ticaret Limited Şirketi</p>
             <p><strong>Adres:</strong> Süleymaniye Mah. Uzunçarşı Cad. Tamburacı ve Görenli Han No: 187 / 2G Fatih / İSTANBUL</p>
             <p><strong>Telefon / WhatsApp:</strong> +90 (507) 773 77 77</p>
-            <p><strong>E-posta:</strong> aylindurmus54@gmail.com</p>
+            <p><strong>E-posta:</strong> info@otantikosconcept.com</p>
           </div>
         </div>
 

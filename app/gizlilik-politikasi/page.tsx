@@ -38,7 +38,7 @@ export default function PrivacyPolicyPage() {
             <p><strong>Adres:</strong> Süleymaniye Mah. Uzunçarşı Cad. Tamburacı ve Görenli Han No: 187 / 2G Fatih / İSTANBUL</p>
             <p><strong>Vergi Dairesi & VKN:</strong> Hocapaşa V.D. / 6491340351</p>
             <p><strong>Telefon / WhatsApp:</strong> +90 (507) 773 77 77</p>
-            <p><strong>E-posta:</strong> aylindurmus54@gmail.com</p>
+            <p><strong>E-posta:</strong> info@otantikosconcept.com</p>
           </div>
         </div>
 

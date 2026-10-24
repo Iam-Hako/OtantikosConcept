@@ -30,7 +30,7 @@ export default function DistanceSellingPage() {
               <p><strong>Ticaret Sicil No:</strong> 1146371</p>
               <p><strong>İş Yeri Adresi:</strong> Süleymaniye Mah. Uzunçarşı Cad. Tamburacı ve Görenli Han No: 187 / 2G Fatih / İSTANBUL</p>
               <p><strong>Telefon / WhatsApp:</strong> +90 (507) 773 77 77</p>
-              <p><strong>E-posta:</strong> aylindurmus54@gmail.com</p>
+              <p><strong>E-posta:</strong> info@otantikosconcept.com</p>
             </div>
 
             <p className="mt-3"><strong>1.2. ALICI (TÜKETİCİ) BİLGİLERİ:</strong></p>
@@ -80,7 +80,7 @@ export default function DistanceSellingPage() {
               <strong>5.2. Kargo Firması & İade Masrafı:</strong> İadelerin yalnızca anlaşmalı kargo firmamız olan <strong>DHL Kargo</strong> aracılığıyla yapılması gerekmektedir. Cayma hakkı kapsamındaki keyfi iadelerde kargo gönderim bedeli ALICI&apos;ya aittir. Ayıplı, hasarlı veya hatalı ürün gönderimlerinde ise kargo masrafı SATICI tarafından karşılanır.
             </p>
             <p>
-              <strong>5.3. İade Süreci:</strong> ALICI, iade talebini site üzerinden <strong>Hesabım ➔ İade Masası</strong> sekmesini kullanarak veya müşteri hizmetleri e-postası (aylindurmus54@gmail.com) / WhatsApp hattı (+90 507 773 77 77) üzerinden bildirebilir. İade edilen ürün SATICI&apos;ya ulaştıktan ve incelendikten sonra, ürün bedeli en geç 14 gün içinde ALICI&apos;nın ödeme yaptığı kart/hesaba iade edilir.
+              <strong>5.3. İade Süreci:</strong> ALICI, iade talebini site üzerinden <strong>Hesabım ➔ İade Masası</strong> sekmesini kullanarak veya müşteri hizmetleri e-postası (info@otantikosconcept.com) / WhatsApp hattı (+90 507 773 77 77) üzerinden bildirebilir. İade edilen ürün SATICI&apos;ya ulaştıktan ve incelendikten sonra, ürün bedeli en geç 14 gün içinde ALICI&apos;nın ödeme yaptığı kart/hesaba iade edilir.
             </p>
           </div>
         </div>
