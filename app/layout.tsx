@@ -57,6 +57,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr" className="scroll-smooth bg-white">
+      <head>
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Otantikos" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="theme-color" content="#e60012" />
+      </head>
       <body className="flex flex-col min-h-screen font-sans text-stone-900 w-full max-w-full antialiased relative bg-white">
 
         <AuthProvider>

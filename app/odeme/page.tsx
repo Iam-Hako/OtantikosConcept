@@ -90,6 +90,9 @@ function CheckoutContent() {
       setPhone(`${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`);
     } else {
       setPhone(`${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7, 9)} ${digits.slice(9, 11)}`);
+      if (typeof window !== 'undefined' && digits.length === 11) {
+        localStorage.setItem('otantikos_customer_phone', digits);
+      }
     }
   };
   const [province, setProvince] = useState('İstanbul');

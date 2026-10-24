@@ -6,7 +6,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const userAgent = request.headers.get('user-agent') || '';
 
-    const { endpoint, keys, user_id } = body;
+    const { endpoint, keys, user_id, phone, platform } = body;
     if (!endpoint || !keys || !keys.p256dh || !keys.auth) {
       return NextResponse.json({ error: 'Geçersiz abonelik verisi.' }, { status: 400 });
     }
@@ -15,7 +15,9 @@ export async function POST(request: Request) {
       endpoint,
       keys,
       user_id: user_id || null,
+      phone: phone || null,
       user_agent: userAgent,
+      platform: platform || undefined,
     });
 
     return NextResponse.json({

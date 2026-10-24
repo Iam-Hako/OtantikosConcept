@@ -6,6 +6,8 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'Otantikos',
     description: "Türkiye'nin en sevimli squishy, kupa ve hediyelik konsept ürünleri.",
     start_url: '/',
+    id: '/',
+    scope: '/',
     display: 'standalone',
     orientation: 'portrait',
     background_color: '#F8F5F0',

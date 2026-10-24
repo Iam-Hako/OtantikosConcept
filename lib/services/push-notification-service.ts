@@ -126,12 +126,13 @@ export const PushNotificationService = {
     user_id?: string | null;
     phone?: string | null;
     user_agent?: string | null;
+    platform?: 'ios' | 'android' | 'desktop' | 'unknown';
   }): Promise<{ success: boolean; isNew: boolean }> {
     if (!data.endpoint || !data.keys?.p256dh || !data.keys?.auth) {
       throw new Error('Geçersiz Push Subscription formatı.');
     }
 
-    const platform = detectPlatform(data.user_agent);
+    const platform = data.platform || detectPlatform(data.user_agent);
     const newRecord: PushSubscriptionRecord = {
       id: `sub_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       endpoint: data.endpoint,
@@ -350,6 +351,13 @@ export const PushNotificationService = {
       desktopCount,
       otherCount: subs.length - (iosCount + androidCount + desktopCount),
       history,
+      recentSubscribers: subs.slice(-30).reverse().map((s) => ({
+        id: s.id,
+        platform: s.platform,
+        phone: s.phone,
+        created_at: s.created_at,
+        endpointSnippet: s.endpoint.split('/').slice(-1)[0]?.substring(0, 20) || '...',
+      })),
     };
   },
 };

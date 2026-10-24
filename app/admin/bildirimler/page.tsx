@@ -18,6 +18,14 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface SubscriberRecord {
+  id: string;
+  platform?: 'ios' | 'android' | 'desktop' | 'unknown';
+  phone?: string | null;
+  created_at: string;
+  endpointSnippet: string;
+}
+
 interface NotificationStats {
   totalSubscribers: number;
   iosCount: number;
@@ -32,6 +40,7 @@ interface NotificationStats {
     failure_count: number;
     created_at: string;
   }>;
+  recentSubscribers?: SubscriberRecord[];
 }
 
 export default function AdminPushNotificationsPage() {
@@ -453,7 +462,83 @@ export default function AdminPushNotificationsPage() {
 
       </div>
 
-      {/* 3. NOTIFICATION HISTORY */}
+      {/* 3. RECENT REGISTERED DEVICES & SUBSCRIBERS */}
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xs space-y-4">
+        <div className="flex items-center justify-between border-b border-stone-100 pb-4">
+          <h2 className="text-base font-bold text-stone-900 flex items-center gap-2">
+            <Users className="w-4 h-4 text-stone-600" />
+            <span>Kayıtlı Abone Cihazları ({stats.totalSubscribers})</span>
+          </h2>
+          <span className="text-xs text-stone-500">
+            {stats.iosCount} iPhone • {stats.androidCount} Android • {stats.desktopCount} Masaüstü
+          </span>
+        </div>
+
+        {(!stats.recentSubscribers || stats.recentSubscribers.length === 0) ? (
+          <div className="text-center py-10 text-stone-400 text-xs space-y-2">
+            <Smartphone className="w-8 h-8 mx-auto text-stone-300" />
+            <p>Henüz aktif bildirim abonesi bulunmuyor.</p>
+            <p className="text-[11px] text-stone-400">
+              Kullanıcılar veya siz sitenin bildirim ziline dokunup izin verdiğinizde cihaz anında burada listelenir.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-stone-200 text-stone-500 text-[11px] font-bold">
+                  <th className="py-2.5 px-3">Cihaz Platformu</th>
+                  <th className="py-2.5 px-3">Telefon</th>
+                  <th className="py-2.5 px-3">Abonelik Tarihi</th>
+                  <th className="py-2.5 px-3">Cihaz Anahtarı</th>
+                  <th className="py-2.5 px-3 text-right">Durum</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {stats.recentSubscribers.map((sub) => (
+                  <tr key={sub.id} className="hover:bg-stone-50/70 transition-colors">
+                    <td className="py-3 px-3">
+                      {sub.platform === 'ios' ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-stone-100 text-stone-800 font-bold text-[11px]">
+                          <Smartphone className="w-3.5 h-3.5 text-stone-900" />
+                          <span>iPhone (iOS)</span>
+                        </span>
+                      ) : sub.platform === 'android' ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold text-[11px]">
+                          <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Android</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-50 text-sky-800 font-bold text-[11px]">
+                          <Monitor className="w-3.5 h-3.5 text-sky-600" />
+                          <span>Masaüstü (PC/Mac)</span>
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 font-mono text-[11px] text-stone-700">
+                      {sub.phone || <span className="text-stone-400 italic">Girilmedi</span>}
+                    </td>
+                    <td className="py-3 px-3 text-stone-500 text-[11px]">
+                      {new Date(sub.created_at).toLocaleString('tr-TR')}
+                    </td>
+                    <td className="py-3 px-3 font-mono text-[10px] text-stone-400">
+                      {sub.endpointSnippet}...
+                    </td>
+                    <td className="py-3 px-3 text-right">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                        <span>Aktif</span>
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* 4. NOTIFICATION HISTORY */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xs space-y-4">
         <h2 className="text-base font-bold text-stone-900 flex items-center gap-2">
           <History className="w-4 h-4 text-stone-600" />
