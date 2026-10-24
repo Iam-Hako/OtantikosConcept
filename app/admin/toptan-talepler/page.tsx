@@ -20,6 +20,28 @@ import { DataService, normalizeTurkish } from '@/lib/data/store-data';
 import { formatDate } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
+function formatWhatsAppPhone(phone: string): string {
+  if (!phone) return '';
+  const digits = phone.replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('90') && digits.length === 12) return digits;
+  if (digits.startsWith('0') && digits.length === 11) return '90' + digits.slice(1);
+  if (digits.length === 10 && digits.startsWith('5')) return '90' + digits;
+  if (digits.startsWith('0090')) return digits.slice(2);
+  if (digits.startsWith('0')) return '90' + digits.slice(1);
+  return digits;
+}
+
+function formatCallPhone(phone: string): string {
+  if (!phone) return '';
+  const digits = phone.replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('0') && digits.length === 11) return '+90' + digits.slice(1);
+  if (digits.length === 10 && digits.startsWith('5')) return '+90' + digits;
+  if (digits.startsWith('90') && digits.length === 12) return '+' + digits;
+  return digits;
+}
+
 export default function AdminWholesaleRequestsPage() {
   const [requests, setRequests] = useState<WholesaleRequest[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -191,7 +213,8 @@ export default function AdminWholesaleRequestsPage() {
         ) : (
           filteredRequests.map((r) => {
             const customerAddress = r.address || r.city || 'Belirtilmedi';
-            const cleanPhoneDigits = r.phone ? r.phone.replace(/[^0-9]/g, '') : '';
+            const whatsappNumber = formatWhatsAppPhone(r.phone);
+            const callNumber = formatCallPhone(r.phone);
             const isNoteSaving = Boolean(savingNotes[r.id]);
 
             return (
@@ -312,7 +335,7 @@ export default function AdminWholesaleRequestsPage() {
                 {/* Bottom Action Buttons: Direct Call & Direct WhatsApp */}
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   <a
-                    href={`tel:${r.phone}`}
+                    href={`tel:${callNumber}`}
                     className="px-4 py-2.5 bg-stone-900 hover:bg-stone-800 active:scale-95 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-2xs min-h-[40px]"
                   >
                     <Phone className="w-3.5 h-3.5 text-amber-400" />
@@ -320,7 +343,7 @@ export default function AdminWholesaleRequestsPage() {
                   </a>
 
                   <a
-                    href={`https://wa.me/${cleanPhoneDigits}?text=Merhaba%20${encodeURIComponent(r.contact_name)},%20Otantikos%20Concept%20toptan%20teklif%20talebiniz%20ile%20ilgili%20yazıyoruz.`}
+                    href={`https://wa.me/${whatsappNumber}?text=Merhaba%20${encodeURIComponent(r.contact_name)},%20Otantikos%20Concept%20toptan%20teklif%20talebiniz%20ile%20ilgili%20yazıyoruz.`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-2xs min-h-[40px]"

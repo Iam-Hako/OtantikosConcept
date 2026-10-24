@@ -88,9 +88,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Lütfen isim ve soyisim giriniz.' }, { status: 400 });
     }
 
-    if (cleanPhone.length < 10) {
-      return NextResponse.json({ error: 'Lütfen geçerli bir telefon numarası giriniz (en az 10 hane).' }, { status: 400 });
+    const digits = String(phone || '').replace(/\D/g, '');
+    const isValidPhone = (digits.length === 11 && digits.startsWith('05')) ||
+                         (digits.length === 10 && digits.startsWith('5')) ||
+                         (digits.length === 12 && digits.startsWith('905'));
+
+    if (!isValidPhone) {
+      return NextResponse.json({ error: 'Lütfen geçerli bir cep telefonu numarası giriniz (05XX XXX XX XX formatında).' }, { status: 400 });
     }
+
+    const std11 = digits.length === 12 && digits.startsWith('905')
+      ? '0' + digits.slice(2)
+      : digits.length === 10 && digits.startsWith('5')
+      ? '0' + digits
+      : digits;
+    const formattedPhone = `${std11.slice(0, 4)} ${std11.slice(4, 7)} ${std11.slice(7, 9)} ${std11.slice(9, 11)}`;
 
     if (!cleanAddress) {
       return NextResponse.json({ error: 'Lütfen teslimat / şehir adresi giriniz.' }, { status: 400 });
@@ -100,7 +112,7 @@ export async function POST(request: Request) {
       id: `ws-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       contact_name: cleanContact,
       company_name: cleanContact,
-      phone: cleanPhone,
+      phone: formattedPhone,
       address: cleanAddress,
       city: cleanAddress,
       email: cleanEmail,
