@@ -43,11 +43,15 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (product.stock <= 0) {
-      toast.error('Bu ürün şu anda tükenmiştir.');
+    if (Number(product.stock) <= 0) {
+      toast.error(`"${product.name}" şu anda tükenmiştir.`);
       return;
     }
     const defaultVariant = product.variants && product.variants.length > 0 ? product.variants[0] : null;
+    if (defaultVariant && Number(defaultVariant.stock) <= 0) {
+      toast.error(`"${product.name}" şu anda tükenmiştir.`);
+      return;
+    }
     addItem(product, defaultVariant, 1);
   };
 

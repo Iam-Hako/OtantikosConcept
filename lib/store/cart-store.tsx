@@ -29,6 +29,7 @@ interface CartContextType {
   setIsDrawerOpen: (val: boolean) => void;
   openDrawer: () => void;
   closeDrawer: () => void;
+  removeOutOfStockItems: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -98,6 +99,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items, hasGiftWrap, giftNote, deliveryType, isMounted]);
 
   const addItem = (product: Product, variant?: ProductVariant | null, quantity = 1) => {
+    const effectiveStock = product.stock <= 0
+      ? 0
+      : variant
+      ? Math.min(product.stock, variant.stock)
+      : product.stock;
+
+    if (effectiveStock <= 0) {
+      toast.error(`Üzgünüz, "${product.name}" şu anda tükenmiştir ve sepete eklenemez.`);
+      return;
+    }
+
     setItems((prevItems) => {
       const existingIndex = prevItems.findIndex(
         (item) =>
@@ -105,7 +117,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           (variant ? item.variant?.id === variant.id : !item.variant)
       );
 
-      const maxStock = variant ? variant.stock : product.stock;
+      const maxStock = effectiveStock;
 
       if (existingIndex > -1) {
         const currentQty = prevItems[existingIndex].quantity;
@@ -123,7 +135,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         };
         return updated;
       } else {
-        const initialQty = Math.min(quantity, maxStock);
+        const initialQty = Math.max(1, Math.min(quantity, maxStock));
         return [...prevItems, { product, variant, quantity: initialQty }];
       }
     });
@@ -158,10 +170,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           item.product.id === productId &&
           (variantId ? item.variant?.id === variantId : !item.variant)
         ) {
-          const maxStock = item.variant ? item.variant.stock : item.product.stock;
+          const effectiveStock = item.product.stock <= 0
+            ? 0
+            : item.variant
+            ? Math.min(item.product.stock, item.variant.stock)
+            : item.product.stock;
+
+          if (effectiveStock <= 0) {
+            toast.error(`"${item.product.name}" tükendiği için adedi artırılamaz.`);
+            return {
+              ...item,
+              quantity: 0,
+            };
+          }
+
           return {
             ...item,
-            quantity: Math.min(quantity, maxStock),
+            quantity: Math.min(quantity, effectiveStock),
           };
         }
         return item;
@@ -191,6 +216,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // %20 KDV dahil dökümü
   const kdvAmount = subtotal > 0 ? subtotal - subtotal / 1.2 : 0;
 
+  const removeOutOfStockItems = () => {
+    setItems((prevItems) =>
+      prevItems.filter((item) => {
+        const effectiveStock = item.product.stock <= 0
+          ? 0
+          : item.variant
+          ? Math.min(item.product.stock, item.variant.stock)
+          : item.product.stock;
+        return effectiveStock > 0 && item.quantity > 0;
+      })
+    );
+    toast.success('Tükenen ürünler sepetten temizlendi.');
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -217,6 +256,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setIsDrawerOpen,
         openDrawer: () => setIsDrawerOpen(true),
         closeDrawer: () => setIsDrawerOpen(false),
+        removeOutOfStockItems,
       }}
     >
       {children}

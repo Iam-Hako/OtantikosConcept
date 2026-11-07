@@ -140,7 +140,7 @@ export async function actionSaveProduct(productData: Partial<Product>) {
               product_id: prodDbId,
               name: v.name,
               value: v.value,
-              stock: Math.max(0, Number(v.stock) || 0),
+              stock: Number(saved.stock) <= 0 ? 0 : Math.max(0, Number(v.stock) || 0),
               price_override: v.price_override ? Number(v.price_override) : null,
               sku: v.sku || null,
               image_url: v.image_url || null,
@@ -263,6 +263,22 @@ export async function actionUpdateQuickStock(
     }
   } catch (err) {
     console.error('Supabase admin quick stock update error:', err);
+  }
+
+  if (Number(stock) <= 0) {
+    try {
+      const supabaseAdmin = createAdminClient();
+      let dbId = productId;
+      if (!UUID_REGEX.test(productId)) {
+        const { data: prod } = await supabaseAdmin.from('products').select('id').eq('slug', productId).maybeSingle();
+        if (prod?.id) dbId = prod.id;
+      }
+      if (UUID_REGEX.test(dbId)) {
+        await supabaseAdmin.from('product_variants').update({ stock: 0 }).eq('product_id', dbId);
+      }
+    } catch (varZeroErr) {
+      console.warn('Variant stock zeroing notice:', varZeroErr);
+    }
   }
 
   const ok = await DataService.updateQuickStockAndPrice(productId, stock, price, costPrice, wholesalePrice, isPublished);

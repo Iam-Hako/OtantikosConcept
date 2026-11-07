@@ -26,7 +26,17 @@ export default function CartDrawer() {
     total,
     kdvAmount,
     totalItems,
+    removeOutOfStockItems,
   } = useCart();
+
+  const hasOutOfStockItems = items.some((item) => {
+    const maxStock = item.product.stock <= 0
+      ? 0
+      : item.variant
+      ? Math.min(item.product.stock, item.variant.stock)
+      : item.product.stock;
+    return maxStock <= 0 || item.quantity > maxStock;
+  });
 
   if (!isDrawerOpen) return null;
 
@@ -81,7 +91,12 @@ export default function CartDrawer() {
               items.map((item) => {
                 const itemPrice = item.variant?.price_override ?? item.product.price;
                 const coverImage = item.variant?.image_url || (item.product.images && item.product.images[0]?.image_url) || '/images/logo.webp';
-                const maxStock = item.variant ? item.variant.stock : item.product.stock;
+                const maxStock = item.product.stock <= 0
+                  ? 0
+                  : item.variant
+                  ? Math.min(item.product.stock, item.variant.stock)
+                  : item.product.stock;
+                const isItemOutOfStock = maxStock <= 0 || item.quantity > maxStock;
 
                 return (
                   <div key={`${item.product.id}-${item.variant?.id || 'base'}`} className="py-4 flex gap-4">
@@ -120,6 +135,13 @@ export default function CartDrawer() {
                             {item.variant.name}: <strong className="text-stone-700">{item.variant.value}</strong>
                           </span>
                         )}
+                        {isItemOutOfStock && (
+                          <div className="mt-1">
+                            <span className="inline-block text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
+                              ⚠️ Stok Tükendi
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center justify-between mt-3">
@@ -136,7 +158,7 @@ export default function CartDrawer() {
                           </span>
                           <button
                             onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.variant?.id)}
-                            disabled={item.quantity >= maxStock}
+                            disabled={item.quantity >= maxStock || maxStock <= 0}
                             className="p-1 text-stone-600 hover:text-amber-700 disabled:opacity-30 transition"
                           >
                             <Plus className="w-3.5 h-3.5" />
@@ -239,14 +261,29 @@ export default function CartDrawer() {
                 </div>
               </div>
 
-              <Link
-                href="/odeme"
-                onClick={closeDrawer}
-                className="w-full py-3.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center justify-center gap-2 transition group"
-              >
-                <span>Güvenli Ödemeye Geç</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
-              </Link>
+              {hasOutOfStockItems ? (
+                <div className="space-y-2">
+                  <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-center text-xs text-rose-700 font-bold">
+                    Sepetinizde tükenmiş ürün bulunduğu için ödemeye geçilemez.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeOutOfStockItems}
+                    className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md transition"
+                  >
+                    Tükenen Ürünleri Sepetten Çıkar
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/odeme"
+                  onClick={closeDrawer}
+                  className="w-full py-3.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center justify-center gap-2 transition group"
+                >
+                  <span>Güvenli Ödemeye Geç</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
+                </Link>
+              )}
 
               <div className="space-y-2 pt-1 border-t border-stone-200">
                 <div className="flex items-center justify-center gap-1.5 text-[10px] text-stone-500">

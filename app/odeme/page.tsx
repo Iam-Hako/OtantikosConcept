@@ -244,13 +244,25 @@ function CheckoutContent() {
     setIsSubmitting(true);
 
     try {
-      // 1. Race Condition Inventory Check
+      // 1. Race Condition Inventory Check (Strict Zero-Stock Prevention)
       const allProducts = await DataService.getProducts();
       for (const item of items) {
         const prod = allProducts.find((p) => p.id === item.product.id);
-        const availStock = item.variant ? item.variant.stock : prod?.stock ?? 0;
-        if (availStock < item.quantity) {
-          toast.error(`Üzgünüz, "${item.product.name}" için yeterli stok bulunamadı! (Mevcut: ${availStock} adet)`);
+        if (!prod || Number(prod.stock) <= 0) {
+          toast.error(`Üzgünüz, "${item.product.name}" tükenmiştir ve satın alınamaz! Lütfen sepetinizden çıkarınız.`);
+          setIsSubmitting(false);
+          return;
+        }
+
+        let availStock = Number(prod.stock);
+        if (item.variant) {
+          const liveVariant = prod.variants?.find((v) => v.id === item.variant?.id || v.value === item.variant?.value);
+          const varStock = liveVariant ? Number(liveVariant.stock) : 0;
+          availStock = Math.min(availStock, varStock);
+        }
+
+        if (availStock < item.quantity || availStock <= 0) {
+          toast.error(`Üzgünüz, "${item.product.name}${item.variant ? ' (' + item.variant.value + ')' : ''}" için yeterli stok bulunamadı! (Mevcut: ${Math.max(0, availStock)} adet)`);
           setIsSubmitting(false);
           return;
         }

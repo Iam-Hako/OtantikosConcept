@@ -51,22 +51,31 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `Ürün sistemde bulunamadı: ${item.product_name || item.product_id}` }, { status: 404 });
       }
 
+      // 1. Strict Product Master Stock Check
+      if (Number(prod.stock) <= 0) {
+        return NextResponse.json({ error: `Ürün tükendi: ${prod.name}` }, { status: 409 });
+      }
+
       let verifiedUnitPrice = Number(prod.price);
       let variantName = null;
 
+      // 2. Strict Variant & Quantity Stock Check
       if (item.variant_id && prod.variants && prod.variants.length > 0) {
         const v = prod.variants.find((vr) => vr.id === item.variant_id);
-        if (v) {
-          if (v.price_override !== undefined && v.price_override !== null) {
-            verifiedUnitPrice = Number(v.price_override);
-          }
-          variantName = `${v.name}: ${v.value}`;
-          if (v.stock < item.quantity) {
-            return NextResponse.json({ error: `Yetersiz stok: ${prod.name} (${v.value}) - Kalan: ${v.stock}` }, { status: 409 });
-          }
+        const variantStock = v ? Number(v.stock) : 0;
+        const effectiveStock = Math.min(Number(prod.stock), variantStock);
+
+        if (!v || effectiveStock <= 0 || item.quantity > effectiveStock) {
+          return NextResponse.json({
+            error: `Yetersiz stok: ${prod.name} (${v?.value || 'Seçenek'}) - Kalan: ${Math.max(0, effectiveStock)}`
+          }, { status: 409 });
         }
+        if (v.price_override !== undefined && v.price_override !== null) {
+          verifiedUnitPrice = Number(v.price_override);
+        }
+        variantName = `${v.name}: ${v.value}`;
       } else {
-        if (prod.stock < item.quantity) {
+        if (Number(prod.stock) < item.quantity) {
           return NextResponse.json({ error: `Yetersiz stok: ${prod.name} - Kalan: ${prod.stock}` }, { status: 409 });
         }
       }

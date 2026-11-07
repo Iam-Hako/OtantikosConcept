@@ -284,9 +284,14 @@ export default function ProductDetailPage() {
   }
 
   const currentPrice = selectedVariant?.price_override ?? product.price;
-  const currentStock = selectedVariant ? selectedVariant.stock : product.stock;
+  const isProductOutOfStock = Number(product.stock) <= 0;
+  const currentStock = isProductOutOfStock
+    ? 0
+    : selectedVariant
+    ? Math.min(Number(product.stock), Number(selectedVariant.stock))
+    : Number(product.stock);
   const currentSKU = selectedVariant?.sku || product.sku;
-  const isOutOfStock = currentStock <= 0;
+  const isOutOfStock = isProductOutOfStock || currentStock <= 0;
 
   const validImages = (product.images || []).filter(
     (img) => img.image_url && img.image_url !== '/images/logo.webp' && !img.image_url.endsWith('logo.webp')
@@ -586,7 +591,7 @@ export default function ProductDetailPage() {
                     (selectedVariant.id && variant.id && selectedVariant.id === variant.id) ||
                     (selectedVariant.value === variant.value && selectedVariant.name === variant.name)
                   );
-                  const isVarOut = variant.stock <= 0;
+                  const isVarOut = isProductOutOfStock || Number(variant.stock) <= 0;
 
                   return (
                     <button
@@ -635,8 +640,8 @@ export default function ProductDetailPage() {
                   </button>
                   <span className="w-8 text-center text-xs font-bold text-stone-900">{quantity}</span>
                   <button
-                    onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                    disabled={quantity >= product.stock}
+                    onClick={() => setQuantity(Math.min(currentStock, quantity + 1))}
+                    disabled={quantity >= currentStock}
                     className="p-2 text-stone-600 hover:text-[#e60012] disabled:opacity-30 transition"
                     aria-label="Adet Artır"
                   >

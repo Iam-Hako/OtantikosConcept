@@ -323,6 +323,7 @@ export const DataService = {
     const formattedVariants = (productData.variants || []).map((v, i) => ({
       ...v,
       id: v.id || `var-${Date.now()}-${i}-${Math.floor(Math.random() * 1000)}`,
+      stock: Number(productData.stock) <= 0 ? 0 : Math.max(0, Number(v.stock) || 0),
     }));
 
     if (existingIdx > -1) {
@@ -471,6 +472,9 @@ export const DataService = {
     const idx = localList.findIndex(p => p.id === productId);
     if (idx > -1) {
       localList[idx].stock = newStock;
+      if (newStock <= 0 && localList[idx].variants) {
+        localList[idx].variants = localList[idx].variants.map(v => ({ ...v, stock: 0 }));
+      }
       localList[idx].price = newPrice;
       if (newCostPrice !== undefined) localList[idx].cost_price = newCostPrice;
       if (newWholesalePrice !== undefined) localList[idx].wholesale_price = newWholesalePrice;

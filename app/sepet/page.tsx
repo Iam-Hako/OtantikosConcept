@@ -22,6 +22,7 @@ export default function CartPage() {
   const {
     items,
     removeItem,
+    removeOutOfStockItems,
     updateQuantity,
     clearCart,
     subtotal,
@@ -40,6 +41,14 @@ export default function CartPage() {
     totalItems,
   } = useCart();
 
+  const hasOutOfStockItems = items.some((item) => {
+    const maxStock = item.product.stock <= 0
+      ? 0
+      : item.variant
+      ? Math.min(item.product.stock, item.variant.stock)
+      : item.product.stock;
+    return maxStock <= 0 || item.quantity > maxStock;
+  });
   if (items.length === 0) {
     return (
       <div className="bg-white min-h-screen">
@@ -96,7 +105,12 @@ export default function CartPage() {
               {items.map((item) => {
                 const itemPrice = item.variant?.price_override ?? item.product.price;
                 const cover = item.variant?.image_url || item.product.images?.[0]?.image_url || '/images/logo.webp';
-                const maxStock = item.variant ? item.variant.stock : item.product.stock;
+                const maxStock = item.product.stock <= 0
+                  ? 0
+                  : item.variant
+                  ? Math.min(item.product.stock, item.variant.stock)
+                  : item.product.stock;
+                const isItemOutOfStock = maxStock <= 0 || item.quantity > maxStock;
 
                 return (
                   <div key={`${item.product.id}-${item.variant?.id || 'base'}`} className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
@@ -119,6 +133,13 @@ export default function CartPage() {
                             {item.variant.name}: <strong>{item.variant.value}</strong>
                           </span>
                         )}
+                        {isItemOutOfStock && (
+                          <div className="mt-1">
+                            <span className="inline-block text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
+                              ⚠️ Stok Tükendi (Satın Alınamaz)
+                            </span>
+                          </div>
+                        )}
                         <div className="text-xs text-stone-500 font-medium sm:hidden">
                           Birim Fiyat: {formatPrice(itemPrice)}
                         </div>
@@ -139,7 +160,7 @@ export default function CartPage() {
                         </span>
                         <button
                           onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.variant?.id)}
-                          disabled={item.quantity >= maxStock}
+                          disabled={item.quantity >= maxStock || maxStock <= 0}
                           className="p-1.5 text-stone-600 hover:text-[#e60012] disabled:opacity-30 transition"
                         >
                           <Plus className="w-3.5 h-3.5" />
@@ -316,13 +337,28 @@ export default function CartPage() {
               </div>
             </div>
 
-            <Link
-              href="/odeme"
-              className="w-full py-4 bg-[#e60012] hover:bg-[#c90010] text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg hover:shadow-red-600/30 transition flex items-center justify-center gap-2 group"
-            >
-              <span>Güvenli Ödemeye Geç</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
-            </Link>
+            {hasOutOfStockItems ? (
+              <div className="space-y-2">
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-center text-xs text-rose-700 font-bold">
+                  Sepetinizde tükenmiş ürün bulunduğu için ödemeye geçilemez.
+                </div>
+                <button
+                  type="button"
+                  onClick={removeOutOfStockItems}
+                  className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md transition"
+                >
+                  Tükenen Ürünleri Sepetten Çıkar
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/odeme"
+                className="w-full py-4 bg-[#e60012] hover:bg-[#c90010] text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg hover:shadow-red-600/30 transition flex items-center justify-center gap-2 group"
+              >
+                <span>Güvenli Ödemeye Geç</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
+              </Link>
+            )}
 
             <div className="space-y-2 pt-2 border-t border-stone-100 text-[11px] text-stone-500">
               <div className="flex items-center gap-2">
