@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { DataService } from '@/lib/data/store-data';
 import { generateOrderNumber } from '@/lib/utils/format';
 import { calculateDynamicShippingFee } from '@/lib/services/dhl-service';
+import { verifyAdmin } from '@/app/actions/ecommerce-actions';
 
 export async function POST(request: Request) {
   try {
@@ -22,8 +23,26 @@ export async function POST(request: Request) {
       is_admin_test,
     } = body;
 
+    // Security Guard: Admin test order MUST verify real admin session
+    let isVerifiedAdmin = false;
+    if (is_admin_test || payment_method === 'admin_test') {
+      isVerifiedAdmin = await verifyAdmin();
+      if (!isVerifiedAdmin) {
+        return NextResponse.json({ error: 'Yönetici test siparişi için admin yetkisi gereklidir.' }, { status: 403 });
+      }
+    }
+
+    const isPickup = delivery_type === 'magaza_teslim' || delivery_type === 'pickup';
+
+    // Disallow bypassing credit card payment gateway for standard shipping orders
+    if (!isVerifiedAdmin && !isPickup) {
+      return NextResponse.json({
+        error: 'Kredi kartı ile kargo siparişleri yalnızca iyzico güvenli ödeme geçidi üzerinden tamamlanabilir.',
+      }, { status: 400 });
+    }
+
     const isOnlineSalesActive = process.env.NEXT_PUBLIC_ONLINE_SALES_ACTIVE === 'true';
-    if (!isOnlineSalesActive && !is_admin_test) {
+    if (!isOnlineSalesActive && !isVerifiedAdmin) {
       return NextResponse.json({
         error: 'Online sipariş altyapısı geçici olarak devre dışıdır. Siparişleriniz için WhatsApp hattımızdan iletişime geçebilirsiniz.',
       }, { status: 403 });
@@ -45,13 +64,21 @@ export async function POST(request: Request) {
     let calculatedSubtotal = 0;
 
     for (const item of items) {
-      if (!item.product_id || !item.quantity || item.quantity <= 0 || item.quantity > 500) {
+      if (!item.product_id || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 500) {
         return NextResponse.json({ error: 'Geçersiz ürün adedi veya parametresi.' }, { status: 400 });
       }
 
       const prod = allProducts.find((p) => p.id === item.product_id);
       if (!prod) {
         return NextResponse.json({ error: `Ürün sistemde bulunamadı: ${item.product_name || item.product_id}` }, { status: 404 });
+      }
+
+      // Check Active and Published Status
+      if (prod.is_active === false) {
+        return NextResponse.json({ error: `"${prod.name}" satıştan kaldırılmıştır.` }, { status: 400 });
+      }
+      if (prod.is_published === false && !isPickup) {
+        return NextResponse.json({ error: `"${prod.name}" online kargo gönderimine kapalıdır (yalnızca mağazadan teslim alınabilir).` }, { status: 400 });
       }
 
       // 1. Strict Product Master Stock Check
@@ -63,14 +90,20 @@ export async function POST(request: Request) {
       let variantName = null;
 
       // 2. Strict Variant & Quantity Stock Check
-      if (item.variant_id && prod.variants && prod.variants.length > 0) {
+      if (prod.variants && prod.variants.length > 0) {
+        if (!item.variant_id) {
+          return NextResponse.json({ error: `Lütfen bir seçenek/varyant seçiniz: ${prod.name}` }, { status: 400 });
+        }
         const v = prod.variants.find((vr) => vr.id === item.variant_id);
-        const variantStock = v ? Number(v.stock) : 0;
+        if (!v || v.is_active === false) {
+          return NextResponse.json({ error: `Seçilen varyant bulunamadı: ${prod.name}` }, { status: 400 });
+        }
+        const variantStock = Number(v.stock);
         const effectiveStock = Math.min(Number(prod.stock), variantStock);
 
-        if (!v || effectiveStock <= 0 || item.quantity > effectiveStock) {
+        if (effectiveStock <= 0 || item.quantity > effectiveStock) {
           return NextResponse.json({
-            error: `Yetersiz stok: ${prod.name} (${v?.value || 'Seçenek'}) - Kalan: ${Math.max(0, effectiveStock)}`
+            error: `Yetersiz stok: ${prod.name} (${v.value || 'Seçenek'}) - Kalan: ${Math.max(0, effectiveStock)}`
           }, { status: 409 });
         }
         if (v.price_override !== undefined && v.price_override !== null) {
@@ -81,6 +114,10 @@ export async function POST(request: Request) {
         if (Number(prod.stock) < item.quantity) {
           return NextResponse.json({ error: `Yetersiz stok: ${prod.name} - Kalan: ${prod.stock}` }, { status: 409 });
         }
+      }
+
+      if (isNaN(verifiedUnitPrice) || verifiedUnitPrice <= 0) {
+        return NextResponse.json({ error: `Ürün fiyatı geçersiz: ${prod.name}` }, { status: 400 });
       }
 
       const itemTotal = verifiedUnitPrice * item.quantity;
@@ -107,6 +144,12 @@ export async function POST(request: Request) {
 
     const orderNumber = generateOrderNumber();
 
+    const orderPaymentStatus: 'paid' | 'pending' = isVerifiedAdmin ? 'paid' : (isPickup ? 'pending' : 'pending');
+    const orderPaymentMethod = isVerifiedAdmin ? 'admin_test' : (isPickup ? 'magaza_nakit' : 'credit_card');
+    const orderAdminNotes = isVerifiedAdmin
+      ? '🧪 Yönetici Test Satın Alımı (Kartsız Başarılı)'
+      : (isPickup ? '🏪 Mağazada Nakit/POS ile Ödeme Bekleniyor' : undefined);
+
     const order = await DataService.createOrder({
       order_number: orderNumber,
       user_id: user_id || null,
@@ -123,9 +166,10 @@ export async function POST(request: Request) {
       shipping_address,
       billing_address: billing_address || shipping_address,
       items: verifiedItems,
-      payment_status: 'paid',
+      payment_status: orderPaymentStatus,
+      payment_method: orderPaymentMethod,
       status: 'hazirlaniyor',
-      admin_notes: is_admin_test ? '🧪 Yönetici Test Satın Alımı (Kartsız Başarılı)' : undefined,
+      admin_notes: orderAdminNotes,
     });
 
     try {

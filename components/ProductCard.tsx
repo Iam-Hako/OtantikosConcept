@@ -43,6 +43,10 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (product.is_published === false) {
+      toast.error(`"${product.name}" yalnızca fiziki mağazamızda satıştadır.`);
+      return;
+    }
     if (Number(product.stock) <= 0) {
       toast.error(`"${product.name}" şu anda tükenmiştir.`);
       return;
@@ -63,6 +67,9 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
 
   // Determine status strip banner at bottom of image (Miniso Image 1)
   const getStatusStrip = () => {
+    if (product.is_published === false) {
+      return { text: '🏪 MAĞAZADA', bg: 'bg-amber-800' };
+    }
     if (product.stock <= 0) {
       return { text: 'TÜKENDİ', bg: 'bg-stone-800' };
     }

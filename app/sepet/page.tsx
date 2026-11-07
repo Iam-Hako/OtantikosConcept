@@ -42,6 +42,7 @@ export default function CartPage() {
   } = useCart();
 
   const hasOutOfStockItems = items.some((item) => {
+    if (item.product.is_active === false || item.product.is_published === false) return true;
     const maxStock = item.product.stock <= 0
       ? 0
       : item.variant
@@ -110,7 +111,9 @@ export default function CartPage() {
                   : item.variant
                   ? Math.min(item.product.stock, item.variant.stock)
                   : item.product.stock;
-                const isItemOutOfStock = maxStock <= 0 || item.quantity > maxStock;
+                const isStoreOnly = item.product.is_published === false;
+                const isInactive = item.product.is_active === false;
+                const isItemOutOfStock = isInactive || isStoreOnly || maxStock <= 0 || item.quantity > maxStock;
 
                 return (
                   <div key={`${item.product.id}-${item.variant?.id || 'base'}`} className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
@@ -136,7 +139,7 @@ export default function CartPage() {
                         {isItemOutOfStock && (
                           <div className="mt-1">
                             <span className="inline-block text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
-                              ⚠️ Stok Tükendi (Satın Alınamaz)
+                              {isInactive ? '⚠️ Satıştan Kaldırıldı' : isStoreOnly ? '🏪 Yalnızca Mağaza Satışı' : '⚠️ Stok Tükendi (Satın Alınamaz)'}
                             </span>
                           </div>
                         )}

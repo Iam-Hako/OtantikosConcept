@@ -39,7 +39,7 @@ async function getCurrentAdminUser() {
   return null;
 }
 
-async function verifyAdmin() {
+export async function verifyAdmin() {
   if (process.env.NODE_ENV === 'development') {
     return true;
   }
@@ -455,6 +455,15 @@ export async function actionUpdateOrderStatus(
     return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
   }
 
+  // If status is iptal_edildi, ensure full cancellation and restock workflow is executed
+  if (status === 'iptal_edildi') {
+    const cancelRes = await actionCancelOrder(orderId, adminNotes || 'Durum İptal Edildi olarak güncellendi', true);
+    return {
+      success: cancelRes.success,
+      error: cancelRes.success ? undefined : ((cancelRes as any).message || (cancelRes as any).error || 'Sipariş iptal edilemedi.'),
+    };
+  }
+
   try {
     const supabaseAdmin = createAdminClient();
     const updateData: any = { status, updated_at: new Date().toISOString() };
@@ -548,6 +557,17 @@ export async function actionDeleteOrder(orderId: string) {
     return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
   }
 
+  // Restore stock before permanent deletion if order was not cancelled yet
+  try {
+    const orders = await DataService.getOrders();
+    const targetOrder = orders.find((o) => o.id === orderId || o.order_number === orderId);
+    if (targetOrder && targetOrder.status !== 'iptal_edildi' && (targetOrder.payment_status === 'paid' || targetOrder.delivery_type === 'magaza_teslim')) {
+      await DataService.cancelOrder(targetOrder.id, 'Sipariş silinmeden önce stoklar iade edildi', true);
+    }
+  } catch (restockErr) {
+    console.error('actionDeleteOrder restock before delete error:', restockErr);
+  }
+
   try {
     const supabaseAdmin = createAdminClient();
     let dbId = orderId;
@@ -570,6 +590,8 @@ export async function actionDeleteOrder(orderId: string) {
 
   await DataService.deleteOrder(orderId);
   revalidatePath('/admin/siparisler');
+  revalidatePath('/admin/urunler');
+  revalidatePath('/admin/hizli-stok');
   revalidatePath('/hesabim');
   revalidatePath('/siparis-takip');
   return { success: true };

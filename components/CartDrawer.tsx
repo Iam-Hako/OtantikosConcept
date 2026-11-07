@@ -30,6 +30,7 @@ export default function CartDrawer() {
   } = useCart();
 
   const hasOutOfStockItems = items.some((item) => {
+    if (item.product.is_active === false || item.product.is_published === false) return true;
     const maxStock = item.product.stock <= 0
       ? 0
       : item.variant
@@ -96,7 +97,9 @@ export default function CartDrawer() {
                   : item.variant
                   ? Math.min(item.product.stock, item.variant.stock)
                   : item.product.stock;
-                const isItemOutOfStock = maxStock <= 0 || item.quantity > maxStock;
+                const isStoreOnly = item.product.is_published === false;
+                const isInactive = item.product.is_active === false;
+                const isItemOutOfStock = isInactive || isStoreOnly || maxStock <= 0 || item.quantity > maxStock;
 
                 return (
                   <div key={`${item.product.id}-${item.variant?.id || 'base'}`} className="py-4 flex gap-4">
@@ -138,7 +141,7 @@ export default function CartDrawer() {
                         {isItemOutOfStock && (
                           <div className="mt-1">
                             <span className="inline-block text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
-                              ⚠️ Stok Tükendi
+                              {isInactive ? '⚠️ Satıştan Kaldırıldı' : isStoreOnly ? '🏪 Yalnızca Mağaza Satışı' : '⚠️ Stok Tükendi'}
                             </span>
                           </div>
                         )}

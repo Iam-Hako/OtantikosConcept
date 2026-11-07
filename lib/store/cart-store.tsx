@@ -99,6 +99,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items, hasGiftWrap, giftNote, deliveryType, isMounted]);
 
   const addItem = (product: Product, variant?: ProductVariant | null, quantity = 1) => {
+    if (product.is_active === false) {
+      toast.error(`"${product.name}" satıştan kaldırılmıştır.`);
+      return;
+    }
+
+    if (product.is_published === false) {
+      toast.error(`"${product.name}" yalnızca mağaza içi satışa açıktır, online sepete eklenemez.`);
+      return;
+    }
+
     const effectiveStock = product.stock <= 0
       ? 0
       : variant
@@ -219,6 +229,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const removeOutOfStockItems = () => {
     setItems((prevItems) =>
       prevItems.filter((item) => {
+        if (item.product.is_active === false || item.product.is_published === false) {
+          return false;
+        }
         const effectiveStock = item.product.stock <= 0
           ? 0
           : item.variant
@@ -227,7 +240,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return effectiveStock > 0 && item.quantity > 0;
       })
     );
-    toast.success('Tükenen ürünler sepetten temizlendi.');
+    toast.success('Satışa kapalı veya tükenen ürünler sepetten temizlendi.');
   };
 
   return (

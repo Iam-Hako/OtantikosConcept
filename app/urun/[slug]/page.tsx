@@ -269,7 +269,7 @@ export default function ProductDetailPage() {
     );
   }
 
-  if (!product) {
+  if (!product || product.is_active === false) {
     return (
       <div className="bg-white min-h-screen">
         <div className="w-full max-w-[1840px] mx-auto px-4 py-20 text-center">
@@ -283,9 +283,10 @@ export default function ProductDetailPage() {
     );
   }
 
+  const isStoreOnly = product.is_published === false;
   const currentPrice = selectedVariant?.price_override ?? product.price;
   const isProductOutOfStock = Number(product.stock) <= 0;
-  const currentStock = isProductOutOfStock
+  const currentStock = (isProductOutOfStock || isStoreOnly)
     ? 0
     : selectedVariant
     ? Math.min(Number(product.stock), Number(selectedVariant.stock))
@@ -558,7 +559,11 @@ export default function ProductDetailPage() {
                 </span>
               </div>
               <div className="text-right">
-                {isOutOfStock ? (
+                {isStoreOnly ? (
+                  <span className="inline-block px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">
+                    🏪 Yalnızca Mağaza Satışı
+                  </span>
+                ) : isOutOfStock ? (
                   <span className="inline-block px-3 py-1 bg-rose-100 text-rose-700 text-xs font-bold rounded-full">
                     Tükendi
                   </span>
@@ -624,9 +629,36 @@ export default function ProductDetailPage() {
             </p>
           )}
 
-          {/* Add to Cart / Out of Stock Actions */}
+          {/* Add to Cart / Out of Stock / Store Only Actions */}
           <div className="space-y-3 pt-2">
-            {!isOutOfStock ? (
+            {isStoreOnly ? (
+              <div className="space-y-3 p-4 rounded-2xl bg-amber-50 border border-amber-200">
+                <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
+                  <span>🏪 Yalnızca Tahtakale Mağaza Satışı</span>
+                </div>
+                <p className="text-[11px] text-amber-800 leading-relaxed">
+                  Bu ürün şu an yalnızca Eminönü / Tahtakale fiziki mağazamızda satışa sunulmuş olup, online kargo gönderimine kapalıdır. Mağazamızdan hemen teslim alabilirsiniz.
+                </p>
+                <div className="flex gap-2.5">
+                  <a
+                    href={`https://wa.me/905077737777?text=${encodeURIComponent(`Merhaba Otantikos Concept, "${product.name}" ürününüz hakkında mağazadan teslimat veya toptan bilgi almak istiyorum.`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>WhatsApp ile Mağazadan Bilgi Al</span>
+                  </a>
+                  <button
+                    onClick={() => toggleFavorite(product)}
+                    className="p-3 rounded-xl border border-stone-300 hover:border-rose-400 text-stone-700 hover:text-rose-600 bg-white transition"
+                    aria-label="Favoriye Ekle"
+                  >
+                    <Heart className={`w-5 h-5 ${isFavorite(product.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                  </button>
+                </div>
+              </div>
+            ) : !isOutOfStock ? (
               <div className="flex gap-3">
                 {/* Stepper */}
                 <div className="flex items-center border border-stone-300 rounded-xl bg-white px-2">

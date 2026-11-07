@@ -46,9 +46,21 @@ export async function POST(request: Request) {
     let calculatedSubtotal = 0;
 
     for (const item of items) {
+      if (!item.product_id || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 500) {
+        return NextResponse.json({ error: 'Geçersiz ürün adedi veya parametresi.' }, { status: 400 });
+      }
+
       const prod = allProducts.find((p) => p.id === item.product_id);
       if (!prod) {
         return NextResponse.json({ error: `Ürün sistemde bulunamadı: ${item.product_name || item.product_id}` }, { status: 404 });
+      }
+
+      // Check Active and Published Status
+      if (prod.is_active === false) {
+        return NextResponse.json({ error: `"${prod.name}" satıştan kaldırılmıştır.` }, { status: 400 });
+      }
+      if (prod.is_published === false) {
+        return NextResponse.json({ error: `"${prod.name}" online satışa kapalıdır (yalnızca mağaza içi satış).` }, { status: 400 });
       }
 
       // 1. Strict Product Master Stock Check
@@ -60,14 +72,20 @@ export async function POST(request: Request) {
       let variantName = null;
 
       // 2. Strict Variant & Quantity Stock Check
-      if (item.variant_id && prod.variants && prod.variants.length > 0) {
+      if (prod.variants && prod.variants.length > 0) {
+        if (!item.variant_id) {
+          return NextResponse.json({ error: `Lütfen ürün için geçerli bir seçenek belirleyiniz: ${prod.name}` }, { status: 400 });
+        }
         const v = prod.variants.find((vr) => vr.id === item.variant_id);
-        const variantStock = v ? Number(v.stock) : 0;
+        if (!v || v.is_active === false) {
+          return NextResponse.json({ error: `Seçilen varyant bulunamadı veya satışta değil: ${prod.name}` }, { status: 400 });
+        }
+        const variantStock = Number(v.stock);
         const effectiveStock = Math.min(Number(prod.stock), variantStock);
 
-        if (!v || effectiveStock <= 0 || item.quantity > effectiveStock) {
+        if (effectiveStock <= 0 || item.quantity > effectiveStock) {
           return NextResponse.json({
-            error: `Yetersiz stok: ${prod.name} (${v?.value || 'Seçenek'}) - Kalan: ${Math.max(0, effectiveStock)}`
+            error: `Yetersiz stok: ${prod.name} (${v.value || 'Seçenek'}) - Kalan: ${Math.max(0, effectiveStock)}`
           }, { status: 409 });
         }
         if (v.price_override !== undefined && v.price_override !== null) {
@@ -78,6 +96,10 @@ export async function POST(request: Request) {
         if (Number(prod.stock) < item.quantity) {
           return NextResponse.json({ error: `Yetersiz stok: ${prod.name} - Kalan: ${prod.stock}` }, { status: 409 });
         }
+      }
+
+      if (isNaN(verifiedUnitPrice) || verifiedUnitPrice <= 0) {
+        return NextResponse.json({ error: `Ürün fiyatı geçersiz: ${prod.name}` }, { status: 400 });
       }
 
       const itemTotal = verifiedUnitPrice * item.quantity;

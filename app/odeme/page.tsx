@@ -173,10 +173,16 @@ function CheckoutContent() {
     toast.success('Bildirim kaydınız alındı! Satışlar başladığında ilk size haber vereceğiz.');
   };
 
-  // Build prefilled WhatsApp message with selected cart items
+  // Build prefilled WhatsApp message with selected cart items (strictly in-stock and published items)
+  const inStockCartItems = items.filter((it) => {
+    const isMasterStock = Number(it.product.stock) > 0;
+    const isVarStock = it.variant ? Number(it.variant.stock) > 0 : true;
+    return isMasterStock && isVarStock && it.product.is_published !== false;
+  });
+
   const whatsappCartMessage = encodeURIComponent(
     `Merhaba Otantikos Concept, sepetimdeki şu ürünler için sipariş vermek istiyorum:\n\n` +
-    items.map((it) => `• ${it.product.name} ${it.variant ? `(${it.variant.value})` : ''} - ${it.quantity} Adet (${formatPrice((it.variant?.price_override ?? it.product.price) * it.quantity)})`).join('\n') +
+    inStockCartItems.map((it) => `• ${it.product.name} ${it.variant ? `(${it.variant.value})` : ''} - ${it.quantity} Adet (${formatPrice((it.variant?.price_override ?? it.product.price) * it.quantity)})`).join('\n') +
     `\n\nAra Toplam: ${formatPrice(subtotal)}\nToplam Tutar: ${formatPrice(total)}\n\nSiparişim için yardımcı olabilir misiniz?`
   );
 
@@ -248,7 +254,19 @@ function CheckoutContent() {
       const allProducts = await DataService.getProducts();
       for (const item of items) {
         const prod = allProducts.find((p) => p.id === item.product.id);
-        if (!prod || Number(prod.stock) <= 0) {
+        if (!prod || prod.is_active === false) {
+          toast.error(`"${item.product.name}" satıştan kaldırılmıştır. Lütfen sepetinizden çıkarınız.`);
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (prod.is_published === false && deliveryType !== 'magaza_teslim') {
+          toast.error(`"${item.product.name}" online kargo gönderimine kapalıdır (yalnızca mağazadan teslim alınabilir).`);
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (Number(prod.stock) <= 0) {
           toast.error(`Üzgünüz, "${item.product.name}" tükenmiştir ve satın alınamaz! Lütfen sepetinizden çıkarınız.`);
           setIsSubmitting(false);
           return;

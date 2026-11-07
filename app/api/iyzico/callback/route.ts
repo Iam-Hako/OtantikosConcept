@@ -45,16 +45,15 @@ async function handleCallback(request: Request) {
     if (paymentResult.success) {
       const resolvedOrderNo = paymentResult.orderNumber || orderNumber;
       if (resolvedOrderNo) {
-        const order = await DataService.getOrderByNumber(resolvedOrderNo);
-        if (order) {
-          await DataService.updateOrderStatus(order.id, 'hazirlaniyor');
-        }
+        await DataService.markOrderPaid(resolvedOrderNo, 'credit_card');
       }
 
       try {
         revalidatePath('/');
         revalidatePath('/admin/siparisler');
         revalidatePath('/admin/kar-zarar');
+        revalidatePath('/admin/urunler');
+        revalidatePath('/admin/hizli-stok');
         revalidatePath('/siparis-takip');
       } catch {
         // Ignore revalidation error
@@ -65,6 +64,11 @@ async function handleCallback(request: Request) {
         { status: 303 }
       );
     } else {
+      const resolvedOrderNo = paymentResult.orderNumber || orderNumber;
+      if (resolvedOrderNo) {
+        await DataService.markOrderFailed(resolvedOrderNo, paymentResult.error || 'Ödeme onaylanamadı.');
+      }
+
       return NextResponse.redirect(
         `${baseUrl}/odeme?error=${encodeURIComponent(paymentResult.error || 'Ödeme onaylanamadı.')}`,
         { status: 303 }

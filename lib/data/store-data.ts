@@ -5,6 +5,8 @@ import {
   Product, 
   Category, 
   Order, 
+  OrderStatus,
+  PaymentStatus,
   ReturnRequest, 
   Question, 
   Review, 
@@ -911,6 +913,9 @@ export const DataService = {
         ? 'magaza_teslim' 
         : 'kargo';
 
+    const orderPaymentStatus: PaymentStatus = orderData.payment_status || 'paid';
+    const initialStatus: OrderStatus = orderData.status || 'siparis_alindi';
+
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
       order_number: orderData.order_number || `OTN-2026-${Math.floor(10000 + Math.random() * 90000)}`,
@@ -918,7 +923,7 @@ export const DataService = {
       guest_email: orderData.guest_email || null,
       guest_name: orderData.guest_name || null,
       guest_phone: orderData.guest_phone || null,
-      status: 'siparis_alindi',
+      status: initialStatus,
       total_amount: orderData.total_amount || 0,
       shipping_fee: orderData.shipping_fee || 0,
       total_desi: orderData.total_desi || 0,
@@ -930,9 +935,9 @@ export const DataService = {
       billing_address: orderData.billing_address!,
       tracking_number: null,
       tracking_carrier: null,
-      admin_notes: null,
-      payment_status: 'paid',
-      payment_method: 'credit_card',
+      admin_notes: orderData.admin_notes || null,
+      payment_status: orderPaymentStatus,
+      payment_method: orderData.payment_method || 'credit_card',
       created_at: new Date().toISOString(),
       items: orderData.items || [],
     };
@@ -941,18 +946,24 @@ export const DataService = {
     orders.unshift(newOrder);
     runtimeOrders = orders;
 
-    // Deduct stock locally
-    const prods = runtimeProducts;
-    newOrder.items?.forEach((item) => {
-      const p = prods.find(pr => pr.id === item.product_id || pr.name === item.product_name);
-      if (p) {
-        p.stock = Math.max(0, p.stock - item.quantity);
-        if (item.variant_id && p.variants) {
-          const v = p.variants.find(vr => vr.id === item.variant_id);
-          if (v) v.stock = Math.max(0, v.stock - item.quantity);
+    // Deduct stock immediately ONLY if order is already paid OR store pickup (physical reservation)
+    // For pending online credit card orders (iyzico), stock is reserved in checkout but deducted upon successful callback
+    const shouldDeductStockImmediately = newOrder.payment_status === 'paid' || newOrder.delivery_type === 'magaza_teslim';
+
+    if (shouldDeductStockImmediately) {
+      // Deduct stock locally
+      const prods = runtimeProducts;
+      newOrder.items?.forEach((item) => {
+        const p = prods.find(pr => pr.id === item.product_id || pr.name === item.product_name);
+        if (p) {
+          p.stock = Math.max(0, p.stock - item.quantity);
+          if (item.variant_id && p.variants) {
+            const v = p.variants.find(vr => vr.id === item.variant_id);
+            if (v) v.stock = Math.max(0, v.stock - item.quantity);
+          }
         }
-      }
-    });
+      });
+    }
 
     // Persist Order, Order Items and Deduct Stock in Supabase using Admin client
     try {
@@ -1007,7 +1018,75 @@ export const DataService = {
             total: item.total,
           });
 
-          // Deduct stock in PostgreSQL
+          // Deduct stock in PostgreSQL if payment is already confirmed or store pickup
+          if (shouldDeductStockImmediately) {
+            if (resolvedProdId) {
+              const { data: pData } = await supabaseAdmin.from('products').select('stock').eq('id', resolvedProdId).maybeSingle();
+              if (pData && typeof pData.stock === 'number') {
+                await supabaseAdmin.from('products').update({ stock: Math.max(0, pData.stock - item.quantity), updated_at: new Date().toISOString() }).eq('id', resolvedProdId);
+              }
+            }
+            if (resolvedVarId) {
+              const { data: vData } = await supabaseAdmin.from('product_variants').select('stock').eq('id', resolvedVarId).maybeSingle();
+              if (vData && typeof vData.stock === 'number') {
+                await supabaseAdmin.from('product_variants').update({ stock: Math.max(0, vData.stock - item.quantity) }).eq('id', resolvedVarId);
+              }
+            }
+          }
+        }
+
+        await supabaseAdmin.from('order_items').insert(orderItemsPayload);
+      }
+    } catch (err) {
+      console.error('DataService createOrder Supabase error:', err);
+    }
+
+    return newOrder;
+  },
+
+  async markOrderPaid(orderNumberOrId: string, paymentMethod: string = 'credit_card'): Promise<boolean> {
+    const orders = runtimeOrders;
+    const order = orders.find(o => o.id === orderNumberOrId || o.order_number === orderNumberOrId);
+    if (!order) return false;
+
+    const wasAlreadyPaid = order.payment_status === 'paid';
+    order.payment_status = 'paid';
+    order.payment_method = paymentMethod;
+    if (order.status === 'siparis_alindi') {
+      order.status = 'hazirlaniyor';
+    }
+    order.updated_at = new Date().toISOString();
+
+    // Deduct stock if not previously deducted
+    if (!wasAlreadyPaid && order.delivery_type !== 'magaza_teslim' && order.items && order.items.length > 0) {
+      // 1. In memory
+      const prods = runtimeProducts;
+      order.items.forEach((item) => {
+        const p = prods.find(pr => pr.id === item.product_id || pr.name === item.product_name);
+        if (p) {
+          p.stock = Math.max(0, p.stock - item.quantity);
+          if (item.variant_id && p.variants) {
+            const v = p.variants.find(vr => vr.id === item.variant_id);
+            if (v) v.stock = Math.max(0, v.stock - item.quantity);
+          }
+        }
+      });
+
+      // 2. In Supabase using admin client
+      try {
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const supabaseAdmin = createAdminClient();
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+        for (const item of order.items) {
+          let resolvedProdId = item.product_id && UUID_REGEX.test(item.product_id) ? item.product_id : null;
+          let resolvedVarId = item.variant_id && UUID_REGEX.test(item.variant_id) ? item.variant_id : null;
+
+          if (!resolvedProdId) {
+            const { data: pFound } = await supabaseAdmin.from('products').select('id, stock').eq('name', item.product_name).maybeSingle();
+            if (pFound?.id) resolvedProdId = pFound.id;
+          }
+
           if (resolvedProdId) {
             const { data: pData } = await supabaseAdmin.from('products').select('stock').eq('id', resolvedProdId).maybeSingle();
             if (pData && typeof pData.stock === 'number') {
@@ -1022,13 +1101,77 @@ export const DataService = {
           }
         }
 
-        await supabaseAdmin.from('order_items').insert(orderItemsPayload);
+        const isCustomId = order.id.startsWith('ord-');
+        const updateData = {
+          payment_status: 'paid',
+          payment_method: paymentMethod,
+          status: order.status,
+          updated_at: new Date().toISOString(),
+        };
+        if (!isCustomId) {
+          await supabaseAdmin.from('orders').update(updateData).eq('id', order.id);
+        } else {
+          await supabaseAdmin.from('orders').update(updateData).eq('order_number', order.order_number);
+        }
+      } catch (err) {
+        console.error('DataService markOrderPaid Supabase stock deduction error:', err);
       }
-    } catch (err) {
-      console.error('DataService createOrder Supabase error:', err);
+    } else {
+      // Just update status in Supabase if stock was already handled
+      try {
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const supabaseAdmin = createAdminClient();
+        const isCustomId = order.id.startsWith('ord-');
+        const updateData = {
+          payment_status: 'paid',
+          payment_method: paymentMethod,
+          status: order.status,
+          updated_at: new Date().toISOString(),
+        };
+        if (!isCustomId) {
+          await supabaseAdmin.from('orders').update(updateData).eq('id', order.id);
+        } else {
+          await supabaseAdmin.from('orders').update(updateData).eq('order_number', order.order_number);
+        }
+      } catch (err) {
+        console.error('DataService markOrderPaid status update error:', err);
+      }
     }
 
-    return newOrder;
+    return true;
+  },
+
+  async markOrderFailed(orderNumberOrId: string, reason?: string): Promise<boolean> {
+    const orders = runtimeOrders;
+    const order = orders.find(o => o.id === orderNumberOrId || o.order_number === orderNumberOrId);
+    if (!order) return false;
+
+    order.payment_status = 'failed';
+    order.status = 'iptal_edildi';
+    const noteText = reason ? `iyzico Ödeme Başarısız: ${reason}` : 'iyzico ödeme başarısız oldu veya kart reddedildi.';
+    order.admin_notes = order.admin_notes ? `${order.admin_notes} | ${noteText}` : noteText;
+    order.updated_at = new Date().toISOString();
+
+    try {
+      const { createAdminClient } = await import('@/lib/supabase/admin');
+      const supabaseAdmin = createAdminClient();
+      const isCustomId = order.id.startsWith('ord-');
+      const updateData = {
+        payment_status: 'failed',
+        status: 'iptal_edildi',
+        admin_notes: order.admin_notes,
+        updated_at: new Date().toISOString(),
+      };
+      if (!isCustomId) {
+        await supabaseAdmin.from('orders').update(updateData).eq('id', order.id);
+      } else {
+        await supabaseAdmin.from('orders').update(updateData).eq('order_number', order.order_number);
+      }
+    } catch (err) {
+      console.error('DataService markOrderFailed Supabase error:', err);
+    }
+
+    return true;
   },
 
   async updateOrderStatus(
@@ -1040,29 +1183,36 @@ export const DataService = {
   ): Promise<boolean> {
     const orders = runtimeOrders;
     const order = orders.find(o => o.id === orderId || o.order_number === orderId);
+
+    // If updating to iptal_edildi, ensure full cancellation and stock return logic is invoked
+    if (status === 'iptal_edildi' && order && order.status !== 'iptal_edildi') {
+      await this.cancelOrder(orderId, adminNotes || 'Durum İptal Edildi olarak güncellendi', true);
+      return true;
+    }
+
     if (order) {
       order.status = status;
       if (trackingNumber !== undefined) order.tracking_number = trackingNumber;
       if (trackingCarrier !== undefined) order.tracking_carrier = trackingCarrier;
       if (adminNotes !== undefined) order.admin_notes = adminNotes;
       order.updated_at = new Date().toISOString();
-      
     }
 
     try {
-      const supabase = createClient();
-      const updateData: any = { status };
+      const { createAdminClient } = await import('@/lib/supabase/admin');
+      const supabaseAdmin = createAdminClient();
+      const updateData: any = { status, updated_at: new Date().toISOString() };
       if (trackingNumber !== undefined) updateData.tracking_number = trackingNumber;
       if (trackingCarrier !== undefined) updateData.tracking_carrier = trackingCarrier;
       if (adminNotes !== undefined) updateData.admin_notes = adminNotes;
 
       if (!orderId.startsWith('ord-')) {
-        await supabase.from('orders').update(updateData).eq('id', orderId);
+        await supabaseAdmin.from('orders').update(updateData).eq('id', orderId);
       } else if (order?.order_number) {
-        await supabase.from('orders').update(updateData).eq('order_number', order.order_number);
+        await supabaseAdmin.from('orders').update(updateData).eq('order_number', order.order_number);
       }
-    } catch {
-      // Ignore
+    } catch (err) {
+      console.error('DataService updateOrderStatus error:', err);
     }
     return true;
   },
@@ -1082,8 +1232,11 @@ export const DataService = {
       return { success: false, message: 'Bu sipariş zaten daha önce iptal edilmiştir.' };
     }
 
+    // Only restock if stock was actually deducted previously (paid order or store pickup)
+    const wasStockDeducted = order.payment_status === 'paid' || order.delivery_type === 'magaza_teslim';
+
     order.status = 'iptal_edildi';
-    order.payment_status = 'refunded';
+    order.payment_status = order.payment_status === 'paid' ? 'refunded' : 'failed';
     const noteText = cancelReason
       ? `İptal Nedeni: ${cancelReason} (${new Date().toLocaleDateString('tr-TR')} ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })})`
       : `Yönetici tarafından iptal edildi (${new Date().toLocaleDateString('tr-TR')})`;
@@ -1091,7 +1244,7 @@ export const DataService = {
     order.updated_at = new Date().toISOString();
 
     // Restock items in memory
-    if (restockItems && order.items && order.items.length > 0) {
+    if (restockItems && wasStockDeducted && order.items && order.items.length > 0) {
       for (const item of order.items) {
         const prod = runtimeProducts.find((p) => p.id === item.product_id || p.name === item.product_name);
         if (prod) {
@@ -1108,34 +1261,35 @@ export const DataService = {
 
     // Update in Supabase
     try {
-      const supabase = createClient();
+      const { createAdminClient } = await import('@/lib/supabase/admin');
+      const supabaseAdmin = createAdminClient();
       const isCustomId = order.id.startsWith('ord-');
       const updateData: any = {
         status: 'iptal_edildi',
-        payment_status: 'refunded',
+        payment_status: order.payment_status,
         admin_notes: order.admin_notes,
         updated_at: new Date().toISOString(),
       };
 
       if (!isCustomId) {
-        await supabase.from('orders').update(updateData).eq('id', order.id);
+        await supabaseAdmin.from('orders').update(updateData).eq('id', order.id);
       } else {
-        await supabase.from('orders').update(updateData).eq('order_number', order.order_number);
+        await supabaseAdmin.from('orders').update(updateData).eq('order_number', order.order_number);
       }
 
       // Restock items in database
-      if (restockItems && order.items && order.items.length > 0) {
+      if (restockItems && wasStockDeducted && order.items && order.items.length > 0) {
         for (const item of order.items) {
           if (item.product_id && !item.product_id.startsWith('prod-')) {
-            const { data: pData } = await supabase.from('products').select('stock').eq('id', item.product_id).maybeSingle();
+            const { data: pData } = await supabaseAdmin.from('products').select('stock').eq('id', item.product_id).maybeSingle();
             if (pData && typeof pData.stock === 'number') {
-              await supabase.from('products').update({ stock: pData.stock + item.quantity, updated_at: new Date().toISOString() }).eq('id', item.product_id);
+              await supabaseAdmin.from('products').update({ stock: pData.stock + item.quantity, updated_at: new Date().toISOString() }).eq('id', item.product_id);
             }
           }
           if (item.variant_id && !item.variant_id.startsWith('var-')) {
-            const { data: vData } = await supabase.from('product_variants').select('stock').eq('id', item.variant_id).maybeSingle();
+            const { data: vData } = await supabaseAdmin.from('product_variants').select('stock').eq('id', item.variant_id).maybeSingle();
             if (vData && typeof vData.stock === 'number') {
-              await supabase.from('product_variants').update({ stock: vData.stock + item.quantity }).eq('id', item.variant_id);
+              await supabaseAdmin.from('product_variants').update({ stock: vData.stock + item.quantity }).eq('id', item.variant_id);
             }
           }
         }
@@ -1148,22 +1302,28 @@ export const DataService = {
   },
 
   async deleteOrder(orderId: string): Promise<boolean> {
+    const order = runtimeOrders.find((o) => o.id === orderId || o.order_number === orderId);
+    if (order && order.status !== 'iptal_edildi' && (order.payment_status === 'paid' || order.delivery_type === 'magaza_teslim')) {
+      await this.cancelOrder(order.id, 'Sipariş silinmeden önce stoklar iade edildi', true);
+    }
+
     runtimeOrders = runtimeOrders.filter((o) => o.id !== orderId && o.order_number !== orderId);
     try {
-      const supabase = createClient();
+      const { createAdminClient } = await import('@/lib/supabase/admin');
+      const supabaseAdmin = createAdminClient();
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
       if (isUuid) {
-        await supabase.from('order_items').delete().eq('order_id', orderId);
-        await supabase.from('returns').delete().eq('order_id', orderId);
-        await supabase.from('orders').delete().eq('id', orderId);
+        await supabaseAdmin.from('order_items').delete().eq('order_id', orderId);
+        await supabaseAdmin.from('returns').delete().eq('order_id', orderId);
+        await supabaseAdmin.from('orders').delete().eq('id', orderId);
       } else {
-        const { data: found } = await supabase.from('orders').select('id').eq('order_number', orderId).maybeSingle();
+        const { data: found } = await supabaseAdmin.from('orders').select('id').eq('order_number', orderId).maybeSingle();
         if (found?.id) {
-          await supabase.from('order_items').delete().eq('order_id', found.id);
-          await supabase.from('returns').delete().eq('order_id', found.id);
-          await supabase.from('orders').delete().eq('id', found.id);
+          await supabaseAdmin.from('order_items').delete().eq('order_id', found.id);
+          await supabaseAdmin.from('returns').delete().eq('order_id', found.id);
+          await supabaseAdmin.from('orders').delete().eq('id', found.id);
         } else {
-          await supabase.from('orders').delete().eq('order_number', orderId);
+          await supabaseAdmin.from('orders').delete().eq('order_number', orderId);
         }
       }
     } catch (err) {
