@@ -19,9 +19,12 @@ import {
 } from 'lucide-react';
 import { DataService } from '@/lib/data/store-data';
 import { Category } from '@/lib/types/ecommerce';
+import { useTranslation } from '@/lib/i18n/language-context';
+import LanguageSelector from '@/components/LanguageSelector';
 
 export default function Footer() {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
@@ -355,9 +358,9 @@ export default function Footer() {
 
         </div>
 
-        {/* PAYMENT SECURITY & IYZICO ROW */}
-        <div className="py-4 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-stone-500 text-xs">
-          <div className="flex items-center gap-2">
+        {/* PAYMENT SECURITY & IYZICO & LANGUAGE ROW */}
+        <div className="py-4 border-t border-stone-100 flex flex-col md:flex-row items-center justify-between gap-4 text-stone-500 text-xs">
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
             <span className="flex items-center gap-1 font-semibold text-stone-700">
               <Lock className="w-3.5 h-3.5 text-emerald-600" />
               256-Bit SSL Güvenli Alışveriş
@@ -369,13 +372,16 @@ export default function Footer() {
             </span>
           </div>
 
-          <div className="relative h-7 w-60 sm:w-72">
-            <Image
-              src="/images/iyzico/logo_band_white.svg"
-              alt="iyzico, Visa, MasterCard, Troy ile Güvenli Ödeme"
-              fill
-              className="object-contain object-center sm:object-right invert"
-            />
+          <div className="flex items-center gap-4">
+            <LanguageSelector variant="footer" />
+            <div className="relative h-7 w-52 sm:w-60">
+              <Image
+                src="/images/iyzico/logo_band_white.svg"
+                alt="iyzico, Visa, MasterCard, Troy ile Güvenli Ödeme"
+                fill
+                className="object-contain object-center sm:object-right invert"
+              />
+            </div>
           </div>
         </div>
 

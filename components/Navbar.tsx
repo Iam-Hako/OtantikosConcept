@@ -23,6 +23,8 @@ import { useWishlist } from '@/lib/store/wishlist-store';
 import { useAuth } from '@/lib/store/auth-context';
 import { DataService } from '@/lib/data/store-data';
 import { Category } from '@/lib/types/ecommerce';
+import { useTranslation } from '@/lib/i18n/language-context';
+import LanguageSelector from '@/components/LanguageSelector';
 import SearchModal from '@/components/SearchModal';
 
 export default function Navbar() {
@@ -31,6 +33,7 @@ export default function Navbar() {
   const { totalItems, openDrawer } = useCart();
   const { totalFavorites } = useWishlist();
   const { user, isAdmin, logout } = useAuth();
+  const { t } = useTranslation();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -134,13 +137,16 @@ export default function Navbar() {
           </div>
 
           {/* MINISO STYLE RIGHT ACTION ICONS */}
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             
+            {/* Dil Seçici (Language Selector) */}
+            <LanguageSelector variant="navbar" className="shrink-0" />
+
             {/* Favorilerim */}
             <Link
               href="/favorilerim"
               className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 p-1 sm:px-2.5 sm:py-2 text-stone-700 hover:text-[#e60012] transition rounded-lg group"
-              aria-label="Favorilerim"
+              aria-label={t('nav.favorites', 'Favorilerim')}
             >
               <div className="relative">
                 <Heart className="w-5 h-5 sm:w-5 sm:h-5 stroke-[1.8] group-hover:scale-110 transition-transform" />
@@ -150,7 +156,7 @@ export default function Navbar() {
                   </span>
                 )}
               </div>
-              <span className="text-[10px] sm:text-xs font-semibold text-stone-600 sm:text-stone-700">Favorilerim</span>
+              <span className="text-[10px] sm:text-xs font-semibold text-stone-600 sm:text-stone-700">{t('nav.favorites', 'Favorilerim')}</span>
             </Link>
 
             {/* Hesabım Dropdown */}
@@ -161,7 +167,7 @@ export default function Navbar() {
               >
                 <User className="w-5 h-5 sm:w-5 sm:h-5 stroke-[1.8] group-hover:scale-110 transition-transform" />
                 <span className="text-[10px] sm:text-xs font-semibold text-stone-600 sm:text-stone-700 max-w-[70px] sm:max-w-[90px] truncate">
-                  {user ? (user.full_name?.split(' ')[0] || user.email?.split('@')[0]) : 'Hesabım'}
+                  {user ? (user.full_name?.split(' ')[0] || user.email?.split('@')[0]) : t('nav.account', 'Hesabım')}
                 </span>
                 <ChevronDown className="w-3 h-3 text-stone-400 hidden sm:inline" />
               </button>
@@ -265,7 +271,7 @@ export default function Navbar() {
             <button
               onClick={openDrawer}
               className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 p-1 sm:px-2.5 sm:py-2 text-stone-700 hover:text-[#e60012] transition rounded-lg group cursor-pointer"
-              aria-label="Sepetim"
+              aria-label={t('nav.cart', 'Sepetim')}
             >
               <div className="relative">
                 <ShoppingBag className="w-5 h-5 sm:w-5 sm:h-5 stroke-[1.8] group-hover:scale-110 transition-transform" />
@@ -275,7 +281,7 @@ export default function Navbar() {
                   </span>
                 )}
               </div>
-              <span className="text-[10px] sm:text-xs font-semibold text-stone-600 sm:text-stone-700">Sepetim</span>
+              <span className="text-[10px] sm:text-xs font-semibold text-stone-600 sm:text-stone-700">{t('nav.cart', 'Sepetim')}</span>
             </button>
 
           </div>
@@ -289,7 +295,7 @@ export default function Navbar() {
             className="w-full flex items-center justify-between py-2 px-3.5 bg-[#f5f5f5] hover:bg-stone-200/60 border border-stone-200/80 rounded-lg text-stone-400 text-xs transition group cursor-pointer"
           >
             <span className="text-xs text-stone-400 font-normal group-hover:text-stone-600 transition-colors">
-              Ürün, kategori veya marka ara...
+              {t('nav.search_placeholder', 'Ürün, kategori veya marka ara...')}
             </span>
             <Search className="w-4 h-4 text-stone-400 group-hover:text-stone-600 transition-colors" />
           </button>
@@ -308,7 +314,7 @@ export default function Navbar() {
                 className="flex items-center gap-1.5 hover:text-[#e60012] transition-colors py-1 whitespace-nowrap group"
               >
                 <span className="text-base group-hover:scale-110 transition-transform">🎒</span>
-                <span className="font-bold text-stone-900 group-hover:text-[#e60012]">Tüm Ürünler</span>
+                <span className="font-bold text-stone-900 group-hover:text-[#e60012]">{t('nav.all_products', 'Tüm Ürünler')}</span>
               </Link>
             </li>
 
@@ -319,7 +325,7 @@ export default function Navbar() {
                 className="flex items-center gap-1.5 hover:text-[#e60012] transition-colors py-1 whitespace-nowrap group"
               >
                 <span className="text-base group-hover:scale-110 transition-transform">🏷️</span>
-                <span className="text-[#e60012] font-bold">İndirimli Ürünler</span>
+                <span className="text-[#e60012] font-bold">{t('nav.discounted', 'İndirimli Ürünler')}</span>
               </Link>
             </li>
 
@@ -330,7 +336,7 @@ export default function Navbar() {
                 className="flex items-center gap-1.5 hover:text-[#e60012] transition-colors py-1 whitespace-nowrap group"
               >
                 <span className="text-base group-hover:scale-110 transition-transform">⭐</span>
-                <span>Yeni</span>
+                <span>{t('nav.new_arrivals', 'Yeni')}</span>
               </Link>
             </li>
 
@@ -356,7 +362,7 @@ export default function Navbar() {
                 className="flex items-center gap-1.5 hover:text-[#e60012] transition-colors py-1 whitespace-nowrap group"
               >
                 <span className="text-base group-hover:scale-110 transition-transform">📦</span>
-                <span>Tahtakale Toptan</span>
+                <span>{t('nav.wholesale', 'Tahtakale Toptan')}</span>
               </Link>
             </li>
 
@@ -427,13 +433,18 @@ export default function Navbar() {
 
             {/* Drawer Content: Scrollable Colorful Cards (Image 4) */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {/* Language Selector in Mobile Drawer */}
+              <div className="pb-3 border-b border-stone-200/80 mb-2">
+                <LanguageSelector variant="mobile" />
+              </div>
+
               {/* Card 1: Tüm Ürünler (Bright Red) */}
               <Link
                 href="/kategori/tum-urunler"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="relative flex items-center justify-between h-16 sm:h-20 px-5 rounded-2xl bg-gradient-to-r from-[#e60012] via-[#ea1c2d] to-[#f43f5e] text-white shadow-sm overflow-hidden group active:scale-[0.98] transition-transform"
               >
-                <span className="font-bold text-base sm:text-lg z-10 drop-shadow-xs">Tüm Ürünler</span>
+                <span className="font-bold text-base sm:text-lg z-10 drop-shadow-xs">{t('nav.all_products', 'Tüm Ürünler')}</span>
                 <div className="text-3xl sm:text-4xl group-hover:scale-110 transition-transform select-none">
                   🎒
                 </div>
@@ -446,7 +457,7 @@ export default function Navbar() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="relative flex items-center justify-between h-16 sm:h-20 px-5 rounded-2xl bg-gradient-to-r from-[#ea580c] via-[#f97316] to-[#fb923c] text-white shadow-sm overflow-hidden group active:scale-[0.98] transition-transform"
               >
-                <span className="font-bold text-base sm:text-lg z-10 drop-shadow-xs">İndirimli Ürünler</span>
+                <span className="font-bold text-base sm:text-lg z-10 drop-shadow-xs">{t('nav.discounted', 'İndirimli Ürünler')}</span>
                 <div className="text-3xl sm:text-4xl group-hover:scale-110 transition-transform select-none">
                   🛍️
                 </div>
@@ -459,7 +470,7 @@ export default function Navbar() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="relative flex items-center justify-between h-16 sm:h-20 px-5 rounded-2xl bg-gradient-to-r from-[#0284c7] via-[#0ea5e9] to-[#38bdf8] text-white shadow-sm overflow-hidden group active:scale-[0.98] transition-transform"
               >
-                <span className="font-bold text-base sm:text-lg z-10 drop-shadow-xs">Yeni Gelenler</span>
+                <span className="font-bold text-base sm:text-lg z-10 drop-shadow-xs">{t('nav.new_arrivals', 'Yeni Gelenler')}</span>
                 <div className="text-2xl sm:text-3xl font-black italic bg-white text-[#0284c7] px-2.5 py-0.5 rounded-lg shadow-xs group-hover:scale-105 transition-transform">
                   NEW!
                 </div>
@@ -472,7 +483,7 @@ export default function Navbar() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="relative flex items-center justify-between h-16 sm:h-20 px-5 rounded-2xl bg-gradient-to-r from-[#db2777] via-[#ec4899] to-[#f472b6] text-white shadow-sm overflow-hidden group active:scale-[0.98] transition-transform"
               >
-                <span className="font-bold text-base sm:text-lg z-10 drop-shadow-xs">Popüler & Lisanslar</span>
+                <span className="font-bold text-base sm:text-lg z-10 drop-shadow-xs">{t('nav.popular', 'Popüler & Lisanslar')}</span>
                 <div className="text-3xl sm:text-4xl group-hover:scale-110 transition-transform select-none">
                   ✨
                 </div>
@@ -524,7 +535,7 @@ export default function Navbar() {
                 >
                   <span className="flex items-center gap-2">
                     <span>📦</span>
-                    <span>Tahtakale Toptan Alışveriş</span>
+                    <span>{t('nav.wholesale', 'Tahtakale Toptan Alışveriş')}</span>
                   </span>
                   <ChevronDown className="w-4 h-4 -rotate-90 text-stone-400" />
                 </Link>
@@ -536,7 +547,7 @@ export default function Navbar() {
                 >
                   <span className="flex items-center gap-2">
                     <span>🚚</span>
-                    <span>Sipariş ve Kargo Takibi</span>
+                    <span>{t('nav.order_tracking', 'Sipariş ve Kargo Takibi')}</span>
                   </span>
                   <ChevronDown className="w-4 h-4 -rotate-90 text-stone-400" />
                 </Link>
@@ -549,7 +560,7 @@ export default function Navbar() {
                 >
                   <span className="flex items-center gap-2">
                     <span>💬</span>
-                    <span>WhatsApp Canlı Destek</span>
+                    <span>{t('nav.live_chat', 'WhatsApp Canlı Destek')}</span>
                   </span>
                   <ChevronDown className="w-4 h-4 -rotate-90 text-emerald-600" />
                 </a>

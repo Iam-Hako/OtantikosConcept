@@ -5,9 +5,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { X, Trash2, Plus, Minus, Gift, ShoppingBag, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useCart } from '@/lib/store/cart-store';
+import { useTranslation } from '@/lib/i18n/language-context';
 import { formatPrice } from '@/lib/utils/format';
 
 export default function CartDrawer() {
+  const { t, isRTL } = useTranslation();
   const {
     items,
     isDrawerOpen,
@@ -49,7 +51,7 @@ export default function CartDrawer() {
         onClick={closeDrawer}
       />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+      <div className={`fixed inset-y-0 ${isRTL ? 'left-0 pr-10' : 'right-0 pl-10'} max-w-full flex`}>
         <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col animate-slide-in-right">
           
           {/* Header */}
@@ -57,13 +59,13 @@ export default function CartDrawer() {
             <div className="flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-amber-700" />
               <h2 className="text-base font-bold text-stone-900">
-                Alışveriş Sepetim ({totalItems} Ürün)
+                {t('cart.title', 'Alışveriş Sepetim')} ({totalItems})
               </h2>
             </div>
             <button
               onClick={closeDrawer}
               className="p-1.5 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 transition"
-              aria-label="Sepeti Kapat"
+              aria-label={t('common.close', 'Sepeti Kapat')}
             >
               <X className="w-5 h-5" />
             </button>
@@ -76,16 +78,16 @@ export default function CartDrawer() {
                 <div className="w-16 h-16 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
                   <ShoppingBag className="w-8 h-8 stroke-[1.5]" />
                 </div>
-                <h3 className="text-base font-bold text-stone-900 mb-1">Sepetiniz Boş</h3>
+                <h3 className="text-base font-bold text-stone-900 mb-1">{t('cart.empty_title', 'Sepetiniz Boş')}</h3>
                 <p className="text-xs text-stone-500 max-w-xs mb-6">
-                  Tahtakale konseptindeki özel takı, oyuncak ve hediyelik eşyalarımızı keşfetmeye başlayın.
+                  {t('cart.empty_desc', 'Tahtakale merkezli el yapımı mozaik lambalar, trend mekanik oyuncaklar ve özel hediyelik koleksiyonlarımızı keşfedin.')}
                 </p>
                 <Link
                   href="/kategori/tum-urunler"
                   onClick={closeDrawer}
                   className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
                 >
-                  Ürünleri Keşfet
+                  {t('cart.start_shopping', 'Ürünleri Keşfet')}
                 </Link>
               </div>
             ) : (
@@ -228,11 +230,11 @@ export default function CartDrawer() {
             <div className="p-6 border-t border-stone-200 bg-stone-50/50 space-y-3">
               <div className="space-y-1.5 text-xs text-stone-600">
                 <div className="flex justify-between">
-                  <span>Ara Toplam</span>
+                  <span>{t('cart.subtotal', 'Ara Toplam')}</span>
                   <span className="font-semibold text-stone-900">{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-stone-400 text-[11px]">
-                  <span>KDV (%20 Dahil)</span>
+                  <span>{t('product.tax_included', 'KDV Dahil')}</span>
                   <span>{formatPrice(kdvAmount)}</span>
                 </div>
                 {hasGiftWrap && (
@@ -243,7 +245,7 @@ export default function CartDrawer() {
                 )}
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-1.5">
-                    <span>Kargo Ücreti</span>
+                    <span>{t('cart.shipping', 'Kargo Ücreti')}</span>
                     {billableDesi > 0 && shippingFee > 0 && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-200">
                         DHL • {billableDesi} Desi
@@ -252,14 +254,14 @@ export default function CartDrawer() {
                   </div>
                   <span className="font-semibold">
                     {shippingFee === 0 ? (
-                      <span className="text-emerald-700 font-bold">ÜCRETSİZ</span>
+                      <span className="text-emerald-700 font-bold uppercase">{t('cart.free_shipping', 'ÜCRETSİZ')}</span>
                     ) : (
                       formatPrice(shippingFee)
                     )}
                   </span>
                 </div>
                 <div className="border-t border-stone-200 pt-2 flex justify-between text-sm font-black text-stone-950">
-                  <span>Genel Toplam</span>
+                  <span>{t('cart.total', 'Genel Toplam')}</span>
                   <span className="text-base text-amber-700">{formatPrice(total)}</span>
                 </div>
               </div>
@@ -267,14 +269,14 @@ export default function CartDrawer() {
               {hasOutOfStockItems ? (
                 <div className="space-y-2">
                   <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-center text-xs text-rose-700 font-bold">
-                    Sepetinizde tükenmiş ürün bulunduğu için ödemeye geçilemez.
+                    {t('cart.out_of_stock_warning', 'Sepetinizde tükenmiş ürün bulunduğu için ödemeye geçilemez.')}
                   </div>
                   <button
                     type="button"
                     onClick={removeOutOfStockItems}
                     className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md transition"
                   >
-                    Tükenen Ürünleri Sepetten Çıkar
+                    {t('cart.remove_out_of_stock', 'Tükenen Ürünleri Sepetten Çıkar')}
                   </button>
                 </div>
               ) : (
@@ -283,7 +285,7 @@ export default function CartDrawer() {
                   onClick={closeDrawer}
                   className="w-full py-3.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center justify-center gap-2 transition group"
                 >
-                  <span>Güvenli Ödemeye Geç</span>
+                  <span>{t('cart.checkout_btn', 'Güvenli Ödemeye Geç')}</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
                 </Link>
               )}

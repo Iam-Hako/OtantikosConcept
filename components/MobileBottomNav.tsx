@@ -6,11 +6,13 @@ import { usePathname } from 'next/navigation';
 import { Home, Grid, Search, Heart, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/lib/store/cart-store';
 import { useWishlist } from '@/lib/store/wishlist-store';
+import { useTranslation } from '@/lib/i18n/language-context';
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const { totalItems, openDrawer } = useCart();
   const { totalFavorites } = useWishlist();
+  const { t } = useTranslation();
 
   // Hide on admin routes or checkout for clean focus
   if (pathname?.startsWith('/admin') || pathname === '/odeme') {
@@ -44,7 +46,7 @@ export default function MobileBottomNav() {
           }`}
         >
           <Home className="w-5 h-5" />
-          <span>Ana Sayfa</span>
+          <span>{t('nav.home', 'Ana Sayfa')}</span>
         </Link>
 
         {/* Categories */}
@@ -54,20 +56,20 @@ export default function MobileBottomNav() {
           className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium py-1 px-2.5 min-w-[56px] active:scale-90 transition-transform text-stone-500 hover:text-stone-900 cursor-pointer"
         >
           <Grid className="w-5 h-5" />
-          <span>Kategoriler</span>
+          <span>{t('nav.categories', 'Kategoriler')}</span>
         </button>
 
         {/* Search */}
         <button
           type="button"
           onClick={handleOpenSearch}
-          aria-label="Canlı Arama Yap"
+          aria-label={t('nav.search_short', 'Canlı Arama Yap')}
           className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium py-1 px-2.5 min-w-[56px] active:scale-90 transition-transform ${
             isSearchActive ? 'text-amber-700 font-bold' : 'text-stone-500 hover:text-stone-900'
           }`}
         >
           <Search className="w-5 h-5" />
-          <span>Canlı Ara</span>
+          <span>{t('nav.search_short', 'Canlı Ara')}</span>
         </button>
 
         {/* Wishlist */}
@@ -85,14 +87,14 @@ export default function MobileBottomNav() {
               </span>
             )}
           </div>
-          <span>Favoriler</span>
+          <span>{t('nav.favorites', 'Favoriler')}</span>
         </Link>
 
         {/* Cart Trigger */}
         <button
           type="button"
           onClick={openDrawer}
-          aria-label="Sepeti Görüntüle"
+          aria-label={t('nav.cart', 'Sepeti Görüntüle')}
           className="relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium py-1 px-2.5 min-w-[56px] text-stone-500 hover:text-amber-700 active:scale-90 transition-transform"
         >
           <div className="relative">
@@ -103,7 +105,7 @@ export default function MobileBottomNav() {
               </span>
             )}
           </div>
-          <span>Sepet</span>
+          <span>{t('nav.cart', 'Sepet')}</span>
         </button>
       </div>
     </div>

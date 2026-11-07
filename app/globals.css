@@ -174,3 +174,41 @@
     display: none !important;
   }
 }
+
+/* ==========================================
+   Multi-Language (i18n) & RTL Architecture
+   ========================================== */
+.goog-te-banner-frame {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+}
+body {
+  top: 0px !important;
+}
+.skiptranslate {
+  display: none !important;
+}
+#goog-gt-tt {
+  display: none !important;
+  visibility: hidden !important;
+}
+.goog-text-highlight {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+.VIpgJd-ZVi9od-ORHb-OEVmcd {
+  display: none !important;
+}
+
+/* Arabic RTL Fluid Layout */
+html[dir="rtl"] {
+  direction: rtl;
+}
+html[dir="rtl"] .font-mono,
+html[dir="rtl"] .tabular-nums {
+  direction: ltr;
+  display: inline-block;
+  unicode-bidi: embed;
+}
+

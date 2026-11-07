@@ -7,6 +7,7 @@ import { Heart, Star, Sparkles, Play } from 'lucide-react';
 import { Product } from '@/lib/types/ecommerce';
 import { useCart } from '@/lib/store/cart-store';
 import { useWishlist } from '@/lib/store/wishlist-store';
+import { useTranslation } from '@/lib/i18n/language-context';
 import { formatPrice, convertGoogleDriveVideoUrl } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
@@ -18,6 +19,7 @@ interface ProductCardProps {
 export default function ProductCard({ product, priority = false }: ProductCardProps) {
   const { addItem } = useCart();
   const { toggleFavorite, isFavorite } = useWishlist();
+  const { t } = useTranslation();
 
   const isFav = isFavorite(product.id);
   const validImages = (product.images || []).filter(
@@ -164,7 +166,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
               : 'border-stone-300 bg-stone-100 text-stone-400 cursor-not-allowed'
           }`}
         >
-          {product.stock > 0 ? 'Sepete Ekle' : 'Tükendi'}
+          {product.stock > 0 ? t('product.add_to_cart', 'Sepete Ekle') : t('product.out_of_stock', 'Tükendi')}
         </button>
       </div>
 

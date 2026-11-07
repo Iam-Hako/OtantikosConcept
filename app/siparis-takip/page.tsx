@@ -17,9 +17,11 @@ import {
 } from 'lucide-react';
 import { Order } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
+import { useTranslation } from '@/lib/i18n/language-context';
 import { formatPrice, formatDate } from '@/lib/utils/format';
 
 function OrderTrackingContent() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const initialOrderNumber = searchParams?.get('order_number') || searchParams?.get('siparis') || '';
   const initialEmail = searchParams?.get('email') || '';
@@ -86,10 +88,10 @@ function OrderTrackingContent() {
             <Truck className="w-7 h-7 sm:w-8 sm:h-8" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-serif font-black text-stone-900 leading-tight">
-            Canlı Kargo & Sipariş Takibi
+            {t('tracking.title', 'Canlı Kargo & Sipariş Takibi')}
           </h1>
           <p className="text-xs sm:text-sm text-stone-500 max-w-md mx-auto">
-            Sipariş numaranız (OTN-2026-XXXXX) ile siparişinizin Tahtakale depomuzdan teslimatına kadar olan sürecini canlı izleyin.
+            {t('tracking.subtitle', 'Sipariş numaranız (OTN-2026-XXXXX) ile siparişinizin Tahtakale depomuzdan teslimatına kadar olan sürecini canlı izleyin.')}
           </p>
         </div>
 
@@ -97,7 +99,7 @@ function OrderTrackingContent() {
           <form onSubmit={handleSearch} className="space-y-4">
             <div>
               <label className="block text-[11px] font-bold text-stone-700 mb-1">
-                Sipariş Takip Numarası *
+                {t('tracking.order_no', 'Sipariş Takip Numarası')} *
               </label>
               <input
                 type="text"
@@ -111,7 +113,7 @@ function OrderTrackingContent() {
 
             <div>
               <label className="block text-[11px] font-bold text-stone-700 mb-1">
-                E-Posta Adresi veya Alıcı Adı (Güvenlik Doğrulaması) *
+                {t('tracking.verification', 'E-Posta Adresi veya Alıcı Adı (Güvenlik Doğrulaması)')} *
               </label>
               <input
                 type="text"
@@ -129,7 +131,7 @@ function OrderTrackingContent() {
               className="w-full py-3.5 bg-[#e60012] hover:bg-[#c90010] active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 min-h-[48px] disabled:opacity-50"
             >
               <Search className="w-4 h-4" />
-              <span>{isLoading ? 'Sorgulanıyor...' : 'Siparişi Canlı Sorgula'}</span>
+              <span>{isLoading ? t('tracking.searching', 'Sorgulanıyor...') : t('tracking.search_btn', 'Siparişi Canlı Sorgula')}</span>
             </button>
           </form>
         </div>
@@ -139,9 +141,9 @@ function OrderTrackingContent() {
             {!order ? (
               <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 sm:p-8 text-center max-w-md mx-auto">
                 <AlertCircle className="w-8 h-8 text-rose-600 mx-auto mb-2" />
-                <h3 className="text-sm font-bold text-stone-900">Sipariş Bulunamadı</h3>
+                <h3 className="text-sm font-bold text-stone-900">{t('tracking.not_found', 'Sipariş Bulunamadı')}</h3>
                 <p className="text-xs text-stone-600 mt-1">
-                  Girdiğiniz sipariş numarası veya e-posta adresi eşleşmedi. Lütfen bilgilerinizi kontrol edip tekrar deneyiniz.
+                  {t('tracking.not_found_desc', 'Girdiğiniz sipariş numarası veya e-posta adresi eşleşmedi. Lütfen bilgilerinizi kontrol edip tekrar deneyiniz.')}
                 </p>
               </div>
             ) : (

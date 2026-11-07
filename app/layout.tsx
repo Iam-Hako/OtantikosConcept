@@ -4,6 +4,7 @@ import './globals.css';
 import { CartProvider } from '@/lib/store/cart-store';
 import { WishlistProvider } from '@/lib/store/wishlist-store';
 import { AuthProvider } from '@/lib/store/auth-context';
+import { LanguageProvider } from '@/lib/i18n/language-context';
 import { Toaster } from 'sonner';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -68,35 +69,37 @@ export default function RootLayout({
       <body className="flex flex-col min-h-screen font-sans text-stone-900 w-full max-w-full antialiased relative bg-white">
 
         <AuthProvider>
-          <WishlistProvider>
-            <CartProvider>
-              <Suspense fallback={null}>
-                <Navbar />
-              </Suspense>
-              <main className="flex-1 pb-16 lg:pb-0 transform-gpu bg-white">{children}</main>
-              <Footer />
-              <Suspense fallback={null}>
-                <MobileBottomNav />
-              </Suspense>
-              <Suspense fallback={null}>
-                <CartDrawer />
-              </Suspense>
-              <Suspense fallback={null}>
-                <LiveChatWidget />
-              </Suspense>
-              <CookieConsent />
-              <Suspense fallback={null}>
-                <NotificationPrompt />
-              </Suspense>
-              <Suspense fallback={null}>
-                <PwaInstallPrompt />
-              </Suspense>
-              <Suspense fallback={null}>
-                <NavigationLoader />
-              </Suspense>
-              <Toaster position="top-right" richColors closeButton />
-            </CartProvider>
-          </WishlistProvider>
+          <LanguageProvider>
+            <WishlistProvider>
+              <CartProvider>
+                <Suspense fallback={null}>
+                  <Navbar />
+                </Suspense>
+                <main className="flex-1 pb-16 lg:pb-0 transform-gpu bg-white">{children}</main>
+                <Footer />
+                <Suspense fallback={null}>
+                  <MobileBottomNav />
+                </Suspense>
+                <Suspense fallback={null}>
+                  <CartDrawer />
+                </Suspense>
+                <Suspense fallback={null}>
+                  <LiveChatWidget />
+                </Suspense>
+                <CookieConsent />
+                <Suspense fallback={null}>
+                  <NotificationPrompt />
+                </Suspense>
+                <Suspense fallback={null}>
+                  <PwaInstallPrompt />
+                </Suspense>
+                <Suspense fallback={null}>
+                  <NavigationLoader />
+                </Suspense>
+                <Toaster position="top-right" richColors closeButton />
+              </CartProvider>
+            </WishlistProvider>
+          </LanguageProvider>
         </AuthProvider>
       </body>
     </html>
