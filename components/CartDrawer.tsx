@@ -7,6 +7,7 @@ import { X, Trash2, Plus, Minus, Gift, ShoppingBag, ArrowRight, ShieldCheck } fr
 import { useCart } from '@/lib/store/cart-store';
 import { useTranslation } from '@/lib/i18n/language-context';
 import { formatPrice } from '@/lib/utils/format';
+import { CouponInput } from '@/components/CouponInput';
 
 export default function CartDrawer() {
   const { t, isRTL } = useTranslation();
@@ -28,6 +29,8 @@ export default function CartDrawer() {
     total,
     kdvAmount,
     totalItems,
+    appliedCoupon,
+    discountAmount,
     removeOutOfStockItems,
   } = useCart();
 
@@ -228,11 +231,20 @@ export default function CartDrawer() {
           {/* Footer Summary */}
           {items.length > 0 && (
             <div className="p-6 border-t border-stone-200 bg-stone-50/50 space-y-3">
+              {/* Coupon Input */}
+              <CouponInput variant="compact" />
+
               <div className="space-y-1.5 text-xs text-stone-600">
                 <div className="flex justify-between">
                   <span>{t('cart.subtotal', 'Ara Toplam')}</span>
                   <span className="font-semibold text-stone-900">{formatPrice(subtotal)}</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-emerald-700 font-semibold">
+                    <span>{t('cart.discount', 'Kupon İndirimi')} ({appliedCoupon?.code})</span>
+                    <span>-{formatPrice(discountAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-stone-400 text-[11px]">
                   <span>{t('product.tax_included', 'KDV Dahil')}</span>
                   <span>{formatPrice(kdvAmount)}</span>

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '@/lib/store/cart-store';
 import { formatPrice } from '@/lib/utils/format';
+import { CouponInput } from '@/components/CouponInput';
 
 export default function CartPage() {
   const {
@@ -39,6 +40,8 @@ export default function CartPage() {
     total,
     kdvAmount,
     totalItems,
+    appliedCoupon,
+    discountAmount,
   } = useCart();
 
   const hasOutOfStockItems = items.some((item) => {
@@ -298,11 +301,21 @@ export default function CartPage() {
               Sipariş Özeti
             </h2>
 
+            {/* Coupon Input */}
+            <CouponInput />
+
             <div className="space-y-2.5 text-xs text-stone-600">
               <div className="flex justify-between">
                 <span>Ara Toplam</span>
                 <span className="font-semibold text-stone-900">{formatPrice(subtotal)}</span>
               </div>
+
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-emerald-700 font-semibold">
+                  <span>Kupon İndirimi ({appliedCoupon?.code})</span>
+                  <span>-{formatPrice(discountAmount)}</span>
+                </div>
+              )}
 
               <div className="flex justify-between text-[11px] text-stone-400">
                 <span>%20 KDV Dahil Tutar</span>

@@ -3,6 +3,7 @@ import { DataService } from '@/lib/data/store-data';
 import { generateOrderNumber } from '@/lib/utils/format';
 import { initializeIyzicoCheckoutForm } from '@/lib/services/iyzico-service';
 import { calculateDynamicShippingFee } from '@/lib/services/dhl-service';
+import { CouponService } from '@/lib/services/coupon-service';
 import { applyRateLimit } from '@/lib/security/rate-limit';
 
 export async function POST(request: Request) {
@@ -29,6 +30,7 @@ export async function POST(request: Request) {
       guest_name,
       guest_phone,
       identity_number,
+      coupon_code,
     } = body;
 
     const isOnlineSalesActive = process.env.NEXT_PUBLIC_ONLINE_SALES_ACTIVE === 'true';
@@ -132,7 +134,20 @@ export async function POST(request: Request) {
     const dynamicShipping = calculateDynamicShippingFee(verifiedItems, delivery_type);
     const verifiedShippingFee = dynamicShipping.shippingFee;
     const verifiedGiftWrapFee = has_gift_wrap ? 50 : 0;
-    const verifiedTotalAmount = calculatedSubtotal + verifiedShippingFee + verifiedGiftWrapFee;
+
+    // Server-side strict coupon verification
+    let verifiedDiscountAmount = 0;
+    let appliedCouponCode: string | null = null;
+
+    if (coupon_code && typeof coupon_code === 'string') {
+      const couponValidation = CouponService.validateCoupon(coupon_code, calculatedSubtotal);
+      if (couponValidation.valid) {
+        verifiedDiscountAmount = couponValidation.discountAmount;
+        appliedCouponCode = couponValidation.coupon?.code || coupon_code.trim().toUpperCase();
+      }
+    }
+
+    const verifiedTotalAmount = Math.max(0, calculatedSubtotal - verifiedDiscountAmount) + verifiedShippingFee + verifiedGiftWrapFee;
 
     const orderNumber = generateOrderNumber();
 
@@ -153,6 +168,8 @@ export async function POST(request: Request) {
       shipping_address,
       billing_address: billing_address || shipping_address,
       items: verifiedItems,
+      coupon_code: appliedCouponCode,
+      discount_amount: verifiedDiscountAmount,
       payment_status: 'pending',
     });
 
@@ -169,9 +186,14 @@ export async function POST(request: Request) {
     // Build basket breakdown items for iyzico (Sum MUST EXACTLY equal verifiedTotalAmount)
     const iyzicoBasketItems: Array<{ id: string; name: string; category?: string; price: number }> = [];
 
+    // Scale product item prices if discount is applied so item breakdown matches net total
+    const discountRatio = calculatedSubtotal > 0 && verifiedDiscountAmount > 0
+      ? Math.max(0, calculatedSubtotal - verifiedDiscountAmount) / calculatedSubtotal
+      : 1;
+
     // 1. Expand verified product items by their quantity
     verifiedItems.forEach((it, idx) => {
-      const unitPrice = Number(it.price);
+      const unitPrice = Number((it.price * discountRatio).toFixed(2));
       for (let q = 1; q <= it.quantity; q++) {
         iyzicoBasketItems.push({
           id: `${it.product_id}-${q}`,

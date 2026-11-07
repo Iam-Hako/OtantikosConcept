@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { DataService } from '@/lib/data/store-data';
 import { generateOrderNumber } from '@/lib/utils/format';
 import { calculateDynamicShippingFee } from '@/lib/services/dhl-service';
+import { CouponService } from '@/lib/services/coupon-service';
 import { verifyAdmin } from '@/app/actions/ecommerce-actions';
 import { applyRateLimit } from '@/lib/security/rate-limit';
 
@@ -31,6 +32,7 @@ export async function POST(request: Request) {
       guest_phone,
       payment_method,
       is_admin_test,
+      coupon_code,
     } = body;
 
     // Security Guard: Admin test order MUST verify real admin session
@@ -150,7 +152,20 @@ export async function POST(request: Request) {
     const dynamicShipping = calculateDynamicShippingFee(verifiedItems, delivery_type);
     const verifiedShippingFee = dynamicShipping.shippingFee;
     const verifiedGiftWrapFee = has_gift_wrap ? 50 : 0;
-    const verifiedTotalAmount = calculatedSubtotal + verifiedShippingFee + verifiedGiftWrapFee;
+
+    // Server-side strict coupon verification
+    let verifiedDiscountAmount = 0;
+    let appliedCouponCode: string | null = null;
+
+    if (coupon_code && typeof coupon_code === 'string') {
+      const couponValidation = CouponService.validateCoupon(coupon_code, calculatedSubtotal);
+      if (couponValidation.valid) {
+        verifiedDiscountAmount = couponValidation.discountAmount;
+        appliedCouponCode = couponValidation.coupon?.code || coupon_code.trim().toUpperCase();
+      }
+    }
+
+    const verifiedTotalAmount = Math.max(0, calculatedSubtotal - verifiedDiscountAmount) + verifiedShippingFee + verifiedGiftWrapFee;
 
     const orderNumber = generateOrderNumber();
 
@@ -176,6 +191,8 @@ export async function POST(request: Request) {
       shipping_address,
       billing_address: billing_address || shipping_address,
       items: verifiedItems,
+      coupon_code: appliedCouponCode,
+      discount_amount: verifiedDiscountAmount,
       payment_status: orderPaymentStatus,
       payment_method: orderPaymentMethod,
       status: 'hazirlaniyor',

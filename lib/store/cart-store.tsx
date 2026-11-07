@@ -1,7 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Product, ProductVariant, CartItem, DeliveryType } from '@/lib/types/ecommerce';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
+import { Product, ProductVariant, CartItem, DeliveryType, Coupon } from '@/lib/types/ecommerce';
 import { calculateDynamicShippingFee } from '@/lib/services/dhl-service';
 import { toast } from 'sonner';
 
@@ -23,6 +23,10 @@ interface CartContextType {
   setGiftNote: (val: string) => void;
   deliveryType: DeliveryType;
   setDeliveryType: (val: DeliveryType) => void;
+  appliedCoupon: Coupon | null;
+  discountAmount: number;
+  applyCoupon: (code: string) => Promise<{ success: boolean; message: string; discount?: number }>;
+  removeCoupon: () => void;
   total: number;
   kdvAmount: number; // 20% included KDV breakdown
   isDrawerOpen: boolean;
@@ -36,6 +40,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const CART_STORAGE_KEY = 'otantikos_cart_v2';
 const GIFT_OPTIONS_KEY = 'otantikos_gift_v2';
+const COUPON_STORAGE_KEY = 'otantikos_coupon_v2';
 const GIFT_WRAP_PRICE = 50.00;
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
@@ -43,6 +48,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [hasGiftWrap, setHasGiftWrap] = useState<boolean>(false);
   const [giftNote, setGiftNote] = useState<string>('');
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('kargo');
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [isMounted, setIsMounted] = useState<boolean>(false);
 
@@ -68,6 +74,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           setItems(validItems);
         }
       }
+
       const savedGift = localStorage.getItem(GIFT_OPTIONS_KEY);
       if (savedGift) {
         const parsed = JSON.parse(savedGift);
@@ -77,6 +84,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           if (parsed.deliveryType === 'magaza_teslim' || parsed.deliveryType === 'kargo') {
             setDeliveryType(parsed.deliveryType);
           }
+        }
+      }
+
+      const savedCoupon = localStorage.getItem(COUPON_STORAGE_KEY);
+      if (savedCoupon) {
+        const parsedCoupon = JSON.parse(savedCoupon);
+        if (parsedCoupon && parsedCoupon.code) {
+          setAppliedCoupon(parsedCoupon);
         }
       }
     } catch {
@@ -93,10 +108,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         GIFT_OPTIONS_KEY,
         JSON.stringify({ hasGiftWrap, giftNote, deliveryType })
       );
+      if (appliedCoupon) {
+        localStorage.setItem(COUPON_STORAGE_KEY, JSON.stringify(appliedCoupon));
+      } else {
+        localStorage.removeItem(COUPON_STORAGE_KEY);
+      }
     } catch {
       // LocalStorage access error ignored
     }
-  }, [items, hasGiftWrap, giftNote, deliveryType, isMounted]);
+  }, [items, hasGiftWrap, giftNote, deliveryType, appliedCoupon, isMounted]);
 
   const addItem = (product: Product, variant?: ProductVariant | null, quantity = 1) => {
     if (product.is_active === false) {
@@ -208,23 +228,77 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems([]);
     setHasGiftWrap(false);
     setGiftNote('');
+    setAppliedCoupon(null);
   };
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  const subtotal = items.reduce((sum, item) => {
-    const itemPrice = item.variant?.price_override ?? item.product.price;
-    return sum + itemPrice * item.quantity;
-  }, 0);
+  const subtotal = useMemo(() => {
+    return items.reduce((sum, item) => {
+      const itemPrice = item.variant?.price_override ?? item.product.price;
+      return sum + itemPrice * item.quantity;
+    }, 0);
+  }, [items]);
+
+  // Dynamic Discount Calculation based on applied coupon and subtotal
+  const discountAmount = useMemo(() => {
+    if (!appliedCoupon || subtotal <= 0) return 0;
+    if (subtotal < appliedCoupon.min_order_amount) return 0;
+
+    let discount = 0;
+    if (appliedCoupon.discount_type === 'fixed') {
+      discount = Math.min(appliedCoupon.discount_value, subtotal);
+    } else if (appliedCoupon.discount_type === 'percentage') {
+      discount = subtotal * (appliedCoupon.discount_value / 100);
+      if (appliedCoupon.max_discount_amount && appliedCoupon.max_discount_amount > 0) {
+        discount = Math.min(discount, appliedCoupon.max_discount_amount);
+      }
+    }
+    return Math.round(discount * 100) / 100;
+  }, [appliedCoupon, subtotal]);
+
+  const applyCoupon = useCallback(async (code: string): Promise<{ success: boolean; message: string; discount?: number }> => {
+    const trimmed = (code || '').trim().toUpperCase();
+    if (!trimmed) {
+      toast.error('Lütfen bir kupon kodu giriniz.');
+      return { success: false, message: 'Lütfen bir kupon kodu giriniz.' };
+    }
+
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: trimmed, subtotal }),
+      });
+      const data = await res.json();
+
+      if (data.valid && data.coupon) {
+        setAppliedCoupon(data.coupon);
+        toast.success(data.message || 'Kupon başarıyla uygulandı!');
+        return { success: true, message: data.message, discount: data.discountAmount };
+      } else {
+        toast.error(data.message || 'Geçersiz kupon kodu.');
+        return { success: false, message: data.message || 'Geçersiz kupon kodu.' };
+      }
+    } catch {
+      toast.error('Kupon doğrulanırken sunucu hatası oluştu.');
+      return { success: false, message: 'Sunucu bağlantı hatası.' };
+    }
+  }, [subtotal]);
+
+  const removeCoupon = useCallback(() => {
+    setAppliedCoupon(null);
+    toast.info('İndirim kuponu sepetten kaldırıldı.');
+  }, []);
 
   // Dinamik DHL Desi Kargo Hesabı (Tahtakale Mağaza Teslim ₺0.00)
   const { totalDesi, billableDesi, shippingFee } = calculateDynamicShippingFee(items, deliveryType);
 
   const giftWrapFee = hasGiftWrap && items.length > 0 ? GIFT_WRAP_PRICE : 0;
-  const total = subtotal + shippingFee + giftWrapFee;
+  const total = Math.max(0, subtotal - discountAmount) + shippingFee + giftWrapFee;
 
   // %20 KDV dahil dökümü
-  const kdvAmount = subtotal > 0 ? subtotal - subtotal / 1.2 : 0;
+  const kdvAmount = subtotal > 0 ? (subtotal - discountAmount) - (subtotal - discountAmount) / 1.2 : 0;
 
   const removeOutOfStockItems = () => {
     setItems((prevItems) =>
@@ -263,6 +337,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setGiftNote,
         deliveryType,
         setDeliveryType,
+        appliedCoupon,
+        discountAmount,
+        applyCoupon,
+        removeCoupon,
         total,
         kdvAmount,
         isDrawerOpen,

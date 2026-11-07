@@ -149,6 +149,19 @@ export interface OrderItem {
   image_url?: string;
 }
 
+export type DiscountType = 'fixed' | 'percentage';
+
+export interface Coupon {
+  code: string;
+  description: string;
+  discount_type: DiscountType;
+  discount_value: number;
+  min_order_amount: number;
+  max_discount_amount?: number;
+  is_active: boolean;
+  expires_at?: string;
+}
+
 export interface Order {
   id: string;
   order_number: string; // OTN-2026-XXXXX
@@ -171,6 +184,8 @@ export interface Order {
   admin_notes?: string | null;
   payment_status: PaymentStatus;
   payment_method: string;
+  coupon_code?: string | null;
+  discount_amount?: number;
   created_at: string;
   updated_at?: string;
   items?: OrderItem[];

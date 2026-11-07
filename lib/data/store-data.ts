@@ -938,6 +938,8 @@ export const DataService = {
       admin_notes: orderData.admin_notes || null,
       payment_status: orderPaymentStatus,
       payment_method: orderData.payment_method || 'credit_card',
+      coupon_code: orderData.coupon_code || null,
+      discount_amount: orderData.discount_amount || 0,
       created_at: new Date().toISOString(),
       items: orderData.items || [],
     };

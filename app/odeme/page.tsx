@@ -33,6 +33,7 @@ import { UserAddress } from '@/lib/types/ecommerce';
 import { formatPrice, safeDecodeURIComponent } from '@/lib/utils/format';
 import { toast } from 'sonner';
 import TurkishAddressSelector from '@/components/TurkishAddressSelector';
+import { CouponInput } from '@/components/CouponInput';
 
 // Online sales active flag (can be toggled via NEXT_PUBLIC_ONLINE_SALES_ACTIVE in .env.local)
 const isOnlineSalesActive = process.env.NEXT_PUBLIC_ONLINE_SALES_ACTIVE === 'true';
@@ -54,6 +55,8 @@ function CheckoutContent() {
     giftNote,
     deliveryType,
     setDeliveryType,
+    appliedCoupon,
+    discountAmount,
     total,
     kdvAmount,
     clearCart,
@@ -329,6 +332,7 @@ function CheckoutContent() {
             guest_name: fullName.trim(),
             guest_phone: phone.trim(),
             identity_number: identityNumber.trim() || '11111111111',
+            coupon_code: appliedCoupon?.code || null,
           }),
         });
 
@@ -369,6 +373,7 @@ function CheckoutContent() {
             guest_phone: phone.trim(),
             payment_method: 'admin_test',
             is_admin_test: true,
+            coupon_code: appliedCoupon?.code || null,
           }),
         });
 
@@ -399,6 +404,7 @@ function CheckoutContent() {
             guest_email: email.trim().toLowerCase(),
             guest_name: fullName.trim(),
             guest_phone: phone.trim(),
+            coupon_code: appliedCoupon?.code || null,
           }),
         });
 
@@ -1184,12 +1190,24 @@ function CheckoutContent() {
             })}
           </div>
 
+          {/* Coupon Input */}
+          <div className="border-t border-stone-100 pt-3">
+            <CouponInput variant="compact" />
+          </div>
+
           {/* Price details */}
           <div className="space-y-2 text-xs text-stone-600 border-t border-stone-100 pt-3">
             <div className="flex justify-between">
               <span>Ara Toplam</span>
               <span className="font-semibold text-stone-900">{formatPrice(subtotal)}</span>
             </div>
+
+            {discountAmount > 0 && (
+              <div className="flex justify-between text-emerald-700 font-semibold">
+                <span>Kupon İndirimi ({appliedCoupon?.code})</span>
+                <span>-{formatPrice(discountAmount)}</span>
+              </div>
+            )}
 
             <div className="flex justify-between text-[11px] text-stone-400">
               <span>KDV (%20 Dahil)</span>
