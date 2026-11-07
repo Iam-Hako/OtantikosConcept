@@ -2685,7 +2685,7 @@ export const DataService = {
   // 10. USER DELIVERY ADDRESSES
   // ==========================================
   async getUserAddresses(userId: string): Promise<UserAddress[]> {
-    if (!userId) return [];
+    if (!userId || userId === 'guest') return [];
 
     try {
       const supabase = createClient();
@@ -2710,6 +2710,9 @@ export const DataService = {
   },
 
   async saveUserAddress(addr: Partial<UserAddress>): Promise<UserAddress> {
+    if (!addr.user_id || addr.user_id === 'guest') {
+      throw new Error('Adres kaydetmek için oturum açılması gereklidir.');
+    }
     const isUuid = addr.id ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(addr.id) : false;
     const supabase = createClient();
     const payload: any = {

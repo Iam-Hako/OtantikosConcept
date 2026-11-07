@@ -4,9 +4,19 @@ import { DataService } from '@/lib/data/store-data';
 import { generateOrderNumber } from '@/lib/utils/format';
 import { calculateDynamicShippingFee } from '@/lib/services/dhl-service';
 import { verifyAdmin } from '@/app/actions/ecommerce-actions';
+import { applyRateLimit } from '@/lib/security/rate-limit';
 
 export async function POST(request: Request) {
   try {
+    // 1. Rate Limiting: Max 10 checkout submissions per minute per IP
+    const rateLimitResponse = applyRateLimit(request, {
+      actionName: 'checkout-submit',
+      limit: 10,
+      windowSeconds: 60,
+      errorMessage: 'Çok sık sipariş oluşturma denemesi yapıldı. Lütfen biraz bekleyiniz.',
+    });
+    if (rateLimitResponse) return rateLimitResponse;
+
     const body = await request.json();
     const {
       items,

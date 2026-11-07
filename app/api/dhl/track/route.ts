@@ -1,12 +1,23 @@
 import { NextResponse } from 'next/server';
 import { trackDhlShipment } from '@/lib/services/dhl-service';
 import { DataService } from '@/lib/data/store-data';
+import { applyRateLimit } from '@/lib/security/rate-limit';
+import { sanitizeInput } from '@/lib/security/sanitize';
 
 export async function GET(request: Request) {
   try {
+    // 1. Rate Limiting: Max 20 DHL tracking requests per minute per IP
+    const rateLimitResponse = applyRateLimit(request, {
+      actionName: 'dhl-track',
+      limit: 20,
+      windowSeconds: 60,
+      errorMessage: 'Çok fazla kargo sorgusu yapıldı. Lütfen biraz bekleyiniz.',
+    });
+    if (rateLimitResponse) return rateLimitResponse;
+
     const url = new URL(request.url);
-    let trackingNumber = url.searchParams.get('tracking_number') || url.searchParams.get('trackingNumber');
-    const orderNumber = url.searchParams.get('order_number') || url.searchParams.get('orderNumber');
+    let trackingNumber = sanitizeInput(url.searchParams.get('tracking_number') || url.searchParams.get('trackingNumber') || '', 50);
+    const orderNumber = sanitizeInput(url.searchParams.get('order_number') || url.searchParams.get('orderNumber') || '', 40);
 
     // If order_number is provided instead of tracking_number, resolve it
     if (!trackingNumber && orderNumber) {

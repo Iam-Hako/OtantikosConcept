@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   User, 
   Package, 
@@ -28,7 +29,8 @@ import { toast } from 'sonner';
 import TurkishAddressSelector from '@/components/TurkishAddressSelector';
 
 export default function AccountPage() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isLoading } = useAuth();
+  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [returns, setReturns] = useState<ReturnRequest[]>([]);
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
@@ -60,16 +62,27 @@ export default function AccountPage() {
   const [addrPostalCode, setAddrPostalCode] = useState('');
   const [addrIsDefault, setAddrIsDefault] = useState(false);
 
-  const currentUserId = user?.id || 'guest';
+  // Redirect unauthenticated guests to login
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace('/giris?redirect=/hesabim');
+    }
+  }, [isLoading, user, router]);
 
-  // Load orders, returns, and addresses
+  // Load orders, returns, and addresses strictly for authenticated user
   useEffect(() => {
     async function loadUserData() {
+      if (!user?.id) {
+        setOrders([]);
+        setReturns([]);
+        setAddresses([]);
+        return;
+      }
       try {
         const [orderList, returnList, addressList] = await Promise.all([
-          user?.id ? DataService.getOrders(user.id) : Promise.resolve([]),
-          user?.id ? DataService.getReturns(user.id) : Promise.resolve([]),
-          DataService.getUserAddresses(currentUserId),
+          DataService.getOrders(user.id),
+          DataService.getReturns(user.id),
+          DataService.getUserAddresses(user.id),
         ]);
         setOrders(orderList);
         setReturns(returnList);
@@ -79,7 +92,7 @@ export default function AccountPage() {
       }
     }
     loadUserData();
-  }, [user?.id, currentUserId]);
+  }, [user?.id]);
 
   // District options based on chosen province
   const currentProvinceData = TURKISH_PROVINCES.find((p) => p.name === addrProvince) || TURKISH_PROVINCES[0];
@@ -147,11 +160,12 @@ export default function AccountPage() {
       return;
     }
 
+    if (!user?.id) return;
     setIsSavingAddress(true);
     try {
       await DataService.saveUserAddress({
         id: editingAddress?.id,
-        user_id: currentUserId,
+        user_id: user.id,
         title: addrTitle.trim() || 'Adresim',
         full_name: addrFullName.trim(),
         phone: addrPhone.trim(),
@@ -163,7 +177,7 @@ export default function AccountPage() {
         is_default: addrIsDefault,
       });
 
-      const updated = await DataService.getUserAddresses(currentUserId);
+      const updated = await DataService.getUserAddresses(user.id);
       setAddresses(updated);
       setIsAddressModalOpen(false);
       toast.success(editingAddress ? 'Adresiniz başarıyla güncellendi!' : 'Yeni teslimat adresi başarıyla kaydedildi!');
@@ -175,9 +189,10 @@ export default function AccountPage() {
   };
 
   const handleDeleteAddress = async (addressId: string) => {
+    if (!user?.id) return;
     if (!confirm('Bu adresi silmek istediğinize emin misiniz?')) return;
     try {
-      await DataService.deleteUserAddress(addressId, currentUserId);
+      await DataService.deleteUserAddress(addressId, user.id);
       setAddresses((prev) => prev.filter((a) => a.id !== addressId));
       toast.success('Adres başarıyla silindi.');
     } catch {
@@ -186,8 +201,9 @@ export default function AccountPage() {
   };
 
   const handleSetDefaultAddress = async (addressId: string) => {
+    if (!user?.id) return;
     try {
-      await DataService.setDefaultUserAddress(currentUserId, addressId);
+      await DataService.setDefaultUserAddress(user.id, addressId);
       setAddresses((prev) =>
         prev.map((a) => ({
           ...a,
@@ -202,11 +218,11 @@ export default function AccountPage() {
 
   const handleCreateReturn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOrderForReturn) return;
+    if (!selectedOrderForReturn || !user?.id) return;
 
     const newRet = await DataService.createReturn({
       order_id: selectedOrderForReturn.id,
-      user_id: user?.id || null,
+      user_id: user.id,
       reason: returnReason,
       details: returnDetails,
     });
@@ -222,6 +238,17 @@ export default function AccountPage() {
     });
     setActiveTab('returns');
   };
+
+  if (isLoading || !user) {
+    return (
+      <div className="bg-white min-h-[60vh] flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-2 border-stone-300 border-t-[#e60012] rounded-full animate-spin mx-auto" />
+          <p className="text-xs text-stone-500 font-medium">Hesap bilgileri yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white min-h-screen">

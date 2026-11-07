@@ -5,6 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
 import { deduplicateLiveChatMessages } from '@/lib/data/store-data';
 import { LiveChatMessage, LiveChatSession } from '@/lib/types/ecommerce';
+import { applyRateLimit } from '@/lib/security/rate-limit';
+import { sanitizeInput, isValidEmail } from '@/lib/security/sanitize';
 
 // Server-side persistent live chat store (Shared across all devices, browsers, and tabs)
 const DATA_DIR = path.join(process.cwd(), '.data');
@@ -159,11 +161,24 @@ export async function POST(request: Request) {
       if (!auth.isAuthorized) {
         return NextResponse.json({ error: 'Yönetici adına mesaj göndermek için yetki gereklidir.' }, { status: 403 });
       }
+    } else {
+      // Customer Rate Limiting: Max 30 messages per minute per IP
+      const rateLimitResponse = applyRateLimit(request, {
+        actionName: 'livechat-send',
+        limit: 30,
+        windowSeconds: 60,
+        errorMessage: 'Çok hızlı mesaj gönderiyorsunuz. Lütfen biraz bekleyiniz.',
+      });
+      if (rateLimitResponse) return rateLimitResponse;
     }
 
-    const cleanMessageText = String(message_text).trim().slice(0, 2000);
-    const cleanCustomerName = customer_name ? String(customer_name).trim().slice(0, 80) : undefined;
-    const cleanCustomerEmail = customer_email ? String(customer_email).trim().slice(0, 100) : undefined;
+    const cleanMessageText = sanitizeInput(message_text, 2000);
+    const cleanCustomerName = customer_name ? sanitizeInput(customer_name, 80) : undefined;
+    const cleanCustomerEmail = customer_email && isValidEmail(customer_email) ? String(customer_email).trim().toLowerCase().slice(0, 100) : undefined;
+
+    if (!cleanMessageText) {
+      return NextResponse.json({ error: 'Mesaj metni boş olamaz.' }, { status: 400 });
+    }
 
     const newMsg: LiveChatMessage = {
       id: `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`,

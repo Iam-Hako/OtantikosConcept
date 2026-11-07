@@ -4,6 +4,8 @@ import path from 'path';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
 import { Review } from '@/lib/types/ecommerce';
+import { applyRateLimit } from '@/lib/security/rate-limit';
+import { sanitizeInput } from '@/lib/security/sanitize';
 
 const DATA_DIR = path.join(process.cwd(), '.data');
 const FILE_PATH = path.join(DATA_DIR, 'reviews.json');
@@ -83,6 +85,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // 1. Rate Limiting: Max 5 reviews per 2 minutes per IP
+    const rateLimitResponse = applyRateLimit(request, {
+      actionName: 'product-review',
+      limit: 5,
+      windowSeconds: 120,
+      errorMessage: 'Çok fazla yorum gönderildi. Lütfen bir süre sonra tekrar deneyiniz.',
+    });
+    if (rateLimitResponse) return rateLimitResponse;
+
     const body = await request.json();
     const { product_id, user_name, user_id, rating, comment } = body;
 
@@ -90,14 +101,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Eksik alanlar' }, { status: 400 });
     }
 
-    const cleanUserName = String(user_name).trim().slice(0, 80);
-    const cleanComment = String(comment).trim().slice(0, 1000);
+    const cleanUserName = sanitizeInput(user_name, 80);
+    const cleanComment = sanitizeInput(comment, 1000);
     const clampedRating = Math.min(5, Math.max(1, Math.round(Number(rating) || 5)));
+
+    if (!cleanUserName || !cleanComment) {
+      return NextResponse.json({ error: 'Lütfen geçerli bir isim ve yorum metni giriniz.' }, { status: 400 });
+    }
+
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     const newRev: Review = {
       id: `rev-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      product_id,
+      product_id: sanitizeInput(product_id, 100),
       user_id: user_id && UUID_REGEX.test(user_id) ? user_id : null,
       user_name: cleanUserName,
       rating: clampedRating,

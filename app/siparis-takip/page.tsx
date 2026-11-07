@@ -111,10 +111,12 @@ function OrderTrackingContent() {
 
             <div>
               <label className="block text-[11px] font-bold text-stone-700 mb-1">
-                E-Posta Adresi veya Alıcı Adı (Doğrulama için)
+                E-Posta Adresi veya Alıcı Adı (Güvenlik Doğrulaması) *
               </label>
               <input
                 type="text"
+                required
+                placeholder="Siparişteki e-posta adresi veya isim"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-[#e60012] text-stone-900 transition"

@@ -4,6 +4,8 @@ import path from 'path';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
 import { WholesaleRequest } from '@/lib/types/ecommerce';
+import { applyRateLimit } from '@/lib/security/rate-limit';
+import { sanitizeInput, isValidEmail } from '@/lib/security/sanitize';
 
 const DATA_DIR = path.join(process.cwd(), '.data');
 const FILE_PATH = path.join(DATA_DIR, 'wholesale_requests.json');
@@ -75,14 +77,23 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    // 1. Rate Limiting: Max 5 wholesale inquiries per 5 minutes per IP
+    const rateLimitResponse = applyRateLimit(request, {
+      actionName: 'wholesale-request',
+      limit: 5,
+      windowSeconds: 300,
+      errorMessage: 'Çok fazla toptan teklif talebi gönderildi. Lütfen bir süre sonra tekrar deneyiniz.',
+    });
+    if (rateLimitResponse) return rateLimitResponse;
+
     const body = await request.json();
     const { contact_name, phone, address, notes, company_name, email, city } = body;
 
-    const cleanContact = String(contact_name || company_name || '').trim().slice(0, 80);
+    const cleanContact = sanitizeInput(contact_name || company_name || '', 80);
     const cleanPhone = String(phone || '').replace(/[^\d+]/g, '').slice(0, 20);
-    const cleanAddress = String(address || city || '').trim().slice(0, 300);
-    const cleanNotes = notes ? String(notes).trim().slice(0, 2000) : '';
-    const cleanEmail = email ? String(email).trim().toLowerCase().slice(0, 100) : '';
+    const cleanAddress = sanitizeInput(address || city || '', 300);
+    const cleanNotes = notes ? sanitizeInput(notes, 2000) : '';
+    const cleanEmail = email && isValidEmail(email) ? String(email).trim().toLowerCase().slice(0, 100) : '';
 
     if (!cleanContact) {
       return NextResponse.json({ error: 'Lütfen isim ve soyisim giriniz.' }, { status: 400 });

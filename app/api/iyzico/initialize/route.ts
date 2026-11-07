@@ -3,9 +3,19 @@ import { DataService } from '@/lib/data/store-data';
 import { generateOrderNumber } from '@/lib/utils/format';
 import { initializeIyzicoCheckoutForm } from '@/lib/services/iyzico-service';
 import { calculateDynamicShippingFee } from '@/lib/services/dhl-service';
+import { applyRateLimit } from '@/lib/security/rate-limit';
 
 export async function POST(request: Request) {
   try {
+    // 1. Rate Limiting: Max 20 payment initialize requests per minute per IP
+    const rateLimitResponse = applyRateLimit(request, {
+      actionName: 'iyzico-init',
+      limit: 20,
+      windowSeconds: 60,
+      errorMessage: 'Çok sık ödeme başlatma isteği yapıldı. Lütfen biraz bekleyiniz.',
+    });
+    if (rateLimitResponse) return rateLimitResponse;
+
     const body = await request.json();
     const {
       items,

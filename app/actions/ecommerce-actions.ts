@@ -31,7 +31,10 @@ async function getCurrentAdminUser() {
     if (user.app_metadata?.role === 'admin') return user;
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
     if (profile?.role === 'admin') return user;
-    const isOwnerEmail = (user.email === 'chessvip11@gmail.com' || user.email === 'admin@otantikosconcept.com');
+    const cleanEmail = (user.email || '').toLowerCase().trim();
+    const isOwnerEmail =
+      (cleanEmail === 'chessvip11@gmail.com' || cleanEmail === 'admin@otantikosconcept.com') &&
+      Boolean(user.email_confirmed_at);
     if (isOwnerEmail) return user;
   } catch {
     // Fallback
@@ -650,6 +653,11 @@ export interface CargoLabelData {
 }
 
 export async function actionGetCargoLabels(): Promise<{ success: boolean; data: CargoLabelData[]; error?: string }> {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) {
+    return { success: false, data: [], error: 'Bu işlem için yönetici yetkisi gereklidir.' };
+  }
+
   try {
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin

@@ -4,6 +4,8 @@ import path from 'path';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
 import { Question } from '@/lib/types/ecommerce';
+import { applyRateLimit } from '@/lib/security/rate-limit';
+import { sanitizeInput, isValidEmail } from '@/lib/security/sanitize';
 
 const DATA_DIR = path.join(process.cwd(), '.data');
 const FILE_PATH = path.join(DATA_DIR, 'questions.json');
@@ -91,6 +93,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // 1. Rate Limiting: Max 5 questions per 2 minutes per IP
+    const rateLimitResponse = applyRateLimit(request, {
+      actionName: 'product-question',
+      limit: 5,
+      windowSeconds: 120,
+      errorMessage: 'Çok fazla soru gönderildi. Lütfen bir süre sonra tekrar deneyiniz.',
+    });
+    if (rateLimitResponse) return rateLimitResponse;
+
     const body = await request.json();
     const { product_id, user_name, user_email, user_id, question_text } = body;
 
@@ -98,15 +109,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Eksik alanlar' }, { status: 400 });
     }
 
-    const cleanUserName = String(user_name).trim().slice(0, 80);
-    const cleanQuestionText = String(question_text).trim().slice(0, 1000);
-    const cleanEmail = user_email ? String(user_email).trim().slice(0, 100) : null;
+    const cleanUserName = sanitizeInput(user_name, 80);
+    const cleanQuestionText = sanitizeInput(question_text, 1000);
+    const cleanEmail = user_email && isValidEmail(user_email) ? String(user_email).trim().toLowerCase().slice(0, 100) : null;
+
+    if (!cleanUserName || !cleanQuestionText) {
+      return NextResponse.json({ error: 'Lütfen geçerli bir isim ve soru metni giriniz.' }, { status: 400 });
+    }
 
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     const newQ: Question = {
       id: `q-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      product_id,
+      product_id: sanitizeInput(product_id, 100),
       user_id: user_id && UUID_REGEX.test(user_id) ? user_id : null,
       user_name: cleanUserName,
       user_email: cleanEmail,
@@ -173,7 +188,7 @@ export async function PATCH(request: Request) {
     const item = list.find((q) => q.id === id);
     if (item) {
       if (answer_text !== undefined) {
-        item.answer_text = String(answer_text).trim().slice(0, 2000);
+        item.answer_text = sanitizeInput(answer_text, 2000);
         item.answered_at = new Date().toISOString();
       }
       if (is_approved !== undefined) {
@@ -188,7 +203,7 @@ export async function PATCH(request: Request) {
       if (UUID_REGEX.test(id)) {
         const updates: any = {};
         if (answer_text !== undefined) {
-          updates.answer_text = String(answer_text).trim().slice(0, 2000);
+          updates.answer_text = sanitizeInput(answer_text, 2000);
           updates.answered_at = new Date().toISOString();
         }
         if (is_approved !== undefined) {

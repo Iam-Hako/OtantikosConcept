@@ -5,6 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
 import { DataService } from '@/lib/data/store-data';
 import { ReturnRequest } from '@/lib/types/ecommerce';
+import { applyRateLimit } from '@/lib/security/rate-limit';
+import { sanitizeInput } from '@/lib/security/sanitize';
 
 const DATA_DIR = path.join(process.cwd(), '.data');
 const FILE_PATH = path.join(DATA_DIR, 'returns.json');
@@ -88,6 +90,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // 1. Rate Limiting: Max 5 return requests per 5 minutes per IP
+    const rateLimitResponse = applyRateLimit(request, {
+      actionName: 'return-request',
+      limit: 5,
+      windowSeconds: 300,
+      errorMessage: 'Çok fazla iade talebi gönderildi. Lütfen bir süre sonra tekrar deneyiniz.',
+    });
+    if (rateLimitResponse) return rateLimitResponse;
+
     const body = await request.json();
     const { order_id, order_item_id, user_id, reason, details } = body;
 
@@ -95,8 +106,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Eksik alanlar' }, { status: 400 });
     }
 
-    const cleanReason = String(reason).trim().slice(0, 100);
-    const cleanDetails = details ? String(details).trim().slice(0, 1000) : '';
+    const cleanReason = sanitizeInput(reason, 100);
+    const cleanDetails = details ? sanitizeInput(details, 1000) : '';
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     // Prevent duplicate open return requests for the same order

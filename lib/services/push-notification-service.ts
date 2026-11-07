@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import webpush from 'web-push';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { isSafePushEndpoint } from '@/lib/security/sanitize';
 
 // VAPID Configuration
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BMlzKI8nGrboLygwoidtTwbotj7bQ80CO07H8wbfsccqz6EO7KsPv3o3beDHHANNnaEenpmYkzkojGsDJMsikD8';
@@ -130,6 +131,10 @@ export const PushNotificationService = {
   }): Promise<{ success: boolean; isNew: boolean }> {
     if (!data.endpoint || !data.keys?.p256dh || !data.keys?.auth) {
       throw new Error('Geçersiz Push Subscription formatı.');
+    }
+
+    if (!isSafePushEndpoint(data.endpoint)) {
+      throw new Error('Geçersiz veya güvensiz push endpoint adresi.');
     }
 
     const platform = data.platform || detectPlatform(data.user_agent);
