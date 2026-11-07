@@ -25,8 +25,7 @@ import { Product, Category } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
 import ProductCard from '@/components/ProductCard';
 import HeroBannerSlider from '@/components/HeroBannerSlider';
-
-
+import { useTranslation } from '@/lib/i18n/language-context';
 
 // Miniso Inspired Circular Pastel Category Themes
 const CIRCULAR_PASTEL_THEMES = [
@@ -81,6 +80,7 @@ const CIRCULAR_PASTEL_THEMES = [
 ];
 
 export default function HomePage() {
+  const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -116,7 +116,6 @@ export default function HomePage() {
       return cat.image_url;
     }
     const cName = (cat.name || '').toLowerCase();
-    const cSlug = (cat.slug || '').toLowerCase();
 
     const matched = products.find((p) => {
       if (p.category_id && p.category_id === cat.id) return true;
@@ -139,18 +138,18 @@ export default function HomePage() {
     <div className="space-y-6 sm:space-y-10 pb-20 relative bg-white min-h-screen overflow-x-clip transform-gpu">
       
       {/* ============================================================ */}
-      {/* 1. MINISO STYLE HERO BANNER SLIDER (YÖNETİM MERKEZİNDEN KONTROLLÜ) */}
+      {/* 1. HERO BANNER SLIDER                                        */}
       {/* ============================================================ */}
       <HeroBannerSlider />
 
       {/* ============================================================ */}
-      {/* 2. MINISO STYLE CIRCULAR PASTEL CATEGORY CAROUSEL            */}
+      {/* 2. CIRCULAR PASTEL CATEGORY CAROUSEL                        */}
       {/* ============================================================ */}
       {categories.length > 0 && (
         <section className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white/95 backdrop-blur-xs rounded-3xl p-5 sm:p-7 border border-amber-200/60 shadow-lg shadow-orange-950/[0.03] space-y-5 overflow-hidden relative group/catsection">
             
-            {/* Cheerful Rainbow Top Accent Trim */}
+            {/* Rainbow Top Accent Trim */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-400 via-purple-400 via-amber-400 to-orange-400" />
 
             {/* Header Row */}
@@ -161,10 +160,10 @@ export default function HomePage() {
                 </div>
                 <div>
                   <h2 className="text-base sm:text-xl font-black text-stone-900 tracking-tight">
-                    Kategorileri Keşfet
+                    {t('home.discover_categories', 'Kategorileri Keşfet')}
                   </h2>
                   <p className="text-[11px] text-stone-400 font-medium hidden sm:block">
-                    Renkli ve sevimli koleksiyonlarımızı keşfe çıkın
+                    {t('home.discover_categories_sub', 'Renkli ve sevimli koleksiyonlarımızı keşfe çıkın')}
                   </p>
                 </div>
               </div>
@@ -173,12 +172,12 @@ export default function HomePage() {
                 href="/kategori/tum-urunler"
                 className="text-xs sm:text-sm font-extrabold text-rose-600 hover:text-rose-700 flex items-center gap-1 group py-1"
               >
-                <span>Tüm Kategoriler</span>
+                <span>{t('home.all_categories', 'Tüm Kategoriler')}</span>
                 <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
 
-            {/* Miniso Style Circular Categories Carousel with Left/Right Buttons */}
+            {/* Circular Categories Carousel with Left/Right Buttons */}
             <div className="relative">
               {/* Left Arrow Button */}
               <button
@@ -205,7 +204,6 @@ export default function HomePage() {
                       href={cat.slug === 'toptan-satis' ? '/toptan-satis' : `/kategori/${cat.slug}`}
                       className="group/item flex flex-col items-center cursor-pointer shrink-0 w-24 sm:w-28 md:w-32 transition-transform active:scale-95"
                     >
-                      {/* Miniso Style Circular Disc (Image 5) */}
                       <div className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full p-1 bg-white border-2 border-stone-200 hover:border-red-400 shadow-xs group-hover/item:shadow-md flex items-center justify-center group-hover/item:scale-105 transition-all duration-300">
                         <div className="w-full h-full rounded-full bg-stone-50 flex items-center justify-center overflow-hidden relative">
                           {photo ? (
@@ -252,12 +250,12 @@ export default function HomePage() {
       )}
 
       {/* ============================================================ */}
-      {/* 3. TRENDYOL STYLE "POPÜLER ÜRÜNLER" VİTRİNİ                  */}
+      {/* 3. POPULAR & FEATURED PRODUCTS                               */}
       {/* ============================================================ */}
       <section className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white/95 backdrop-blur-xs rounded-3xl p-5 sm:p-7 border border-amber-200/60 shadow-lg shadow-orange-950/[0.03] space-y-6 overflow-hidden relative">
           
-          {/* Cheerful Warm Top Accent Trim */}
+          {/* Top Accent Trim */}
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-400 via-amber-400 to-rose-400" />
 
           {/* Header Row */}
@@ -268,10 +266,10 @@ export default function HomePage() {
               </div>
               <div>
                 <h2 className="text-lg sm:text-2xl font-black text-stone-900 tracking-tight">
-                  Öne Çıkan Ürünler
+                  {t('home.featured_products', 'Öne Çıkan Ürünler')}
                 </h2>
                 <p className="text-[11px] text-stone-400 font-medium hidden sm:block">
-                  Tahtakale Eminönü vitrinimizden seçkin modeller
+                  {t('home.featured_products_sub', 'Tahtakale Eminönü vitrinimizden seçkin modeller')}
                 </p>
               </div>
             </div>
@@ -280,7 +278,7 @@ export default function HomePage() {
               href="/kategori/tum-urunler"
               className="inline-flex items-center gap-1 text-xs sm:text-sm font-extrabold text-orange-600 hover:text-orange-700 group py-1"
             >
-              <span>Tümünü Gör</span>
+              <span>{t('home.view_all', 'Tümünü Gör')}</span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
@@ -316,7 +314,7 @@ export default function HomePage() {
       </section>
 
       {/* ============================================================ */}
-      {/* 5. TAHTAKALE EMİNÖNÜ & DHL GÜVEN ŞERİDİ (MINISO PASTEL TARZ) */}
+      {/* 4. TRUST & SPEED STRIP                                       */}
       {/* ============================================================ */}
       <section className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -326,9 +324,9 @@ export default function HomePage() {
               <Truck className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs font-black text-stone-900">Hızlı Sevkiyat & DHL</h4>
+              <h4 className="text-xs font-black text-stone-900">{t('home.fast_shipping_title', 'Hızlı Sevkiyat & DHL')}</h4>
               <p className="text-[11px] text-stone-600 mt-1 leading-snug">
-                Siparişleriniz güvenli ve korumalı paketleme ile 1-3 iş gününde kargoya verilir.
+                {t('home.fast_shipping_desc', 'Siparişleriniz güvenli ve korumalı paketleme ile 1-3 iş gününde kargoya verilir.')}
               </p>
             </div>
           </div>
@@ -338,9 +336,9 @@ export default function HomePage() {
               <Store className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs font-black text-stone-900">Mağazadan Elden Teslim</h4>
+              <h4 className="text-xs font-black text-stone-900">{t('home.store_pickup_title', 'Mağazadan Elden Teslim')}</h4>
               <p className="text-[11px] text-stone-600 mt-1 leading-snug">
-                Tahtakale Eminönü fiziki şubemizden kargo bedelsiz elden teslim alabilirsiniz.
+                {t('home.store_pickup_desc', 'Tahtakale Eminönü fiziki şubemizden kargo bedelsiz elden teslim alabilirsiniz.')}
               </p>
             </div>
           </div>
@@ -350,9 +348,9 @@ export default function HomePage() {
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs font-black text-stone-900">Net & Şeffaf Fiyat</h4>
+              <h4 className="text-xs font-black text-stone-900">{t('home.transparent_price_title', 'Net & Şeffaf Fiyat')}</h4>
               <p className="text-[11px] text-stone-600 mt-1 leading-snug">
-                Yanıltıcı sahte indirimler yok; perakende ve toptanda doğrudan net liste fiyatları.
+                {t('home.transparent_price_desc', 'Yanıltıcı sahte indirimler yok; perakende ve toptanda doğrudan net liste fiyatları.')}
               </p>
             </div>
           </div>
@@ -362,9 +360,9 @@ export default function HomePage() {
               <MessageCircle className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs font-black text-stone-900">WhatsApp Canlı Destek</h4>
+              <h4 className="text-xs font-black text-stone-900">{t('home.whatsapp_support_title', 'WhatsApp Canlı Destek')}</h4>
               <p className="text-[11px] text-stone-600 mt-1 leading-snug">
-                Toptan alımlar ve özel siparişleriniz için WhatsApp hattımızdan doğrudan iletişim.
+                {t('home.whatsapp_support_desc', 'Toptan alımlar ve özel siparişleriniz için WhatsApp hattımızdan doğrudan iletişim.')}
               </p>
             </div>
           </div>
@@ -373,28 +371,26 @@ export default function HomePage() {
       </section>
 
       {/* ============================================================ */}
-      {/* 6. MINISO STYLE WHOLESALE & HERITAGE SHOWCASE BANNER         */}
+      {/* 5. HERITAGE & WHOLESALE BANNER                               */}
       {/* ============================================================ */}
       <section className="w-full max-w-[1840px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="rounded-2xl sm:rounded-[2.5rem] bg-gradient-to-r from-rose-50/90 via-pink-50/60 to-amber-50/80 p-6 sm:p-10 lg:p-14 relative overflow-hidden shadow-xl shadow-rose-950/[0.03] border border-rose-200/80">
           
-          {/* Playful Ambient Pastel Glow Effects */}
           <div className="absolute -right-16 -bottom-16 w-72 h-72 rounded-full bg-rose-200/50 blur-3xl pointer-events-none" />
           <div className="absolute top-0 right-1/3 w-60 h-60 rounded-full bg-amber-200/40 blur-3xl pointer-events-none" />
 
           <div className="relative z-10 max-w-2xl space-y-3 sm:space-y-4">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-100/90 border border-rose-200 text-[#e60012] text-[11px] sm:text-xs font-black shadow-2xs">
               <Award className="w-3.5 h-3.5 text-[#e60012]" />
-              <span>Eminönü Tahtakale Ticaret Geleneği</span>
+              <span>{t('home.heritage_badge', 'Eminönü Tahtakale Ticaret Geleneği')}</span>
             </div>
 
             <h2 className="text-xl sm:text-3xl lg:text-4xl font-sans font-black text-stone-900 leading-tight tracking-tight">
-              Toptan ve Perakendede <br className="hidden sm:block" />
-              <span className="text-[#e60012]">Şeffaf ve Dürüst Fiyat Politikası</span>
+              {t('home.heritage_title', 'Toptan ve Perakendede Şeffaf ve Dürüst Fiyat Politikası')}
             </h2>
 
             <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-medium">
-              Tahtakale&apos;nin tarihi ticaret sokaklarında; yapay indirim oyunları yerine doğrudan net ve adil fiyatlandırma sunuyoruz. İster DHL Kargo ile kapınıza gelsin, ister Eminönü şubemizden teslim alın.
+              {t('home.heritage_desc', "Tahtakale'nin tarihi ticaret sokaklarında; yapay indirim oyunları yerine doğrudan net ve adil fiyatlandırma sunuyoruz. İster DHL Kargo ile kapınıza gelsin, ister Eminönü şubemizden teslim alın.")}
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row gap-3">
@@ -403,13 +399,13 @@ export default function HomePage() {
                 className="px-6 py-3 sm:px-8 sm:py-3.5 bg-[#e60012] hover:bg-[#c90010] text-white text-xs sm:text-sm font-black rounded-full shadow-lg shadow-red-600/25 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Tahtakale Toptan Teklif Al</span>
+                <span>{t('home.wholesale_cta', 'Tahtakale Toptan Teklif Al')}</span>
               </Link>
               <Link
                 href="/hakkimizda"
                 className="px-6 py-3 sm:px-8 sm:py-3.5 bg-white hover:bg-stone-50 text-stone-800 text-xs sm:text-sm font-bold rounded-full border border-stone-200/90 shadow-2xs hover:border-stone-400 transition-all text-center"
               >
-                Kurumsal Hikayemiz
+                {t('home.about_cta', 'Kurumsal Hikayemiz')}
               </Link>
             </div>
           </div>

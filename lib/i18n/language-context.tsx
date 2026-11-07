@@ -17,44 +17,42 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 const STORAGE_KEY = 'otantikos_lang';
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<SupportedLanguage>(DEFAULT_LANGUAGE);
-  const [isMounted, setIsMounted] = useState(false);
+export function LanguageProvider({
+  children,
+  initialLanguage = DEFAULT_LANGUAGE,
+}: {
+  children: React.ReactNode;
+  initialLanguage?: SupportedLanguage;
+}) {
+  const [language, setLanguageState] = useState<SupportedLanguage>(initialLanguage);
 
-  // Initialize language from localStorage / cookie on client mount
+  // Sync language preferences on client mount & clean up any legacy translation artifacts
   useEffect(() => {
-    setIsMounted(true);
     try {
+      // 1. Remove any legacy Google Translate cookies or DOM containers
+      document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      const oldGt = document.getElementById('google_translate_element');
+      if (oldGt) oldGt.remove();
+      const oldScript = document.getElementById('google-translate-script');
+      if (oldScript) oldScript.remove();
+
+      // 2. Check localStorage
       const stored = localStorage.getItem(STORAGE_KEY) as SupportedLanguage | null;
-      if (stored && SUPPORTED_LANGUAGES.some((l) => l.code === stored)) {
+      if (stored && SUPPORTED_LANGUAGES.some((l) => l.code === stored) && stored !== language) {
         setLanguageState(stored);
         applyDocumentLanguage(stored);
         return;
       }
 
-      // Check cookie
-      const match = document.cookie.match(/NEXT_LOCALE=([^;]+)/);
-      if (match && match[1]) {
-        const cookieLang = match[1] as SupportedLanguage;
-        if (SUPPORTED_LANGUAGES.some((l) => l.code === cookieLang)) {
-          setLanguageState(cookieLang);
-          applyDocumentLanguage(cookieLang);
-          return;
-        }
-      }
-
-      // Fallback: check browser language
-      const browserLang = navigator.language?.slice(0, 2).toLowerCase() as SupportedLanguage;
-      if (SUPPORTED_LANGUAGES.some((l) => l.code === browserLang)) {
-        setLanguageState(browserLang);
-        applyDocumentLanguage(browserLang);
-      }
+      // 3. Otherwise ensure document matches current active language
+      applyDocumentLanguage(language);
     } catch {
       // Ignore storage errors
     }
-  }, []);
+  }, [language]);
 
   const applyDocumentLanguage = (lang: SupportedLanguage) => {
+    if (typeof document === 'undefined') return;
     const isAr = lang === 'ar';
     document.documentElement.lang = lang;
     document.documentElement.dir = isAr ? 'rtl' : 'ltr';
@@ -65,11 +63,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.classList.remove('rtl');
     }
 
-    // Set cookie for Next.js / server awareness
+    // Set cookie for Server-Side Rendering (SSR) recognition
     document.cookie = `NEXT_LOCALE=${lang}; path=/; max-age=31536000; SameSite=Lax`;
-
-    // Seamless automated page translation bridge for dynamic texts
-    applyPageTranslationBridge(lang);
   };
 
   const setLanguage = useCallback((newLang: SupportedLanguage) => {
@@ -80,7 +75,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     } catch {}
     applyDocumentLanguage(newLang);
 
-    // Notify components
+    // Notify listeners without full page reload or DOM hijacking
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('otantikos:language_changed', {
@@ -134,72 +129,4 @@ export function useTranslation() {
     throw new Error('useTranslation must be used within a LanguageProvider');
   }
   return context;
-}
-
-/**
- * Clean, seamless page translation bridge for dynamic content (product descriptions, reviews, blog posts)
- */
-function applyPageTranslationBridge(targetLang: SupportedLanguage) {
-  if (typeof window === 'undefined') return;
-
-  const cookieDomain = window.location.hostname;
-  if (targetLang === 'tr') {
-    // Revert to original
-    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=.${cookieDomain}; path=/;`;
-    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${cookieDomain}; path=/;`;
-
-    const select = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
-    if (select && select.value !== 'tr') {
-      select.value = 'tr';
-      select.dispatchEvent(new Event('change'));
-    }
-    return;
-  }
-
-  // Set translation cookie
-  document.cookie = `googtrans=/tr/${targetLang}; path=/; SameSite=Lax`;
-  document.cookie = `googtrans=/tr/${targetLang}; domain=.${cookieDomain}; path=/; SameSite=Lax`;
-
-  // Trigger combo if already initialized
-  const select = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
-  if (select) {
-    select.value = targetLang;
-    select.dispatchEvent(new Event('change'));
-    return;
-  }
-
-  // Dynamically load Google Translate script if not loaded yet
-  if (!document.getElementById('google-translate-script')) {
-    (window as any).googleTranslateElementInit = function () {
-      new (window as any).google.translate.TranslateElement(
-        {
-          pageLanguage: 'tr',
-          includedLanguages: 'tr,en,ar,ru,de,fr,es',
-          autoDisplay: false,
-        },
-        'google_translate_element'
-      );
-
-      // Trigger after init
-      setTimeout(() => {
-        const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
-        if (combo && combo.value !== targetLang) {
-          combo.value = targetLang;
-          combo.dispatchEvent(new Event('change'));
-        }
-      }, 300);
-    };
-
-    const container = document.createElement('div');
-    container.id = 'google_translate_element';
-    container.style.display = 'none';
-    document.body.appendChild(container);
-
-    const script = document.createElement('script');
-    script.id = 'google-translate-script';
-    script.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-    script.async = true;
-    document.body.appendChild(script);
-  }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Globe, Check, ChevronDown } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/language-context';
 import { SupportedLanguage } from '@/lib/i18n/types';
@@ -11,6 +12,7 @@ interface LanguageSelectorProps {
 }
 
 export default function LanguageSelector({ variant = 'navbar', className = '' }: LanguageSelectorProps) {
+  const router = useRouter();
   const { language, setLanguage, languages, currentLanguageInfo } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -40,6 +42,9 @@ export default function LanguageSelector({ variant = 'navbar', className = '' }:
   const handleSelectLanguage = (code: SupportedLanguage) => {
     setLanguage(code);
     setIsOpen(false);
+    try {
+      router.refresh();
+    } catch {}
   };
 
   // ==========================================

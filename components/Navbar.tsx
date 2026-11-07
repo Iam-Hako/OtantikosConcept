@@ -373,7 +373,7 @@ export default function Navbar() {
                 className="flex items-center gap-1.5 hover:text-[#e60012] transition-colors py-1 whitespace-nowrap group"
               >
                 <span className="text-base group-hover:scale-110 transition-transform">🚚</span>
-                <span>Sipariş Takip</span>
+                <span>{t('nav.order_tracking', 'Sipariş Takip')}</span>
               </Link>
             </li>
 
@@ -386,7 +386,7 @@ export default function Navbar() {
                 className="flex items-center gap-1.5 hover:text-[#e60012] transition-colors py-1 whitespace-nowrap group text-emerald-600 font-bold"
               >
                 <span className="text-base group-hover:scale-110 transition-transform">💬</span>
-                <span>Canlı Destek</span>
+                <span>{t('nav.live_chat', 'Canlı Destek')}</span>
               </a>
             </li>
 

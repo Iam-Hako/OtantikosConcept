@@ -53,9 +53,9 @@ export default function Footer() {
               <Truck className="w-6 h-6 stroke-[1.6]" />
             </div>
             <div>
-              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">Aynı Gün Hızlı Kargo</h4>
+              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">{t('footer.badge_same_day', 'Aynı Gün Hızlı Kargo')}</h4>
               <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
-                Hafta içi 15:00'e kadar verilen siparişler aynı gün kargoda.
+                {t('footer.badge_same_day_sub', "Hafta içi 15:00'e kadar verilen siparişler aynı gün kargoda.")}
               </p>
             </div>
           </div>
@@ -66,9 +66,9 @@ export default function Footer() {
               <Award className="w-6 h-6 stroke-[1.6]" />
             </div>
             <div>
-              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">Memnuniyet Garantisi</h4>
+              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">{t('footer.badge_satisfaction', 'Memnuniyet Garantisi')}</h4>
               <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
-                İade ve değişim süreçlerinde koşulsuz müşteri memnuniyeti.
+                {t('footer.badge_satisfaction_sub', 'İade ve değişim süreçlerinde koşulsuz müşteri memnuniyeti.')}
               </p>
             </div>
           </div>
@@ -79,9 +79,9 @@ export default function Footer() {
               <ShieldCheck className="w-6 h-6 stroke-[1.6]" />
             </div>
             <div>
-              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">Orijinal Ürün Garantisi</h4>
+              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">{t('footer.badge_authentic', 'Orijinal Ürün Garantisi')}</h4>
               <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
-                Satılan tüm ürünler %100 orijinal ve kalite garantilidir.
+                {t('footer.badge_authentic_sub', 'Satılan tüm ürünler %100 orijinal ve kalite garantilidir.')}
               </p>
             </div>
           </div>
@@ -92,9 +92,9 @@ export default function Footer() {
               <RotateCcw className="w-6 h-6 stroke-[1.6]" />
             </div>
             <div>
-              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">Kolay İade</h4>
+              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">{t('footer.badge_easy_return', 'Kolay İade')}</h4>
               <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
-                Satın aldığınız ürünü 14 gün içinde kolayca iade edebilirsiniz.
+                {t('footer.badge_easy_return_sub', 'Satın aldığınız ürünü 14 gün içinde kolayca iade edebilirsiniz.')}
               </p>
             </div>
           </div>
@@ -105,9 +105,9 @@ export default function Footer() {
               <CreditCard className="w-6 h-6 stroke-[1.6]" />
             </div>
             <div>
-              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">Güvenli Alışveriş</h4>
+              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">{t('footer.badge_secure', 'Güvenli Alışveriş')}</h4>
               <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
-                256 Bit SSL ve iyzico altyapısı ile güvenli ödeme yapın.
+                {t('footer.badge_secure_sub', '256 Bit SSL ve iyzico altyapısı ile güvenli ödeme yapın.')}
               </p>
             </div>
           </div>
@@ -118,9 +118,9 @@ export default function Footer() {
               <Headphones className="w-6 h-6 stroke-[1.6]" />
             </div>
             <div>
-              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">Kesintisiz İletişim</h4>
+              <h4 className="font-bold text-xs sm:text-[13px] text-stone-900">{t('footer.badge_support', 'Kesintisiz İletişim')}</h4>
               <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
-                Destek ekibimize WhatsApp ve çağrı merkezi üzerinden ulaşın.
+                {t('footer.badge_support_sub', 'Destek ekibimize WhatsApp ve çağrı merkezi üzerinden ulaşın.')}
               </p>
             </div>
           </div>
@@ -148,7 +148,7 @@ export default function Footer() {
             </Link>
 
             <div className="space-y-2">
-              <p className="text-[11px] font-bold text-stone-500">Bizi Takip Edin</p>
+              <p className="text-[11px] font-bold text-stone-500">{t('footer.follow_us', 'Bizi Takip Edin')}</p>
               <div className="flex items-center gap-2 text-stone-600">
                 <a 
                   href="https://instagram.com" 
@@ -194,7 +194,7 @@ export default function Footer() {
           {/* Col 2: Kurumsal */}
           <div>
             <h4 className="font-black text-xs text-[#e60012] uppercase tracking-wider mb-3">
-              Kurumsal
+              {t('footer.corporate', 'Kurumsal')}
             </h4>
             <ul className="space-y-2 text-stone-600 font-medium">
               <li>
@@ -229,7 +229,7 @@ export default function Footer() {
           {/* Col 3: Yardım */}
           <div>
             <h4 className="font-black text-xs text-[#e60012] uppercase tracking-wider mb-3">
-              Yardım
+              {t('footer.help', 'Yardım')}
             </h4>
             <ul className="space-y-2 text-stone-600 font-medium">
               <li>
@@ -263,7 +263,7 @@ export default function Footer() {
           {/* Col 4: Alışveriş & Yasal */}
           <div>
             <h4 className="font-black text-xs text-[#e60012] uppercase tracking-wider mb-3">
-              Alışveriş & Yasal
+              {t('footer.legal', 'Alışveriş & Yasal')}
             </h4>
             <ul className="space-y-2 text-stone-600 font-medium">
               <li>
@@ -302,12 +302,12 @@ export default function Footer() {
           {/* Col 5: Popüler Kategoriler */}
           <div>
             <h4 className="font-black text-xs text-[#e60012] uppercase tracking-wider mb-3">
-              Popüler Kategoriler
+              {t('footer.categories', 'Popüler Kategoriler')}
             </h4>
             <ul className="space-y-2 text-stone-600 font-medium">
               <li>
                 <Link href="/kategori/tum-urunler" className="hover:text-[#e60012] transition">
-                  Tüm Koleksiyon
+                  {t('footer.all_collections', 'Tüm Koleksiyon')}
                 </Link>
               </li>
               {categories.slice(0, 5).map((c) => (
@@ -324,7 +324,7 @@ export default function Footer() {
           {/* Col 6: İletişim Bilgileri */}
           <div>
             <h4 className="font-black text-xs text-[#e60012] uppercase tracking-wider mb-3">
-              İletişim Bilgileri
+              {t('footer.contact_info', 'İletişim Bilgileri')}
             </h4>
             <div className="space-y-2.5 text-stone-600">
               <p className="font-bold text-stone-900 leading-tight">

@@ -1,10 +1,12 @@
 import { Suspense } from 'react';
 import type { Metadata, Viewport } from 'next';
+import { cookies } from 'next/headers';
 import './globals.css';
 import { CartProvider } from '@/lib/store/cart-store';
 import { WishlistProvider } from '@/lib/store/wishlist-store';
 import { AuthProvider } from '@/lib/store/auth-context';
 import { LanguageProvider } from '@/lib/i18n/language-context';
+import { SupportedLanguage, SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE } from '@/lib/i18n/types';
 import { Toaster } from 'sonner';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -56,8 +58,15 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = cookies();
+  const rawLocale = cookieStore.get('NEXT_LOCALE')?.value as SupportedLanguage | undefined;
+  const initialLang: SupportedLanguage = rawLocale && SUPPORTED_LANGUAGES.some((l) => l.code === rawLocale)
+    ? rawLocale
+    : DEFAULT_LANGUAGE;
+  const isRTL = initialLang === 'ar';
+
   return (
-    <html lang="tr" className="scroll-smooth bg-white">
+    <html lang={initialLang} dir={isRTL ? 'rtl' : 'ltr'} className={`scroll-smooth bg-white ${isRTL ? 'rtl' : ''}`}>
       <head>
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -69,7 +78,7 @@ export default function RootLayout({
       <body className="flex flex-col min-h-screen font-sans text-stone-900 w-full max-w-full antialiased relative bg-white">
 
         <AuthProvider>
-          <LanguageProvider>
+          <LanguageProvider initialLanguage={initialLang}>
             <WishlistProvider>
               <CartProvider>
                 <Suspense fallback={null}>
