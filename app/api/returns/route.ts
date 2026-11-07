@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
+import { DataService } from '@/lib/data/store-data';
 import { ReturnRequest } from '@/lib/types/ecommerce';
 
 const DATA_DIR = path.join(process.cwd(), '.data');
@@ -98,6 +99,22 @@ export async function POST(request: Request) {
     const cleanDetails = details ? String(details).trim().slice(0, 1000) : '';
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+    // Prevent duplicate open return requests for the same order
+    const list = getStoredReturns();
+    const existingOpenReturn = list.find(
+      (r) =>
+        r.order_id === order_id &&
+        (order_item_id ? r.order_item_id === order_item_id : true) &&
+        r.status !== 'reddedildi' &&
+        r.status !== 'tamamlandi'
+    );
+    if (existingOpenReturn) {
+      return NextResponse.json({
+        error: 'Bu sipariş için halen işlemde olan bir iade talebiniz bulunmaktadır.',
+        existing_return: existingOpenReturn,
+      }, { status: 409 });
+    }
+
     const newRet: ReturnRequest = {
       id: `ret-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       order_id,
@@ -111,7 +128,6 @@ export async function POST(request: Request) {
       updated_at: new Date().toISOString(),
     };
 
-    const list = getStoredReturns();
     list.unshift(newRet);
     saveStoredReturns(list);
 
@@ -162,6 +178,9 @@ export async function PATCH(request: Request) {
     if (!id || !status) {
       return NextResponse.json({ error: 'Eksik id veya status' }, { status: 400 });
     }
+
+    // Synchronize via central DataService (performs automatic restock if iade_edildi)
+    await DataService.updateReturnStatus(id, status, admin_response);
 
     const list = getStoredReturns();
     const item = list.find((r) => r.id === id);

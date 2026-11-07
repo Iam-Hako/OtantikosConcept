@@ -3,9 +3,16 @@ import { revalidatePath } from 'next/cache';
 import { DataService } from '@/lib/data/store-data';
 import { createDhlShipment } from '@/lib/services/dhl-service';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
 
 export async function POST(request: Request) {
   try {
+    // Admin Authentication Guard: Only authenticated administrators can generate official DHL shipping labels
+    const auth = await verifyAdminAuth();
+    if (!auth.isAuthorized) {
+      return NextResponse.json({ error: auth.error || 'DHL kargo etiketi oluşturmak için yönetici yetkisi gereklidir.' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { order_id, order_number, weight_kg, package_count, description } = body;
 

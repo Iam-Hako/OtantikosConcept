@@ -131,12 +131,26 @@ export async function actionSaveProduct(productData: Partial<Product>) {
         }
       }
 
-      // 2. Sync Product Variants
+      // 2. Sync Product Variants with UUID preservation (prevents breaking cart & order references)
       if (saved.variants !== undefined) {
-        await supabaseAdmin.from('product_variants').delete().eq('product_id', prodDbId);
+        const incomingIds = saved.variants
+          .map((v) => v.id)
+          .filter((id): id is string => Boolean(id && UUID_REGEX.test(id)));
+
+        // Remove only variants that were removed in the edit form
+        if (incomingIds.length > 0) {
+          await supabaseAdmin
+            .from('product_variants')
+            .delete()
+            .eq('product_id', prodDbId)
+            .not('id', 'in', `(${incomingIds.join(',')})`);
+        } else {
+          await supabaseAdmin.from('product_variants').delete().eq('product_id', prodDbId);
+        }
+
         if (saved.variants.length > 0) {
-          await supabaseAdmin.from('product_variants').insert(
-            saved.variants.map((v) => ({
+          const variantPayloads = saved.variants.map((v) => {
+            const row: any = {
               product_id: prodDbId,
               name: v.name,
               value: v.value,
@@ -145,8 +159,14 @@ export async function actionSaveProduct(productData: Partial<Product>) {
               sku: v.sku || null,
               image_url: v.image_url || null,
               is_active: v.is_active ?? true,
-            }))
-          );
+            };
+            if (v.id && UUID_REGEX.test(v.id)) {
+              row.id = v.id;
+            }
+            return row;
+          });
+
+          await supabaseAdmin.from('product_variants').upsert(variantPayloads, { onConflict: 'id' });
         }
       }
 

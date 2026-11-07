@@ -206,7 +206,7 @@ export async function POST(request: Request) {
       orderNumber,
       totalAmount: verifiedTotalAmount,
       customerName: shipping_address.full_name || guest_name || 'Müşteri',
-      customerEmail: guest_email || 'siparis@otantikosconcept.com',
+      customerEmail: guest_email || 'info@otantikosconcept.com',
       customerPhone: shipping_address.phone || guest_phone || '',
       customerIdentityNumber: identity_number || '11111111111',
       shippingAddress: {

@@ -1462,12 +1462,63 @@ export const DataService = {
   async updateReturnStatus(returnId: string, status: ReturnRequest['status'], adminResponse?: string): Promise<boolean> {
     const returns = runtimeReturns;
     const ret = returns.find(r => r.id === returnId);
+    const wasAlreadyRefunded = ret?.status === 'tamamlandi' || (ret?.status as any) === 'iade_edildi';
+
     if (ret) {
       ret.status = status;
       if (adminResponse !== undefined) ret.admin_response = adminResponse;
       ret.updated_at = new Date().toISOString();
     }
     runtimeReturns = returns;
+
+    const isRefundedStatus = status === 'tamamlandi' || (status as any) === 'iade_edildi';
+
+    // Automatic Inventory Restock on Approved & Completed Return
+    if (isRefundedStatus && !wasAlreadyRefunded && ret?.order_id) {
+      try {
+        const order = await this.getOrderById(ret.order_id);
+        if (order && order.items && order.items.length > 0) {
+          const itemsToRestock = ret.order_item_id
+            ? order.items.filter((it) => (it as any).id === ret.order_item_id || it.product_id === ret.order_item_id)
+            : order.items;
+
+          const finalItems = itemsToRestock.length > 0 ? itemsToRestock : order.items;
+
+          // 1. Restock in memory
+          finalItems.forEach((item) => {
+            const prod = runtimeProducts.find((p) => p.id === item.product_id || p.name === item.product_name);
+            if (prod) {
+              prod.stock = (prod.stock || 0) + item.quantity;
+              if (item.variant_id && prod.variants) {
+                const v = prod.variants.find((vr) => vr.id === item.variant_id);
+                if (v) v.stock = (v.stock || 0) + item.quantity;
+              }
+            }
+          });
+
+          // 2. Restock in Supabase via Admin Client
+          const { createAdminClient } = await import('@/lib/supabase/admin');
+          const supabaseAdmin = createAdminClient();
+
+          for (const item of finalItems) {
+            if (item.product_id && !item.product_id.startsWith('prod-')) {
+              const { data: pData } = await supabaseAdmin.from('products').select('stock').eq('id', item.product_id).maybeSingle();
+              if (pData && typeof pData.stock === 'number') {
+                await supabaseAdmin.from('products').update({ stock: pData.stock + item.quantity, updated_at: new Date().toISOString() }).eq('id', item.product_id);
+              }
+            }
+            if (item.variant_id && !item.variant_id.startsWith('var-')) {
+              const { data: vData } = await supabaseAdmin.from('product_variants').select('stock').eq('id', item.variant_id).maybeSingle();
+              if (vData && typeof vData.stock === 'number') {
+                await supabaseAdmin.from('product_variants').update({ stock: vData.stock + item.quantity }).eq('id', item.variant_id);
+              }
+            }
+          }
+        }
+      } catch (restockErr) {
+        console.error('updateReturnStatus restock error:', restockErr);
+      }
+    }
 
     if (typeof window !== 'undefined') {
       try {
@@ -1482,9 +1533,10 @@ export const DataService = {
     }
 
     try {
-      const supabase = createClient();
+      const { createAdminClient } = await import('@/lib/supabase/admin');
+      const supabaseAdmin = createAdminClient();
       if (!returnId.startsWith('ret-')) {
-        await supabase.from('returns').update({
+        await supabaseAdmin.from('returns').update({
           status,
           admin_response: adminResponse,
           updated_at: new Date().toISOString(),
@@ -2483,10 +2535,10 @@ export const DataService = {
       }
     });
 
-    // 2. Process E-Commerce Web Orders (Paid Online Orders)
+    // 2. Process E-Commerce Web Orders (Paid & Non-Cancelled Online Orders)
     if (!options?.channel || options.channel === 'all' || options.channel === 'website') {
       orders.forEach((o) => {
-        if (o.payment_status === 'paid' && isDateInRange(o.created_at)) {
+        if (o.payment_status === 'paid' && o.status !== 'iptal_edildi' && isDateInRange(o.created_at)) {
           totalRevenue += o.total_amount;
           salesByChannel.website += o.total_amount;
           totalSalesCount++;
@@ -2585,9 +2637,9 @@ export const DataService = {
       }
     });
 
-    // 2. Accumulate Web Orders
+    // 2. Accumulate Web Orders (Excluding Cancelled Orders)
     orders.forEach((o) => {
-      if (o.payment_status === 'paid' && Array.isArray(o.items)) {
+      if (o.payment_status === 'paid' && o.status !== 'iptal_edildi' && Array.isArray(o.items)) {
         o.items.forEach((item) => {
           const key = item.product_id || item.product_name.toLowerCase().trim();
           let existing = statMap.get(key);

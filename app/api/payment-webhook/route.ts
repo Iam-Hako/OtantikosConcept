@@ -32,13 +32,9 @@ export async function POST(request: Request) {
     }
 
     if (status === 'success') {
-      if (order.status === 'siparis_alindi') {
-        await DataService.updateOrderStatus(order.id, 'hazirlaniyor');
-      }
+      await DataService.markOrderPaid(order.order_number, 'credit_card');
     } else if (status === 'failed') {
-      if (order.status === 'siparis_alindi') {
-        await DataService.updateOrderStatus(order.id, 'iptal_edildi');
-      }
+      await DataService.markOrderFailed(order.order_number, 'Ödeme webhook servisi başarısız bildirimi');
     }
 
     return NextResponse.json({ status: 'OK' });

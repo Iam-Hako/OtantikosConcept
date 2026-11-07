@@ -146,7 +146,7 @@ export async function initializeIyzicoCheckoutForm(
     name: firstName,
     surname: lastName,
     gsmNumber: gsmNumber,
-    email: params.customerEmail || 'siparis@otantikosconcept.com',
+    email: params.customerEmail || 'info@otantikosconcept.com',
     identityNumber: params.customerIdentityNumber || '11111111111',
     registrationAddress: (params.shippingAddress.addressDetail || 'Tahtakale Eminönü').slice(0, 250),
     ip: params.userIp || '85.95.230.1',

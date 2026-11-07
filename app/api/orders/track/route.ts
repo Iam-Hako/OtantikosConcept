@@ -45,6 +45,14 @@ export async function GET(request: Request) {
     // 2. Fallback to store data service
     const localOrder = await DataService.getOrderById(orderNumber.trim());
     if (localOrder) {
+      if (emailOrName && emailOrName.trim()) {
+        const q = emailOrName.trim().toLowerCase();
+        const guestEmail = (localOrder.guest_email || '').toLowerCase();
+        const name = (localOrder.shipping_address?.full_name || '').toLowerCase();
+        if (!guestEmail.includes(q) && !name.includes(q)) {
+          return NextResponse.json({ error: 'E-posta veya isim sipariş ile eşleşmiyor.' }, { status: 403 });
+        }
+      }
       return NextResponse.json({ success: true, order: localOrder });
     }
 
