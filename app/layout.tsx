@@ -1,3 +1,4 @@
+import { DataService } from '@/lib/data/store-data';
 import { Suspense } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
@@ -53,7 +54,7 @@ export const metadata: Metadata = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -64,6 +65,8 @@ export default function RootLayout({
     ? rawLocale
     : DEFAULT_LANGUAGE;
   const isRTL = initialLang === 'ar';
+
+  const initialCategories = await DataService.getCategories();
 
   return (
     <html lang={initialLang} dir={isRTL ? 'rtl' : 'ltr'} className={`scroll-smooth bg-white ${isRTL ? 'rtl' : ''}`}>
@@ -82,10 +85,10 @@ export default function RootLayout({
             <WishlistProvider>
               <CartProvider>
                 <Suspense fallback={null}>
-                  <Navbar />
+                  <Navbar initialCategories={initialCategories} />
                 </Suspense>
                 <main className="flex-1 pb-16 lg:pb-0 transform-gpu bg-white">{children}</main>
-                <Footer />
+                <Footer initialCategories={initialCategories} />
                 <Suspense fallback={null}>
                   <MobileBottomNav />
                 </Suspense>

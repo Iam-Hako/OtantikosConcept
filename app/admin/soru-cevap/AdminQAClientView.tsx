@@ -1,0 +1,199 @@
+'use client';
+
+import React, { useState } from 'react';
+import { HelpCircle } from 'lucide-react';
+import { Question, Product } from '@/lib/types/ecommerce';
+import { DataService } from '@/lib/data/store-data';
+import { formatDate } from '@/lib/utils/format';
+import { toast } from 'sonner';
+
+interface AdminQAClientViewProps {
+  initialQuestions: Question[];
+  initialProducts: Product[];
+}
+
+export default function AdminQAClientView({ initialQuestions, initialProducts }: AdminQAClientViewProps) {
+  const [questions, setQuestions] = useState<Question[]>(initialQuestions);
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [activeQuestion, setActiveQuestion] = useState<Question | null>(null);
+  const [answerText, setAnswerText] = useState('');
+
+  const loadQuestions = async () => {
+    const [qList, pList] = await Promise.all([
+      DataService.getQuestions(),
+      DataService.getAllAdminProducts(),
+    ]);
+    setQuestions(qList);
+    setProducts(pList);
+  };
+
+  const handleAnswerSubmit = async (questionId: string) => {
+    if (!answerText.trim()) return;
+    await DataService.answerAndApproveQuestion(questionId, answerText, true);
+    toast.success('Soru yanıtlandı ve sitede yayınlandı!');
+    setActiveQuestion(null);
+    setAnswerText('');
+    loadQuestions();
+  };
+
+  return (
+    <div className="space-y-6">
+      
+      <div>
+        <h1 className="text-xl sm:text-2xl font-serif font-black text-stone-900 flex items-center gap-2">
+          <HelpCircle className="w-6 h-6 text-amber-600" />
+          <span>Ürün Soru-Cevap Moderasyon Masası</span>
+        </h1>
+        <p className="text-xs text-stone-500 mt-0.5">
+          Müşterilerden gelen ürün sorularını yanıtlayın ve sitede yayınlanmasını onaylayın.
+        </p>
+      </div>
+
+      {/* Mobile Cards List (< md) */}
+      <div className="md:hidden space-y-3">
+        {questions.length === 0 ? (
+          <div className="p-8 text-center text-xs text-stone-400 bg-white rounded-2xl border border-stone-200">
+            Soru bulunamadı.
+          </div>
+        ) : (
+          questions.map((q) => {
+            const prod = products.find((p) => p.id === q.product_id);
+            return (
+              <div key={q.id} className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3 text-xs">
+                <div className="flex items-center justify-between border-b border-stone-100 pb-2">
+                  <span className="font-bold text-stone-900 line-clamp-1">{prod?.name || 'Ürün'}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                    q.is_approved ? 'text-emerald-800 bg-emerald-50 border-emerald-200' : 'text-amber-800 bg-amber-50 border-amber-200'
+                  }`}>
+                    {q.is_approved ? 'Onaylı' : 'Yanıt Bekliyor'}
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-stone-800 font-semibold">❓ "{q.question_text}"</div>
+                  {q.answer_text && (
+                    <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 mt-1">
+                      <strong>Cevabınız:</strong> {q.answer_text}
+                    </div>
+                  )}
+                  <div className="text-[10px] text-stone-400 pt-1">
+                    {q.user_name} • {formatDate(q.created_at)}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveQuestion(q);
+                    setAnswerText(q.answer_text || '');
+                  }}
+                  className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold rounded-xl transition flex items-center justify-center min-h-[40px] shadow-2xs"
+                >
+                  {q.answer_text ? 'Cevabı Düzenle' : 'Soruyu Yanıtla'}
+                </button>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop Table (md+) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="bg-stone-50 border-b border-stone-200 text-stone-500 uppercase font-bold text-[10px]">
+                <th className="py-3.5 px-4">Tarih</th>
+                <th className="py-3.5 px-4">Ürün</th>
+                <th className="py-3.5 px-4">Müşteri</th>
+                <th className="py-3.5 px-4">Soru</th>
+                <th className="py-3.5 px-4">Yanıt / Durum</th>
+                <th className="py-3.5 px-4 text-right">İşlem</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100">
+              {questions.map((q) => {
+                const prod = products.find((p) => p.id === q.product_id);
+                return (
+                  <tr key={q.id} className="hover:bg-stone-50 transition">
+                    <td className="py-3 px-4 text-stone-400">{formatDate(q.created_at)}</td>
+                    <td className="py-3 px-4 font-bold text-stone-900">{prod?.name || q.product_id}</td>
+                    <td className="py-3 px-4">{q.user_name}</td>
+                    <td className="py-3 px-4 max-w-xs">{q.question_text}</td>
+                    <td className="py-3 px-4">
+                      {q.is_approved ? (
+                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          ✓ Onaylı & Yayında
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                          Yanıt Bekliyor
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <button
+                        onClick={() => {
+                          setActiveQuestion(q);
+                          setAnswerText(q.answer_text || '');
+                        }}
+                        className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs transition"
+                      >
+                        {q.answer_text ? 'Düzenle' : 'Yanıtla'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Answer Modal */}
+      {activeQuestion && (
+        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 animate-slide-up text-xs max-h-[90dvh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+              <h3 className="font-bold text-sm text-stone-900">Soruyu Yanıtla & Onayla</h3>
+              <button onClick={() => setActiveQuestion(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-stone-700">✕</button>
+            </div>
+
+            <div className="p-3.5 bg-stone-50 rounded-xl space-y-1">
+              <div><strong>Soran:</strong> {activeQuestion.user_name}</div>
+              <div><strong>Soru:</strong> {activeQuestion.question_text}</div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-stone-700 mb-1">Otantikos Yetkili Yanıtı *</label>
+              <textarea
+                rows={3}
+                required
+                value={answerText}
+                onChange={(e) => setAnswerText(e.target.value)}
+                placeholder="Müşteriye verilecek resmi yanıt..."
+                className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-stone-900 transition"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setActiveQuestion(null)}
+                className="px-4 py-2.5 border border-stone-300 text-stone-700 rounded-xl active:scale-95 min-h-[40px]"
+              >
+                İptal
+              </button>
+              <button
+                onClick={() => handleAnswerSubmit(activeQuestion.id)}
+                className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold rounded-xl min-h-[40px] shadow-sm"
+              >
+                Yanıtı Kaydet & Yayınla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}

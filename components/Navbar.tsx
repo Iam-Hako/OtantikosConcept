@@ -27,7 +27,11 @@ import { useTranslation } from '@/lib/i18n/language-context';
 import LanguageSelector from '@/components/LanguageSelector';
 import SearchModal from '@/components/SearchModal';
 
-export default function Navbar() {
+interface NavbarProps {
+  initialCategories?: Category[];
+}
+
+export default function Navbar({ initialCategories = [] }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { totalItems, openDrawer } = useCart();
@@ -35,14 +39,16 @@ export default function Navbar() {
   const { user, isAdmin, logout } = useAuth();
   const { t } = useTranslation();
 
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(
+    initialCategories.filter((c) => c.is_active !== false)
+  );
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    DataService.getCategories().then((list) => setCategories(list.filter(c => c.is_active !== false)));
+    if (initialCategories.length === 0) { DataService.getCategories().then((list) => setCategories(list.filter(c => c.is_active !== false))); }
 
     const handleCustomOpenSearch = () => {
       setIsSearchModalOpen(true);

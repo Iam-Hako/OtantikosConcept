@@ -22,13 +22,19 @@ import { Category } from '@/lib/types/ecommerce';
 import { useTranslation } from '@/lib/i18n/language-context';
 import LanguageSelector from '@/components/LanguageSelector';
 
-export default function Footer() {
+interface FooterProps {
+  initialCategories?: Category[];
+}
+
+export default function Footer({ initialCategories = [] }: FooterProps) {
   const pathname = usePathname();
   const { t } = useTranslation();
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(
+    initialCategories.filter((c) => c.is_active !== false)
+  );
 
   useEffect(() => {
-    DataService.getCategories().then((list) => setCategories(list.filter((c) => c.is_active !== false)));
+    if (initialCategories.length === 0) { DataService.getCategories().then((list) => setCategories(list.filter((c) => c.is_active !== false))); }
     const handleCategoriesChanged = () => {
       DataService.getCategories().then((list) => setCategories(list.filter((c) => c.is_active !== false)));
     };

@@ -1,0 +1,2077 @@
+'use client';
+
+import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { 
+  Calculator, 
+  TrendingUp, 
+  TrendingDown, 
+  DollarSign, 
+  ShoppingBag, 
+  PlusCircle, 
+  ArrowUpRight, 
+  ArrowDownRight, 
+  Search, 
+  Filter, 
+  Calendar, 
+  Trash2, 
+  Download, 
+  Printer, 
+  RefreshCw, 
+  Store, 
+  Sparkles, 
+  Globe, 
+  Package, 
+  User, 
+  Phone, 
+  CheckCircle2, 
+  AlertCircle,
+  X,
+  CreditCard,
+  FileText,
+  Boxes,
+  HelpCircle,
+  Percent,
+  ReceiptText,
+  Tag,
+  Clock,
+  Check,
+  Layers,
+  ArrowRight
+} from 'lucide-react';
+import { Product, Order, AccountingTransaction, SaleChannel, ProfitSummary, ProductProfitStat, Category } from '@/lib/types/ecommerce';
+import { DataService, normalizeTurkish } from '@/lib/data/store-data';
+import { 
+  actionSaveAccountingTransaction, 
+  actionDeleteAccountingTransaction,
+  actionToggleTransactionPaymentStatus,
+  actionSaveProduct 
+} from '@/app/actions/ecommerce-actions';
+import { formatPrice, formatDate } from '@/lib/utils/format';
+import { toast } from 'sonner';
+
+type DatePreset = 'today' | 'week' | 'month' | 'year' | 'all' | 'custom';
+type ActiveTab = 'ledger' | 'product_profit';
+type PaymentStatusFilter = 'all' | 'paid' | 'pending';
+
+export default function KarZararClientView({
+  initialTransactions = [],
+  initialProducts = [],
+  initialCategories = [],
+  initialOrders = [],
+  initialProfitStats = [],
+}: {
+  initialTransactions?: AccountingTransaction[];
+  initialProducts?: Product[];
+  initialCategories?: Category[];
+  initialOrders?: Order[];
+  initialProfitStats?: ProductProfitStat[];
+}) {
+  const [transactions, setTransactions] = useState<AccountingTransaction[]>(initialTransactions);
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [profitStats, setProfitStats] = useState<ProductProfitStat[]>(initialProfitStats);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Filter States
+  const [activeTab, setActiveTab] = useState<ActiveTab>('ledger');
+  const [datePreset, setDatePreset] = useState<DatePreset>('month');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [channelFilter, setChannelFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<PaymentStatusFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Modals
+  const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [togglingStatusId, setTogglingStatusId] = useState<string | null>(null);
+
+  // Form States - SATIÅ GÄ°RÄ°ÅÄ° (YalnÄ±zca Mevcut GerÃ§ek ÃœrÃ¼nler Ãœzerinden GÃ¼venli SatÄ±ÅŸ)
+  const [saleForm, setSaleForm] = useState({
+    productId: '',
+    productName: '',
+    quantity: '1',
+    unitPrice: '', // SatÄ±ÅŸ FiyatÄ±
+    unitCost: '', // AlÄ±ÅŸ Maliyeti
+    customerName: '', // Zorunlu
+    customerPhone: '', // Zorunlu
+    saleChannel: 'magaza' as SaleChannel, // Zorunlu: magaza, toptan, website
+    paymentMethod: 'nakit',
+    dueDate: '', // Veresiye ise Vade / Tahsilat Tarihi
+    documentNo: '',
+    notes: '',
+    transactionDate: new Date().toISOString().split('T')[0], // Zorunlu
+    updateStock: true,
+  });
+
+  // Form States - ALIÅ GÄ°RÄ°ÅÄ° (Mevcut ÃœrÃ¼ne Stok Ekleme veya Yeni ÃœrÃ¼n OluÅŸturarak Alma)
+  const [purchaseForm, setPurchaseForm] = useState({
+    isNewProductMode: false, // true = Yeni Ã¼rÃ¼n oluÅŸturarak al, false = Mevcut Ã¼rÃ¼ne al
+    productId: '',
+    productName: '',
+    categoryId: '',
+    salePriceInput: '', // Yeni Ã¼rÃ¼n iÃ§in tahmini satÄ±ÅŸ fiyatÄ±
+    quantity: '10',
+    unitPrice: '', // Birim AlÄ±ÅŸ FiyatÄ±
+    totalPriceInput: '', // Toplam AlÄ±ÅŸ FiyatÄ±
+    supplierName: '', // Opsiyonel
+    paymentMethod: 'nakit',
+    dueDate: '', // Veresiye ise Vade / Ã–deme Tarihi
+    documentNo: '',
+    notes: '',
+    transactionDate: new Date().toISOString().split('T')[0],
+    updateStock: true,
+  });
+
+  // Form States - GÄ°DER GÄ°RÄ°ÅÄ°
+  const [expenseForm, setExpenseForm] = useState({
+    expenseTitle: '',
+    amount: '',
+    category: 'genel',
+    paymentMethod: 'nakit',
+    documentNo: '',
+    notes: '',
+    transactionDate: new Date().toISOString().split('T')[0],
+  });
+
+  // Load Initial Data
+  const loadAllData = async () => {
+    setIsLoading(true);
+    try {
+      const [txList, pList, oList, stats, catList] = await Promise.all([
+        DataService.getAccountingTransactions(),
+        DataService.getAllAdminProducts(),
+        DataService.getOrders(),
+        DataService.getProductProfitStats(),
+        DataService.getCategories(),
+      ]);
+      setTransactions(txList);
+      setProducts(pList);
+      setOrders(oList);
+      setProfitStats(stats);
+      setCategories(catList);
+      if (catList.length > 0 && !purchaseForm.categoryId) {
+        setPurchaseForm((prev) => ({ ...prev, categoryId: catList[0].id }));
+      }
+    } catch (err) {
+      console.error('Data load error:', err);
+      toast.error('Veriler yÃ¼klenirken bir hata oluÅŸtu.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (initialTransactions.length === 0 && initialProducts.length === 0) {
+      loadAllData();
+    }
+  }, [initialTransactions.length, initialProducts.length]);
+
+  // Compute Active Date Range
+  const { startDate, endDate } = useMemo(() => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`;
+
+    if (datePreset === 'today') {
+      return { startDate: todayStr, endDate: todayStr };
+    }
+    if (datePreset === 'week') {
+      const start = new Date(today);
+      start.setDate(today.getDate() - 7);
+      const sy = start.getFullYear();
+      const sm = String(start.getMonth() + 1).padStart(2, '0');
+      const sd = String(start.getDate()).padStart(2, '0');
+      return { startDate: `${sy}-${sm}-${sd}`, endDate: todayStr };
+    }
+    if (datePreset === 'month') {
+      return { startDate: `${y}-${m}-01`, endDate: todayStr };
+    }
+    if (datePreset === 'year') {
+      return { startDate: `${y}-01-01`, endDate: todayStr };
+    }
+    if (datePreset === 'custom') {
+      return { startDate: customStartDate || '', endDate: customEndDate || '' };
+    }
+    return { startDate: '', endDate: '' };
+  }, [datePreset, customStartDate, customEndDate]);
+
+  // Combined Live Filtered Summary
+  const summary: ProfitSummary = useMemo(() => {
+    let totalRevenue = 0;
+    let totalPurchasesAmount = 0;
+    let totalCost = 0;
+    let totalExpenses = 0;
+    let totalSalesCount = 0;
+    let totalPurchasesCount = 0;
+    let collectedProfit = 0;
+    let pendingReceivables = 0;
+    let pendingPayables = 0;
+
+    const salesByChannel = { magaza: 0, toptan: 0, website: 0 };
+
+    const isDateMatch = (dateStr: string) => {
+      if (!dateStr) return true;
+      const d = dateStr.split('T')[0];
+      if (startDate && d < startDate) return false;
+      if (endDate && d > endDate) return false;
+      return true;
+    };
+
+    // 1. Transactions (Manual Sales, Purchases, Expenses)
+    transactions.forEach((tx) => {
+      if (!isDateMatch(tx.transaction_date)) return;
+
+      if (tx.type === 'sale') {
+        if (channelFilter !== 'all' && tx.sale_channel !== channelFilter) return;
+
+        totalRevenue += tx.total_amount;
+        const cst = tx.total_cost || (tx.unit_cost ? tx.unit_cost * tx.quantity : 0);
+        totalCost += cst;
+        totalSalesCount++;
+
+        const isPaid = tx.payment_status !== 'pending';
+        if (isPaid) {
+          collectedProfit += (tx.net_profit !== undefined && tx.net_profit !== null ? tx.net_profit : (tx.total_amount - cst));
+        } else {
+          pendingReceivables += tx.total_amount;
+        }
+
+        const ch = (tx.sale_channel || 'magaza') as 'magaza' | 'toptan' | 'website';
+        if (salesByChannel[ch] !== undefined) {
+          salesByChannel[ch] += tx.total_amount;
+        }
+      } else if (tx.type === 'purchase') {
+        if (channelFilter === 'all') {
+          totalPurchasesCount++;
+          totalPurchasesAmount += tx.total_amount;
+          if (tx.payment_status === 'pending') {
+            pendingPayables += tx.total_amount;
+          }
+        }
+      } else if (tx.type === 'expense') {
+        if (channelFilter === 'all') {
+          totalExpenses += tx.total_amount;
+          collectedProfit -= tx.total_amount;
+        }
+      }
+    });
+
+    // 2. Web Orders (Paid online orders from website)
+    if (channelFilter === 'all' || channelFilter === 'website') {
+      const costMap = new Map<string, number>();
+      products.forEach((p) => {
+        costMap.set(p.id, Number(p.cost_price) || 0);
+        costMap.set(p.name.toLowerCase().trim(), Number(p.cost_price) || 0);
+      });
+
+      orders.forEach((o) => {
+        if (o.payment_status === 'paid' && isDateMatch(o.created_at)) {
+          totalRevenue += o.total_amount;
+          salesByChannel.website += o.total_amount;
+          totalSalesCount++;
+
+          let orderCost = 0;
+          if (Array.isArray(o.items)) {
+            o.items.forEach((item) => {
+              const uCost = (item.product_id ? costMap.get(item.product_id) : undefined) ||
+                costMap.get(item.product_name.toLowerCase().trim()) || 0;
+              orderCost += uCost * item.quantity;
+            });
+          }
+          totalCost += orderCost;
+          collectedProfit += (o.total_amount - orderCost);
+        }
+      });
+    }
+
+    const netProfit = totalRevenue - totalCost - totalExpenses;
+    const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100) : 0;
+
+    return {
+      totalRevenue,
+      totalPurchasesAmount,
+      totalCost,
+      totalExpenses,
+      netProfit,
+      collectedProfit,
+      pendingReceivables,
+      pendingPayables,
+      profitMargin: Math.round(profitMargin * 10) / 10,
+      totalSalesCount,
+      totalPurchasesCount,
+      salesByChannel,
+    };
+  }, [transactions, orders, products, startDate, endDate, channelFilter]);
+
+  // Filtered Ledger List
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((tx) => {
+      if (startDate && tx.transaction_date < startDate) return false;
+      if (endDate && tx.transaction_date > endDate) return false;
+
+      if (typeFilter !== 'all' && tx.type !== typeFilter) return false;
+
+      if (channelFilter !== 'all') {
+        if (tx.type === 'sale' && tx.sale_channel !== channelFilter) return false;
+        if (tx.type !== 'sale') return false;
+      }
+
+      if (paymentStatusFilter === 'paid') {
+        if (tx.payment_status === 'pending') return false;
+      } else if (paymentStatusFilter === 'pending') {
+        if (tx.payment_status !== 'pending') return false;
+      }
+
+      if (searchQuery.trim()) {
+        const q = normalizeTurkish(searchQuery);
+        const matchName = normalizeTurkish(tx.product_name).includes(q);
+        const matchCustomer = tx.customer_name ? normalizeTurkish(tx.customer_name).includes(q) : false;
+        const matchPhone = tx.customer_phone ? tx.customer_phone.includes(q) : false;
+        const matchSupplier = tx.supplier_name ? normalizeTurkish(tx.supplier_name).includes(q) : false;
+        const matchDoc = tx.document_no ? normalizeTurkish(tx.document_no).includes(q) : false;
+        if (!matchName && !matchCustomer && !matchPhone && !matchSupplier && !matchDoc) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [transactions, startDate, endDate, typeFilter, channelFilter, paymentStatusFilter, searchQuery]);
+
+  // Select Product in Sale Form -> Auto populate sale price and unit cost
+  const handleSelectProductInSale = (productId: string) => {
+    if (!productId) {
+      setSaleForm((prev) => ({ ...prev, productId: '', productName: '', unitPrice: '', unitCost: '' }));
+      return;
+    }
+    const found = products.find((p) => p.id === productId);
+    if (found) {
+      const defaultPrice = saleForm.saleChannel === 'toptan' && found.wholesale_price 
+        ? found.wholesale_price 
+        : found.price;
+
+      setSaleForm((prev) => ({
+        ...prev,
+        productId: found.id,
+        productName: found.name,
+        unitPrice: defaultPrice !== undefined && defaultPrice !== null ? String(defaultPrice) : '',
+        unitCost: found.cost_price !== undefined && found.cost_price !== null ? String(found.cost_price) : '',
+      }));
+    }
+  };
+
+  // Select Product in Purchase Form -> Auto populate current product name and cost
+  const handleSelectProductInPurchase = (productId: string) => {
+    if (!productId) {
+      setPurchaseForm((prev) => ({ ...prev, productId: '', productName: '', unitPrice: '', totalPriceInput: '' }));
+      return;
+    }
+    const found = products.find((p) => p.id === productId);
+    if (found) {
+      const uCost = found.cost_price !== undefined && found.cost_price !== null ? Number(found.cost_price) : 0;
+      const qty = Math.max(1, Number(purchaseForm.quantity) || 1);
+      setPurchaseForm((prev) => ({
+        ...prev,
+        productId: found.id,
+        productName: found.name,
+        unitPrice: uCost > 0 ? String(uCost) : '',
+        totalPriceInput: uCost > 0 ? String(uCost * qty) : '',
+      }));
+    }
+  };
+
+  // Bidirectional Purchase Input Handlers
+  const handlePurchaseQuantityChange = (val: string) => {
+    const qty = Math.max(1, Number(val) || 1);
+    setPurchaseForm((prev) => {
+      let total = prev.totalPriceInput;
+      if (prev.unitPrice && Number(prev.unitPrice) > 0) {
+        total = (Number(prev.unitPrice) * qty).toFixed(2);
+      }
+      return { ...prev, quantity: val, totalPriceInput: total };
+    });
+  };
+
+  const handlePurchaseUnitPriceChange = (val: string) => {
+    const qty = Math.max(1, Number(purchaseForm.quantity) || 1);
+    setPurchaseForm((prev) => ({
+      ...prev,
+      unitPrice: val,
+      totalPriceInput: val && Number(val) > 0 ? (Number(val) * qty).toFixed(2) : '',
+    }));
+  };
+
+  const handlePurchaseTotalPriceChange = (val: string) => {
+    const qty = Math.max(1, Number(purchaseForm.quantity) || 1);
+    setPurchaseForm((prev) => ({
+      ...prev,
+      totalPriceInput: val,
+      unitPrice: val && Number(val) > 0 ? (Number(val) / qty).toFixed(2) : '',
+    }));
+  };
+
+  // Selected product details for live Sale modal
+  const selectedSaleProduct = useMemo(() => {
+    if (!saleForm.productId) return null;
+    return products.find((p) => p.id === saleForm.productId) || null;
+  }, [saleForm.productId, products]);
+
+  // Calculate live profit preview for Sale Modal
+  const saleModalCalculated = useMemo(() => {
+    const qty = Math.max(1, Number(saleForm.quantity) || 1);
+    const uPrice = Number(saleForm.unitPrice) || 0;
+    const uCost = Number(saleForm.unitCost) || 0;
+    const totalRev = qty * uPrice;
+    const totalCst = qty * uCost;
+    const profit = totalRev - totalCst;
+    const margin = totalRev > 0 ? (profit / totalRev) * 100 : 0;
+    return {
+      qty,
+      uPrice,
+      uCost,
+      totalRev,
+      totalCst,
+      profit,
+      margin: Math.round(margin * 10) / 10,
+    };
+  }, [saleForm.quantity, saleForm.unitPrice, saleForm.unitCost]);
+
+  // Handle Submit Sale
+  const handleSaveSale = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!saleForm.productId) {
+      toast.error('LÃ¼tfen maÄŸaza kataloÄŸundan satÄ±lan Ã¼rÃ¼nÃ¼ seÃ§iniz.');
+      return;
+    }
+    if (!saleForm.customerName.trim()) {
+      toast.error('LÃ¼tfen MÃ¼ÅŸteri AdÄ±nÄ± giriniz (Zorunlu alan).');
+      return;
+    }
+    if (!saleForm.customerPhone.trim()) {
+      toast.error('LÃ¼tfen MÃ¼ÅŸteri Telefon NumarasÄ±nÄ± giriniz (Zorunlu alan).');
+      return;
+    }
+    if (!saleForm.saleChannel) {
+      toast.error('LÃ¼tfen SatÄ±ÅŸ KanalÄ±nÄ± seÃ§iniz (MaÄŸaza, Toptan veya Website).');
+      return;
+    }
+    if (!saleForm.transactionDate) {
+      toast.error('LÃ¼tfen SatÄ±ÅŸ Tarihini seÃ§iniz.');
+      return;
+    }
+
+    const qty = Math.max(1, Number(saleForm.quantity) || 1);
+    const unitPrice = Number(saleForm.unitPrice) || 0;
+    if (unitPrice <= 0) {
+      toast.error('LÃ¼tfen geÃ§erli bir SatÄ±ÅŸ FiyatÄ± giriniz.');
+      return;
+    }
+
+    const isVeresiye = saleForm.paymentMethod === 'veresiye';
+    const paymentStatus = isVeresiye ? 'pending' : 'paid';
+
+    setIsSubmitting(true);
+    try {
+      const res = await actionSaveAccountingTransaction({
+        type: 'sale',
+        product_id: saleForm.productId,
+        product_name: saleForm.productName.trim() || selectedSaleProduct?.name || 'ÃœrÃ¼n',
+        quantity: qty,
+        unit_price: unitPrice,
+        total_amount: saleModalCalculated.totalRev,
+        unit_cost: Number(saleForm.unitCost) || 0,
+        total_cost: saleModalCalculated.totalCst,
+        net_profit: saleModalCalculated.profit,
+        customer_name: saleForm.customerName.trim(),
+        customer_phone: saleForm.customerPhone.trim(),
+        sale_channel: saleForm.saleChannel,
+        payment_method: saleForm.paymentMethod,
+        payment_status: paymentStatus,
+        due_date: isVeresiye && saleForm.dueDate ? saleForm.dueDate : null,
+        document_no: saleForm.documentNo.trim() || null,
+        notes: saleForm.notes.trim() || null,
+        transaction_date: saleForm.transactionDate,
+        update_stock: saleForm.updateStock,
+      });
+
+      if (res.success) {
+        toast.success(`SatÄ±ÅŸ kaydedildi! Net KÃ¢r: ${formatPrice(saleModalCalculated.profit)}`, {
+          description: isVeresiye ? 'Veresiye (AÃ§Ä±k Hesap) olarak kaydedildi.' : 'Tahsil edildi olarak kasaya iÅŸlendi.'
+        });
+        setIsSaleModalOpen(false);
+        setSaleForm({
+          productId: '',
+          productName: '',
+          quantity: '1',
+          unitPrice: '',
+          unitCost: '',
+          customerName: '',
+          customerPhone: '',
+          saleChannel: 'magaza',
+          paymentMethod: 'nakit',
+          dueDate: '',
+          documentNo: '',
+          notes: '',
+          transactionDate: new Date().toISOString().split('T')[0],
+          updateStock: true,
+        });
+        await loadAllData();
+      } else {
+        toast.error(res.error || 'SatÄ±ÅŸ kaydedilemedi.');
+      }
+    } catch {
+      toast.error('Beklenmeyen bir hata oluÅŸtu.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle Submit Purchase
+  const handleSavePurchase = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!purchaseForm.isNewProductMode && !purchaseForm.productId) {
+      toast.error('LÃ¼tfen mevcut Ã¼rÃ¼nlerden birini seÃ§iniz veya "Yeni ÃœrÃ¼n OluÅŸtur" seÃ§eneÄŸini iÅŸaretleyiniz.');
+      return;
+    }
+    if (purchaseForm.isNewProductMode && !purchaseForm.productName.trim()) {
+      toast.error('LÃ¼tfen yeni Ã¼rÃ¼nÃ¼n adÄ±nÄ± giriniz.');
+      return;
+    }
+
+    const qty = Math.max(1, Number(purchaseForm.quantity) || 1);
+    let finalUnitPrice = Number(purchaseForm.unitPrice) || 0;
+    if (purchaseForm.totalPriceInput && Number(purchaseForm.totalPriceInput) > 0) {
+      finalUnitPrice = Number(purchaseForm.totalPriceInput) / qty;
+    }
+
+    if (finalUnitPrice <= 0) {
+      toast.error('LÃ¼tfen Birim AlÄ±ÅŸ FiyatÄ± veya Toplam AlÄ±ÅŸ TutarÄ± giriniz.');
+      return;
+    }
+
+    const totalAmount = qty * finalUnitPrice;
+    const isVeresiye = purchaseForm.paymentMethod === 'veresiye';
+    const paymentStatus = isVeresiye ? 'pending' : 'paid';
+
+    setIsSubmitting(true);
+    try {
+      let linkedProductId = purchaseForm.isNewProductMode ? null : (purchaseForm.productId || null);
+
+      if (purchaseForm.isNewProductMode) {
+        const pName = purchaseForm.productName.trim();
+        const pSlug = `urun-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+        const sPrice = purchaseForm.salePriceInput && Number(purchaseForm.salePriceInput) > 0
+          ? Number(purchaseForm.salePriceInput)
+          : Math.round(finalUnitPrice * 1.5);
+
+        const prodRes = await actionSaveProduct({
+          name: pName,
+          slug: pSlug,
+          category_id: purchaseForm.categoryId || (categories.length > 0 ? categories[0].id : null),
+          price: sPrice,
+          cost_price: finalUnitPrice,
+          stock: qty,
+          is_published: true,
+        });
+
+        if (prodRes.success && prodRes.product?.id) {
+          linkedProductId = prodRes.product.id;
+        }
+      }
+
+      const res = await actionSaveAccountingTransaction({
+        type: 'purchase',
+        product_id: linkedProductId,
+        product_name: purchaseForm.productName.trim() || 'Yeni ÃœrÃ¼n',
+        quantity: qty,
+        unit_price: finalUnitPrice,
+        total_amount: totalAmount,
+        supplier_name: purchaseForm.supplierName.trim() || null,
+        payment_method: purchaseForm.paymentMethod || 'nakit',
+        payment_status: paymentStatus,
+        due_date: isVeresiye && purchaseForm.dueDate ? purchaseForm.dueDate : null,
+        document_no: purchaseForm.documentNo.trim() || null,
+        notes: purchaseForm.notes.trim() || null,
+        transaction_date: purchaseForm.transactionDate || new Date().toISOString().split('T')[0],
+        update_stock: !purchaseForm.isNewProductMode, // If new product, initial stock is already set in actionSaveProduct!
+      });
+
+      if (res.success) {
+        toast.success(`AlÄ±ÅŸ kaydedildi! ${qty} adet Ã¼rÃ¼n stoÄŸa eklendi.`, {
+          description: purchaseForm.isNewProductMode 
+            ? `"${purchaseForm.productName}" kataloÄŸa ve stoÄŸa eklendi, hemen satÄ±ÅŸa hazÄ±r!`
+            : `Toplam Tutar: ${formatPrice(totalAmount)} (Birim: ${formatPrice(finalUnitPrice)})`
+        });
+        setIsPurchaseModalOpen(false);
+        setPurchaseForm({
+          isNewProductMode: false,
+          productId: '',
+          productName: '',
+          categoryId: categories[0]?.id || '',
+          salePriceInput: '',
+          quantity: '10',
+          unitPrice: '',
+          totalPriceInput: '',
+          supplierName: '',
+          paymentMethod: 'nakit',
+          dueDate: '',
+          documentNo: '',
+          notes: '',
+          transactionDate: new Date().toISOString().split('T')[0],
+          updateStock: true,
+        });
+        await loadAllData();
+      } else {
+        toast.error(res.error || 'AlÄ±ÅŸ kaydedilemedi.');
+      }
+    } catch {
+      toast.error('Beklenmeyen bir hata oluÅŸtu.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle Submit Expense
+  const handleSaveExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!expenseForm.expenseTitle.trim()) {
+      toast.error('LÃ¼tfen gider aÃ§Ä±klamasÄ±nÄ± yazÄ±nÄ±z.');
+      return;
+    }
+    const amt = Number(expenseForm.amount) || 0;
+    if (amt <= 0) {
+      toast.error('Gider tutarÄ± 0 TL den bÃ¼yÃ¼k olmalÄ±dÄ±r.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await actionSaveAccountingTransaction({
+        type: 'expense',
+        product_name: `[Gider] ${expenseForm.expenseTitle.trim()}`,
+        quantity: 1,
+        unit_price: amt,
+        total_amount: amt,
+        payment_method: expenseForm.paymentMethod,
+        payment_status: 'paid',
+        document_no: expenseForm.documentNo.trim() || null,
+        notes: expenseForm.notes.trim() || null,
+        transaction_date: expenseForm.transactionDate,
+      });
+
+      if (res.success) {
+        toast.success(`Gider baÅŸarÄ±yla kaydedildi: ${formatPrice(amt)}`);
+        setIsExpenseModalOpen(false);
+        setExpenseForm({
+          expenseTitle: '',
+          amount: '',
+          category: 'genel',
+          paymentMethod: 'nakit',
+          documentNo: '',
+          notes: '',
+          transactionDate: new Date().toISOString().split('T')[0],
+        });
+        await loadAllData();
+      } else {
+        toast.error(res.error || 'Gider kaydedilemedi.');
+      }
+    } catch {
+      toast.error('Beklenmeyen bir hata oluÅŸtu.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Toggle Payment Status
+  const handleTogglePaymentStatus = async (tx: AccountingTransaction) => {
+    const newStatus = tx.payment_status === 'pending' ? 'paid' : 'pending';
+    setTogglingStatusId(tx.id);
+    try {
+      const res = await actionToggleTransactionPaymentStatus(tx.id, newStatus);
+      if (res.success) {
+        toast.success(newStatus === 'paid' ? 'Ä°ÅŸlem Tahsil Edildi olarak gÃ¼ncellendi!' : 'Ä°ÅŸlem AÃ§Ä±k Hesap (Bekliyor) olarak iÅŸaretlendi.');
+        setTransactions((prev) => prev.map((t) => (t.id === tx.id ? { ...t, payment_status: newStatus } : t)));
+        loadAllData();
+      } else {
+        toast.error(res.error || 'Durum gÃ¼ncellenemedi.');
+      }
+    } catch {
+      toast.error('Hata oluÅŸtu.');
+    } finally {
+      setTogglingStatusId(null);
+    }
+  };
+
+  // Delete Transaction
+  const handleDeleteTransaction = async (id: string) => {
+    try {
+      const res = await actionDeleteAccountingTransaction(id);
+      if (res.success) {
+        toast.success('Ä°ÅŸlem silindi.');
+        setDeleteConfirmId(null);
+        await loadAllData();
+      } else {
+        toast.error(res.error || 'Ä°ÅŸlem silinemedi.');
+      }
+    } catch {
+      toast.error('Silme sÄ±rasÄ±nda hata oluÅŸtu.');
+    }
+  };
+
+  // CSV Export
+  const handleExportCSV = () => {
+    if (filteredTransactions.length === 0) {
+      toast.error('DÄ±ÅŸa aktarÄ±lacak kayÄ±t bulunamadÄ±.');
+      return;
+    }
+
+    const headers = ['Tarih', 'Ä°ÅŸlem TÃ¼rÃ¼', 'Kalem / ÃœrÃ¼n AdÄ±', 'Kanal', 'MÃ¼ÅŸteri / TedarikÃ§i', 'Telefon', 'Adet', 'Birim Fiyat', 'Toplam Tutar', 'Birim Maliyet', 'Net KÃ¢r', 'Ã–deme Tipi', 'Ã–deme Durumu', 'Vade Tarihi', 'Belge No', 'Notlar'];
+    const rows = filteredTransactions.map((tx) => [
+      tx.transaction_date,
+      tx.type === 'sale' ? 'SatÄ±ÅŸ' : tx.type === 'purchase' ? 'AlÄ±ÅŸ (Mal AlÄ±mÄ±)' : 'Gider',
+      `"${(tx.product_name || '').replace(/"/g, '""')}"`,
+      tx.sale_channel || '-',
+      `"${(tx.customer_name || tx.supplier_name || '').replace(/"/g, '""')}"`,
+      `"${tx.customer_phone || ''}"`,
+      tx.quantity,
+      tx.unit_price,
+      tx.total_amount,
+      tx.unit_cost || 0,
+      tx.net_profit || 0,
+      tx.payment_method || '',
+      tx.payment_status === 'pending' ? 'AÃ§Ä±k Hesap (Bekliyor)' : 'Ã–dendi / Kasada',
+      tx.due_date || '',
+      `"${tx.document_no || ''}"`,
+      `"${(tx.notes || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `otantikos-muhasebe-raporu-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Muhasebe raporu CSV olarak indirildi.');
+  };
+
+  return (
+    <div className="space-y-6 pb-20">
+      
+      {/* HEADER & ACTION BUTTONS */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-stone-200 shadow-xs print:hidden">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="p-2 rounded-xl bg-amber-100 text-amber-900">
+              <Calculator className="w-5 h-5" />
+            </span>
+            <h1 className="text-xl sm:text-2xl font-serif font-black text-stone-900">
+              KÃ¢r / Zarar & AlÄ±ÅŸ - SatÄ±ÅŸ Muhasebe Merkezi
+            </h1>
+          </div>
+          <p className="text-xs text-stone-500">
+            EminÃ¶nÃ¼ Tahtakale dÃ¼kkan, toptan ve e-ticaret satÄ±ÅŸ gelirleri, mal alÄ±mlarÄ± ve net kÃ¢r analiz masasÄ±.
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setIsSaleModalOpen(true)}
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>+ SatÄ±ÅŸ GiriÅŸi Yap</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsPurchaseModalOpen(true)}
+            className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
+          >
+            <Boxes className="w-4 h-4" />
+            <span>+ AlÄ±ÅŸ (Mal AlÄ±mÄ±) Gir</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsExpenseModalOpen(true)}
+            className="px-3.5 py-2.5 bg-stone-800 hover:bg-stone-900 active:scale-95 text-stone-200 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+          >
+            <ReceiptText className="w-4 h-4 text-stone-400" />
+            <span>+ Gider Ekle</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={loadAllData}
+            title="Verileri Yenile"
+            className="p-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl transition cursor-pointer"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* EXECUTIVE FINANCIAL KPI METRIC CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        
+        {/* 1. TOPLAM GELÄ°R (CÄ°RO) */}
+        <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Toplam SatÄ±ÅŸ Geliri</span>
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">
+              {formatPrice(summary.totalRevenue)}
+            </div>
+            <div className="flex items-center gap-2 mt-1 text-[11px] text-stone-500 font-medium">
+              <span>{summary.totalSalesCount} SatÄ±ÅŸ Ä°ÅŸlemi</span>
+              <span>â€¢</span>
+              <span className="text-blue-700 font-bold">Web + DÃ¼kkan</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. DÃ–NEM MAL ALIMLARI (TEDARÄ°K HARCAMASI) */}
+        <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Toplam Mal AlÄ±mÄ±</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
+              <Boxes className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-xl sm:text-2xl font-black text-amber-900 tracking-tight">
+              {formatPrice(summary.totalPurchasesAmount)}
+            </div>
+            <div className="flex items-center gap-2 mt-1 text-[11px] text-stone-500 font-medium">
+              <span>{summary.totalPurchasesCount} AlÄ±m FaturasÄ±</span>
+              <span>â€¢</span>
+              <span className="text-amber-700 font-bold">Depo StoÄŸu GiriÅŸi</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. SATILAN MALLARIN MALÄ°YETÄ° (SMM) */}
+        <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">SatÄ±lan Mal Maliyeti</span>
+            <div className="w-8 h-8 rounded-xl bg-stone-100 text-stone-700 flex items-center justify-center font-bold">
+              <Package className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-xl sm:text-2xl font-black text-stone-800 tracking-tight">
+              {formatPrice(summary.totalCost)}
+            </div>
+            <div className="flex items-center gap-2 mt-1 text-[11px] text-stone-500 font-medium">
+              <span>SatÄ±lan ÃœrÃ¼nlerin Maliyeti</span>
+              {summary.totalExpenses > 0 && (
+                <span className="text-rose-600 font-bold">+{formatPrice(summary.totalExpenses)} Gider</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 4. GENEL NET KÃ‚R */}
+        <div className={`p-5 rounded-3xl border shadow-xs relative overflow-hidden flex flex-col justify-between ${
+          summary.netProfit >= 0 
+            ? 'bg-emerald-950 text-white border-emerald-900' 
+            : 'bg-rose-950 text-white border-rose-900'
+        }`}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider">
+              {summary.netProfit >= 0 ? 'Genel Net KÃ¢r' : 'Net Zarar'}
+            </span>
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${
+              summary.netProfit >= 0 ? 'bg-emerald-800 text-emerald-200' : 'bg-rose-800 text-rose-200'
+            }`}>
+              {summary.netProfit >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-xl sm:text-2xl font-black tracking-tight text-emerald-400">
+              {summary.netProfit >= 0 ? `+${formatPrice(summary.netProfit)}` : formatPrice(summary.netProfit)}
+            </div>
+            <div className="flex items-center gap-2 mt-1 text-[11px] text-emerald-200/80 font-medium">
+              <span>%{summary.profitMargin} KÃ¢r MarjÄ±</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 5. KASADAKÄ° NAKÄ°T & BEKLEYEN VERESÄ°YE */}
+        <div className="bg-emerald-50/80 p-5 rounded-3xl border border-emerald-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">Kasadaki Net Nakit</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-200 text-emerald-900 flex items-center justify-center font-bold">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-xl sm:text-2xl font-black text-emerald-950 tracking-tight">
+              +{formatPrice(summary.collectedProfit)}
+            </div>
+            <div className="flex items-center justify-between mt-1 text-[11px] text-stone-600 font-medium">
+              <span>AÃ§Ä±k Hesap (Veresiye):</span>
+              <strong className="text-amber-800 font-bold">{formatPrice(summary.pendingReceivables)}</strong>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* CHANNEL BREAKDOWN BADGES */}
+      <div className="bg-white p-4 rounded-2xl border border-stone-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="font-bold text-stone-700 flex items-center gap-2">
+          <span>Kanal DaÄŸÄ±lÄ±mÄ±:</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 font-semibold">
+            <Store className="w-3.5 h-3.5 text-amber-700" />
+            <span>MaÄŸaza / DÃ¼kkan:</span>
+            <strong className="font-black">{formatPrice(summary.salesByChannel.magaza)}</strong>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 font-semibold">
+            <Sparkles className="w-3.5 h-3.5 text-purple-700" />
+            <span>Toptan SatÄ±ÅŸ:</span>
+            <strong className="font-black">{formatPrice(summary.salesByChannel.toptan)}</strong>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 font-semibold">
+            <Globe className="w-3.5 h-3.5 text-blue-700" />
+            <span>E-Ticaret (Website):</span>
+            <strong className="font-black">{formatPrice(summary.salesByChannel.website)}</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* NAVIGATION TABS & FILTER BAR */}
+      <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-4 print:hidden">
+        
+        {/* Main Tabs */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200 pb-4">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab('ledger')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                activeTab === 'ledger'
+                  ? 'bg-stone-900 text-white shadow-xs'
+                  : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+              }`}
+            >
+              <ReceiptText className="w-4 h-4" />
+              <span>Ä°ÅŸlem Defteri (TÃ¼m AlÄ±ÅŸ & SatÄ±ÅŸlar)</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-stone-700 text-white">
+                {filteredTransactions.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('product_profit')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                activeTab === 'product_profit'
+                  ? 'bg-stone-900 text-white shadow-xs'
+                  : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+              }`}
+            >
+              <Tag className="w-4 h-4" />
+              <span>ÃœrÃ¼n BazlÄ± KÃ¢rlÄ±lÄ±k SÄ±ralamasÄ±</span>
+            </button>
+          </div>
+
+          {/* Export & Print */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Excel / CSV</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>YazdÄ±r</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Date Filter Presets & Selectors */}
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+          
+          {/* Quick Presets */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-stone-400 font-semibold mr-1">DÃ¶nem:</span>
+            {(
+              [
+                { key: 'today', label: 'BugÃ¼n' },
+                { key: 'week', label: 'Son 7 GÃ¼n' },
+                { key: 'month', label: 'Bu Ay' },
+                { key: 'year', label: 'Bu YÄ±l' },
+                { key: 'all', label: 'TÃ¼m Zamanlar' },
+                { key: 'custom', label: 'Ã–zel Tarih' },
+              ] as const
+            ).map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => setDatePreset(p.key)}
+                className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
+                  datePreset === p.key
+                    ? 'bg-amber-600 text-white shadow-2xs'
+                    : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom Date Pickers */}
+          {datePreset === 'custom' && (
+            <div className="flex items-center gap-2 animate-in fade-in">
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="p-1.5 bg-stone-50 border border-stone-300 rounded-lg text-xs"
+              />
+              <span className="text-stone-400">-</span>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="p-1.5 bg-stone-50 border border-stone-300 rounded-lg text-xs"
+              />
+            </div>
+          )}
+
+          {/* Channel, Type & Payment Status Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={channelFilter}
+              onChange={(e) => setChannelFilter(e.target.value)}
+              className="p-2 bg-stone-50 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 focus:outline-none"
+            >
+              <option value="all">TÃ¼m SatÄ±ÅŸ KanallarÄ±</option>
+              <option value="magaza">MaÄŸaza / DÃ¼kkan SatÄ±ÅŸÄ±</option>
+              <option value="toptan">Toptan SatÄ±ÅŸ</option>
+              <option value="website">E-Ticaret (Website)</option>
+            </select>
+
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="p-2 bg-stone-50 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 focus:outline-none"
+            >
+              <option value="all">TÃ¼m Ä°ÅŸlem TÃ¼rleri</option>
+              <option value="sale">Sadece SatÄ±ÅŸlar</option>
+              <option value="purchase">Sadece AlÄ±ÅŸlar (Mal AlÄ±mÄ±)</option>
+              <option value="expense">Sadece Giderler</option>
+            </select>
+
+            <select
+              value={paymentStatusFilter}
+              onChange={(e) => setPaymentStatusFilter(e.target.value as PaymentStatusFilter)}
+              className="p-2 bg-stone-50 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 focus:outline-none"
+            >
+              <option value="all">TÃ¼m Ã–deme DurumlarÄ±</option>
+              <option value="paid">âœ“ Tahsil Edilenler / Kasada</option>
+              <option value="pending">â³ AÃ§Ä±k Hesap (Veresiyeler)</option>
+            </select>
+          </div>
+
+        </div>
+
+        {/* Search Input for Ledger */}
+        {activeTab === 'ledger' && (
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="ÃœrÃ¼n adÄ±, mÃ¼ÅŸteri adÄ±, telefon numarasÄ± veya belge no ile filtreleyin..."
+              className="w-full text-xs p-3 pl-10 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 focus:bg-white focus:outline-none focus:border-amber-600 transition"
+            />
+            <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
+          </div>
+        )}
+
+      </div>
+
+      {/* TAB 1: Ä°ÅLEM DEFTERÄ° (TRANSACTIONS LEDGER) */}
+      {activeTab === 'ledger' && (
+        <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-xs">
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-stone-700">
+              <thead className="bg-stone-50 border-b border-stone-200 text-stone-500 uppercase text-[10px] font-black tracking-wider">
+                <tr>
+                  <th className="p-4">Tarih</th>
+                  <th className="p-4">TÃ¼r & Kanal</th>
+                  <th className="p-4">ÃœrÃ¼n / Kalem</th>
+                  <th className="p-4">MÃ¼ÅŸteri / TedarikÃ§i</th>
+                  <th className="p-4">Ã–deme & Durum</th>
+                  <th className="p-4 text-right">Adet</th>
+                  <th className="p-4 text-right">Birim Fiyat</th>
+                  <th className="p-4 text-right">Toplam Tutar</th>
+                  <th className="p-4 text-right">AlÄ±ÅŸ Maliyeti</th>
+                  <th className="p-4 text-right">Net KÃ¢r</th>
+                  <th className="p-4 text-center print:hidden">Ä°ÅŸlem</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {filteredTransactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={11} className="p-12 text-center text-stone-400">
+                      <ReceiptText className="w-8 h-8 mx-auto mb-2 text-stone-300" />
+                      <p className="font-semibold text-stone-600">Bu filtrelere uygun iÅŸlem kaydÄ± bulunamadÄ±.</p>
+                      <p className="text-[11px] mt-1 text-stone-400">YukarÄ±daki butonlardan yeni SatÄ±ÅŸ veya AlÄ±ÅŸ giriÅŸi yapabilirsiniz.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredTransactions.map((tx) => {
+                    const isSale = tx.type === 'sale';
+                    const isPurchase = tx.type === 'purchase';
+                    const isExpense = tx.type === 'expense';
+                    const isPending = tx.payment_status === 'pending';
+
+                    return (
+                      <tr key={tx.id} className="hover:bg-stone-50/70 transition">
+                        
+                        {/* Tarih */}
+                        <td className="p-4 whitespace-nowrap font-medium text-stone-600">
+                          {formatDate(tx.transaction_date)}
+                        </td>
+
+                        {/* TÃ¼r & Kanal */}
+                        <td className="p-4 whitespace-nowrap">
+                          {isSale ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <ArrowUpRight className="w-3 h-3" />
+                              <span>SatÄ±ÅŸ</span>
+                              <span className="text-[9px] uppercase px-1 rounded bg-emerald-200/60 font-black">
+                                {tx.sale_channel === 'toptan' ? 'Toptan' : tx.sale_channel === 'website' ? 'Web' : 'DÃ¼kkan'}
+                              </span>
+                            </span>
+                          ) : isPurchase ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              <Boxes className="w-3 h-3" />
+                              <span>Mal AlÄ±mÄ±</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              <ArrowDownRight className="w-3 h-3" />
+                              <span>Gider</span>
+                            </span>
+                          )}
+                        </td>
+
+                        {/* ÃœrÃ¼n AdÄ± */}
+                        <td className="p-4 font-bold text-stone-900">
+                          <div>{tx.product_name}</div>
+                          {tx.notes && <div className="text-[10px] text-stone-400 font-normal italic mt-0.5">{tx.notes}</div>}
+                        </td>
+
+                        {/* MÃ¼ÅŸteri / TedarikÃ§i */}
+                        <td className="p-4">
+                          {isSale ? (
+                            <div>
+                              <div className="font-bold text-stone-900">{tx.customer_name || 'Ä°simsiz MÃ¼ÅŸteri'}</div>
+                              {tx.customer_phone && (
+                                <div className="text-[10px] text-stone-500 flex items-center gap-1 mt-0.5">
+                                  <Phone className="w-3 h-3" />
+                                  <span>{tx.customer_phone}</span>
+                                </div>
+                              )}
+                            </div>
+                          ) : isPurchase ? (
+                            <div className="text-stone-600 font-medium">
+                              {tx.supplier_name || 'Tahtakale / ToptancÄ±'}
+                            </div>
+                          ) : (
+                            <span className="text-stone-400">-</span>
+                          )}
+                        </td>
+
+                        {/* Ã–deme YÃ¶ntemi & Durumu */}
+                        <td className="p-4 whitespace-nowrap">
+                          <div className="space-y-1">
+                            <span className="text-[11px] font-semibold text-stone-600 block">
+                              {tx.payment_method === 'kredi_karti' ? 'Kredi KartÄ±' : tx.payment_method === 'havale_eft' ? 'Havale / EFT' : tx.payment_method === 'veresiye' ? 'AÃ§Ä±k Hesap (Veresiye)' : 'Nakit'}
+                            </span>
+                            {isPending ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                  <Clock className="w-3 h-3" />
+                                  <span>Bekliyor {tx.due_date ? `(Vade: ${formatDate(tx.due_date)})` : ''}</span>
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleTogglePaymentStatus(tx)}
+                                  disabled={togglingStatusId === tx.id}
+                                  title="Tahsil Edildi / Ã–dendi Yap"
+                                  className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-[10px] font-bold rounded transition flex items-center gap-1 cursor-pointer"
+                                >
+                                  {togglingStatusId === tx.id ? <RefreshCw className="w-2.5 h-2.5 animate-spin" /> : <Check className="w-2.5 h-2.5" />}
+                                  <span>Tahsil Et</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>Kasada / Ã–dendi</span>
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Adet */}
+                        <td className="p-4 text-right font-bold text-stone-800">
+                          {tx.quantity} adet
+                        </td>
+
+                        {/* Birim Fiyat */}
+                        <td className="p-4 text-right font-medium text-stone-600">
+                          {formatPrice(tx.unit_price)}
+                        </td>
+
+                        {/* Toplam Tutar */}
+                        <td className="p-4 text-right font-black text-stone-900">
+                          {formatPrice(tx.total_amount)}
+                        </td>
+
+                        {/* AlÄ±ÅŸ Maliyeti */}
+                        <td className="p-4 text-right font-medium text-stone-500">
+                          {isSale ? (
+                            tx.total_cost ? formatPrice(tx.total_cost) : <span className="text-stone-400">0 TL</span>
+                          ) : (
+                            <span className="text-stone-400">-</span>
+                          )}
+                        </td>
+
+                        {/* Net KÃ¢r */}
+                        <td className="p-4 text-right font-black whitespace-nowrap">
+                          {isSale ? (
+                            <span className={Number(tx.net_profit) >= 0 ? 'text-emerald-700' : 'text-rose-600'}>
+                              {Number(tx.net_profit) >= 0 ? `+${formatPrice(tx.net_profit || 0)}` : formatPrice(tx.net_profit || 0)}
+                            </span>
+                          ) : (
+                            <span className="text-amber-800 font-semibold">
+                              -{formatPrice(tx.total_amount)}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Aksiyon */}
+                        <td className="p-4 text-center whitespace-nowrap print:hidden">
+                          {deleteConfirmId === tx.id ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteTransaction(tx.id)}
+                                className="px-2 py-1 bg-rose-600 text-white rounded-lg text-[10px] font-bold cursor-pointer"
+                              >
+                                Evet, Sil
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteConfirmId(null)}
+                                className="px-2 py-1 bg-stone-200 text-stone-700 rounded-lg text-[10px] font-bold cursor-pointer"
+                              >
+                                Ä°ptal
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirmId(tx.id)}
+                              title="KaydÄ± Sil"
+                              className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </td>
+
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Footer stats */}
+          <div className="p-4 bg-stone-50/50 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-stone-500">
+            <div>
+              GÃ¶sterilen: <strong className="text-stone-900">{filteredTransactions.length}</strong> / Toplam: <strong className="text-stone-900">{transactions.length}</strong> iÅŸlem
+            </div>
+            <div className="font-bold text-stone-800">
+              DÃ¶nem Net KÃ¢rÄ±: <span className={summary.netProfit >= 0 ? 'text-emerald-700' : 'text-rose-600'}>{formatPrice(summary.netProfit)}</span>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* TAB 2: ÃœRÃœN BAZLI KÃ‚RLILIK ANALÄ°ZÄ° TABLOSU */}
+      {activeTab === 'product_profit' && (
+        <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-xs space-y-4 p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-base text-stone-900">ÃœrÃ¼n KÃ¢rlÄ±lÄ±k & Performans SÄ±ralamasÄ±</h3>
+              <p className="text-xs text-stone-500">Hangi Ã¼rÃ¼nÃ¼n ne kadar ciro, maliyet ve net kÃ¢r saÄŸladÄ±ÄŸÄ±nÄ±n analizi.</p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-stone-700">
+              <thead className="bg-stone-50 border-b border-stone-200 text-stone-500 uppercase text-[10px] font-black tracking-wider">
+                <tr>
+                  <th className="p-3.5">ÃœrÃ¼n AdÄ±</th>
+                  <th className="p-3.5 text-right">AlÄ±ÅŸ (Maliyet)</th>
+                  <th className="p-3.5 text-right">SatÄ±ÅŸ FiyatÄ±</th>
+                  <th className="p-3.5 text-right">Toplam SatÄ±lan</th>
+                  <th className="p-3.5 text-right">Mevcut Stok</th>
+                  <th className="p-3.5 text-right">Toplam SatÄ±ÅŸ Geliri</th>
+                  <th className="p-3.5 text-right">Toplam Maliyet</th>
+                  <th className="p-3.5 text-right">Net KÃ¢r KatkÄ±sÄ±</th>
+                  <th className="p-3.5 text-right">KÃ¢r MarjÄ±</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {profitStats.map((stat, idx) => (
+                  <tr key={stat.productId || idx} className="hover:bg-stone-50/70 transition">
+                    <td className="p-3.5 font-bold text-stone-900">
+                      {stat.productName}
+                    </td>
+                    <td className="p-3.5 text-right font-medium text-stone-600">
+                      {formatPrice(stat.unitCostPrice)}
+                    </td>
+                    <td className="p-3.5 text-right font-medium text-stone-600">
+                      {formatPrice(stat.unitSalePrice)}
+                    </td>
+                    <td className="p-3.5 text-right font-bold text-stone-800">
+                      {stat.totalSoldQuantity} adet
+                    </td>
+                    <td className="p-3.5 text-right">
+                      <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
+                        stat.currentStock <= 5 ? 'bg-rose-100 text-rose-800' : 'bg-stone-100 text-stone-800'
+                      }`}>
+                        {stat.currentStock} adet
+                      </span>
+                    </td>
+                    <td className="p-3.5 text-right font-bold text-stone-900">
+                      {formatPrice(stat.totalRevenue)}
+                    </td>
+                    <td className="p-3.5 text-right font-medium text-stone-500">
+                      {formatPrice(stat.totalCost)}
+                    </td>
+                    <td className="p-3.5 text-right font-black text-emerald-700">
+                      +{formatPrice(stat.netProfit)}
+                    </td>
+                    <td className="p-3.5 text-right font-bold text-stone-900">
+                      %{stat.profitMargin}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 1: SATIÅ GÄ°RÄ°ÅÄ° (KATALOGDAN SEÃ‡Ä°LÄ° GÃœVENLÄ° SATIÅ) */}
+      {/* ========================================================= */}
+      {isSaleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-stone-200 space-y-4 max-h-[90vh] overflow-y-auto">
+            
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200">
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-emerald-100 text-emerald-900 font-bold">
+                  <PlusCircle className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="text-base font-bold font-serif text-stone-900">Yeni SatÄ±ÅŸ KaydÄ±</h3>
+                  <p className="text-[11px] text-stone-500">DÃ¼kkan, toptan veya elden yapÄ±lan satÄ±ÅŸÄ± sisteme iÅŸleyin.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSaleModalOpen(false)}
+                className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSale} className="space-y-4 text-xs">
+              
+              {/* 1. MÃœÅTERÄ° BÄ°LGÄ°LERÄ° (ZORUNLU) */}
+              <div className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-3">
+                <span className="font-bold text-amber-900 block text-[11px] uppercase tracking-wider">
+                  MÃ¼ÅŸteri Bilgileri *(Zorunlu Alanlar)
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">MÃ¼ÅŸteri AdÄ± SoyadÄ± *</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        value={saleForm.customerName}
+                        onChange={(e) => setSaleForm((prev) => ({ ...prev, customerName: e.target.value }))}
+                        className="w-full p-2.5 pl-8 bg-white border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-stone-900 font-semibold"
+                      />
+                      <User className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-3" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">Telefon NumarasÄ± *</label>
+                    <div className="relative">
+                      <input
+                        type="tel"
+                        required
+                        value={saleForm.customerPhone}
+                        onChange={(e) => setSaleForm((prev) => ({ ...prev, customerPhone: e.target.value }))}
+                        className="w-full p-2.5 pl-8 bg-white border border-stone-300 rounded-xl focus:outline-none focus:border-amber-600 text-stone-900 font-semibold"
+                      />
+                      <Phone className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-3" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* SatÄ±ÅŸ KanalÄ± (Zorunlu) */}
+                <div>
+                  <label className="block font-bold text-stone-700 mb-1">SatÄ±ÅŸ KanalÄ± *(Zorunlu)</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { key: 'magaza', label: 'MaÄŸazadan (DÃ¼kkan)', icon: Store },
+                      { key: 'toptan', label: 'Toptan SatÄ±ÅŸ', icon: Sparkles },
+                      { key: 'website', label: 'Websitesi / Ä°nternet', icon: Globe },
+                    ].map((c) => (
+                      <button
+                        key={c.key}
+                        type="button"
+                        onClick={() => {
+                          setSaleForm((prev) => {
+                            const newChan = c.key as SaleChannel;
+                            let newPrice = prev.unitPrice;
+                            if (selectedSaleProduct) {
+                              newPrice = newChan === 'toptan' && selectedSaleProduct.wholesale_price
+                                ? String(selectedSaleProduct.wholesale_price)
+                                : String(selectedSaleProduct.price);
+                            }
+                            return { ...prev, saleChannel: newChan, unitPrice: newPrice };
+                          });
+                        }}
+                        className={`p-2 rounded-xl border text-center font-bold transition flex flex-col items-center gap-1 cursor-pointer ${
+                          saleForm.saleChannel === c.key
+                            ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                            : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50'
+                        }`}
+                      >
+                        <c.icon className="w-4 h-4" />
+                        <span className="text-[10px]">{c.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. ÃœRÃœN SEÃ‡Ä°MÄ° (KATALOGDAN SEÃ‡ME ZORUNLU) */}
+              <div className="space-y-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-stone-900">SatÄ±lan ÃœrÃ¼nÃ¼ SeÃ§in *(Zorunlu)</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSaleModalOpen(false);
+                        setIsPurchaseModalOpen(true);
+                      }}
+                      className="text-[11px] font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1 cursor-pointer"
+                    >
+                      <Boxes className="w-3 h-3" />
+                      <span>+ Yeni ÃœrÃ¼n / AlÄ±ÅŸ Gir</span>
+                    </button>
+                  </div>
+
+                  <select
+                    required
+                    value={saleForm.productId}
+                    onChange={(e) => handleSelectProductInSale(e.target.value)}
+                    className="w-full p-3 bg-stone-50 border-2 border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
+                  >
+                    <option value="">-- Katalogdan SatÄ±lan ÃœrÃ¼nÃ¼ SeÃ§iniz --</option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} (Stok: {p.stock} Adet | AlÄ±ÅŸ Maliyeti: {p.cost_price ? `${p.cost_price} TL` : '0 TL'} | SatÄ±ÅŸ: {p.price} TL)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* SeÃ§ilen ÃœrÃ¼n Detay KartÄ± */}
+                {selectedSaleProduct && (
+                  <div className="p-3 bg-emerald-50/70 border border-emerald-300 rounded-xl flex items-center justify-between text-xs animate-in fade-in">
+                    <div>
+                      <span className="font-bold text-emerald-950 block">{selectedSaleProduct.name}</span>
+                      <span className="text-[11px] text-emerald-800">
+                        Mevcut Depo StoÄŸu: <strong>{selectedSaleProduct.stock} Adet</strong>
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-stone-500 block">KayÄ±tlÄ± AlÄ±ÅŸ Maliyeti:</span>
+                      <strong className="text-stone-900 font-bold">
+                        {selectedSaleProduct.cost_price ? formatPrice(selectedSaleProduct.cost_price) : '0 TL'}
+                      </strong>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">SatÄ±ÅŸ Adedi *</label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={saleForm.quantity}
+                      onChange={(e) => setSaleForm((prev) => ({ ...prev, quantity: e.target.value }))}
+                      placeholder="1"
+                      className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">Birim SatÄ±ÅŸ (TL) *</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      required
+                      value={saleForm.unitPrice}
+                      onChange={(e) => setSaleForm((prev) => ({ ...prev, unitPrice: e.target.value }))}
+                      placeholder="0.00"
+                      className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">Birim AlÄ±ÅŸ Maliyeti (TL)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={saleForm.unitCost}
+                      onChange={(e) => setSaleForm((prev) => ({ ...prev, unitCost: e.target.value }))}
+                      placeholder="0.00"
+                      className="w-full p-2.5 bg-amber-50/70 border border-amber-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* CANLI KÃ‚R HESAPLAMA KUTUSU */}
+              <div className="p-3.5 rounded-2xl bg-emerald-950 text-white flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] uppercase font-bold text-emerald-300 block">CanlÄ± KÃ¢r Ã–nizlemesi</span>
+                  <div className="text-xs text-emerald-100">
+                    Ciro: <strong>{formatPrice(saleModalCalculated.totalRev)}</strong> â€¢ Maliyet: <strong>{formatPrice(saleModalCalculated.totalCst)}</strong>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-lg font-black text-emerald-400">
+                    +{formatPrice(saleModalCalculated.profit)}
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-200">
+                    %{saleModalCalculated.margin} Marj
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. DÄ°ÄER DETAYLAR (TARÄ°H ZORUNLU) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-stone-700 mb-1">SatÄ±ÅŸ Tarihi *(Zorunlu)</label>
+                  <input
+                    type="date"
+                    required
+                    value={saleForm.transactionDate}
+                    onChange={(e) => setSaleForm((prev) => ({ ...prev, transactionDate: e.target.value }))}
+                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-stone-600 mb-1">Ã–deme YÃ¶ntemi</label>
+                  <select
+                    value={saleForm.paymentMethod}
+                    onChange={(e) => setSaleForm((prev) => ({ ...prev, paymentMethod: e.target.value }))}
+                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-700 font-semibold"
+                  >
+                    <option value="nakit">Nakit (Kasaya Girdi)</option>
+                    <option value="kredi_karti">Kredi KartÄ± / POS</option>
+                    <option value="havale_eft">Havale / EFT</option>
+                    <option value="veresiye">Veresiye (AÃ§Ä±k Hesap / BorÃ§)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Veresiye SeÃ§ildiyse Vade / Tahsilat Tarihi GiriÅŸi */}
+              {saleForm.paymentMethod === 'veresiye' && (
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-2xl space-y-2 animate-in fade-in">
+                  <div className="flex items-center gap-1.5 text-amber-900 font-bold text-xs">
+                    <Clock className="w-4 h-4 text-amber-700" />
+                    <span>AÃ§Ä±k Hesap (Veresiye) DetayÄ±</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800">
+                    MÃ¼ÅŸteri Ã¶demeyi daha sonra yapacaktÄ±r. Bu tutar <strong>Bekleyen Alacaklar</strong> hanesine yazÄ±lacaktÄ±r.
+                  </p>
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">Vade / Tahsilat SÃ¶zÃ¼ Tarihi (Opsiyonel)</label>
+                    <input
+                      type="date"
+                      value={saleForm.dueDate}
+                      onChange={(e) => setSaleForm((prev) => ({ ...prev, dueDate: e.target.value }))}
+                      className="w-full p-2 bg-white border border-amber-300 rounded-xl text-stone-900 text-xs font-semibold"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Checkbox: Depo StoÄŸundan DÃ¼ÅŸ */}
+              {saleForm.productId && (
+                <label className="flex items-center gap-2 p-2.5 rounded-xl bg-stone-50 border border-stone-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={saleForm.updateStock}
+                    onChange={(e) => setSaleForm((prev) => ({ ...prev, updateStock: e.target.checked }))}
+                    className="w-4 h-4 text-amber-600 rounded"
+                  />
+                  <span className="font-semibold text-stone-700 text-xs">
+                    Bu satÄ±ÅŸÄ± depo stoÄŸundan otomatik olarak dÃ¼ÅŸ ({saleForm.quantity || 1} adet)
+                  </span>
+                </label>
+              )}
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => setIsSaleModalOpen(false)}
+                  className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl cursor-pointer"
+                >
+                  VazgeÃ§
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <PlusCircle className="w-4 h-4" />}
+                  <span>SatÄ±ÅŸÄ± Onayla & Kaydet</span>
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 2: ALIÅ GÄ°RÄ°ÅÄ° (MEVCUT ÃœRÃœN VEYA YENÄ° ÃœRÃœN OLUÅTURMA) */}
+      {/* ========================================================= */}
+      {isPurchaseModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-stone-200 space-y-4 max-h-[90vh] overflow-y-auto">
+            
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200">
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-amber-100 text-amber-900 font-bold">
+                  <Boxes className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="text-base font-bold font-serif text-stone-900">AlÄ±ÅŸ & Mal AlÄ±mÄ± GiriÅŸi</h3>
+                  <p className="text-[11px] text-stone-500">ToptancÄ±dan veya Tahtakale'den aldÄ±ÄŸÄ±nÄ±z Ã¼rÃ¼nleri sisteme iÅŸleyin.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPurchaseModalOpen(false)}
+                className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Mode Switch: Mevcut ÃœrÃ¼n vs Yeni ÃœrÃ¼n */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-stone-100 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setPurchaseForm((prev) => ({ ...prev, isNewProductMode: false }))}
+                className={`py-2 px-3 rounded-xl font-bold text-xs transition cursor-pointer ${
+                  !purchaseForm.isNewProductMode 
+                    ? 'bg-white text-stone-900 shadow-xs' 
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                ğŸ“¦ Mevcut ÃœrÃ¼ne Stok Ekle
+              </button>
+              <button
+                type="button"
+                onClick={() => setPurchaseForm((prev) => ({ ...prev, isNewProductMode: true, productId: '' }))}
+                className={`py-2 px-3 rounded-xl font-bold text-xs transition cursor-pointer ${
+                  purchaseForm.isNewProductMode 
+                    ? 'bg-amber-600 text-white shadow-xs' 
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                âœ¨ + Yeni ÃœrÃ¼n OluÅŸtur & Al
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePurchase} className="space-y-4 text-xs">
+              
+              {!purchaseForm.isNewProductMode ? (
+                /* 1. MEVCUT ÃœRÃœNDEN SEÃ‡Ä°M */
+                <div>
+                  <label className="block font-bold text-stone-900 mb-1">Mevcut ÃœrÃ¼nlerden SeÃ§in *</label>
+                  <select
+                    required
+                    value={purchaseForm.productId}
+                    onChange={(e) => handleSelectProductInPurchase(e.target.value)}
+                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
+                  >
+                    <option value="">-- Listeden ÃœrÃ¼nÃ¼ SeÃ§iniz --</option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} (Mevcut Stok: {p.stock} Adet | KayÄ±tlÄ± Maliyet: {p.cost_price || 0} TL)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                /* 2. YENÄ° ÃœRÃœN OLUÅTURMA ALANLARI */
+                <div className="p-3.5 bg-amber-50/70 border border-amber-300 rounded-2xl space-y-3 animate-in fade-in">
+                  <div className="flex items-center gap-1.5 text-amber-900 font-bold text-xs">
+                    <Sparkles className="w-4 h-4 text-amber-700" />
+                    <span>Yeni ÃœrÃ¼n KartÄ± TanÄ±mlanacak</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800">
+                    Bu alÄ±mÄ± kaydettiÄŸinizde Ã¼rÃ¼n <strong>otomatik olarak maÄŸaza kataloÄŸuna ve stok listesine eklenecektir</strong>.
+                  </p>
+
+                  <div>
+                    <label className="block font-bold text-stone-900 mb-1">ÃœrÃ¼n AdÄ± *</label>
+                    <input
+                      type="text"
+                      required
+                      value={purchaseForm.productName}
+                      onChange={(e) => setPurchaseForm((prev) => ({ ...prev, productName: e.target.value }))}
+                      className="w-full p-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Kategori *</label>
+                      <select
+                        value={purchaseForm.categoryId}
+                        onChange={(e) => setPurchaseForm((prev) => ({ ...prev, categoryId: e.target.value }))}
+                        className="w-full p-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 font-semibold"
+                      >
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">SatÄ±ÅŸ FiyatÄ± (TL - Opsiyonel)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={purchaseForm.salePriceInput}
+                        onChange={(e) => setPurchaseForm((prev) => ({ ...prev, salePriceInput: e.target.value }))}
+                        className="w-full p-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 font-bold"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* FÄ°YAT & ADET GÄ°RÄ°ÅÄ° */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div>
+                  <label className="block font-bold text-stone-700 mb-1">AlÄ±nan Adet *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={purchaseForm.quantity}
+                    onChange={(e) => handlePurchaseQuantityChange(e.target.value)}
+                    placeholder="10"
+                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-stone-700 mb-1">Birim AlÄ±ÅŸ (TL) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={purchaseForm.unitPrice}
+                    onChange={(e) => handlePurchaseUnitPriceChange(e.target.value)}
+                    placeholder="Birim Fiyat"
+                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-bold focus:outline-none focus:border-amber-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-stone-700 mb-1">veya Toplam AlÄ±ÅŸ (TL)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={purchaseForm.totalPriceInput}
+                    onChange={(e) => handlePurchaseTotalPriceChange(e.target.value)}
+                    placeholder="Toplam Tutar"
+                    className="w-full p-2.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 font-black focus:outline-none focus:border-amber-600"
+                  />
+                </div>
+              </div>
+
+              {/* AlÄ±ÅŸ Ã–zet Bilgi Notu */}
+              <div className="p-3 bg-stone-50 border border-stone-200 rounded-2xl flex items-center justify-between text-xs">
+                <span className="text-stone-500">Hesaplanan Toplam AlÄ±ÅŸ Maliyeti:</span>
+                <span className="font-black text-amber-900 text-sm">
+                  {formatPrice((Number(purchaseForm.unitPrice) || 0) * (Number(purchaseForm.quantity) || 1))}
+                </span>
+              </div>
+
+              {/* Opsiyonel TedarikÃ§i ve Detaylar */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-600 mb-1">TedarikÃ§i / ToptancÄ± (Opsiyonel)</label>
+                  <input
+                    type="text"
+                    value={purchaseForm.supplierName}
+                    onChange={(e) => setPurchaseForm((prev) => ({ ...prev, supplierName: e.target.value }))}
+                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-700"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-stone-600 mb-1">Fatura / FiÅŸ No (Opsiyonel)</label>
+                  <input
+                    type="text"
+                    value={purchaseForm.documentNo}
+                    onChange={(e) => setPurchaseForm((prev) => ({ ...prev, documentNo: e.target.value }))}
+                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-700"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-600 mb-1">AlÄ±ÅŸ Tarihi</label>
+                  <input
+                    type="date"
+                    value={purchaseForm.transactionDate}
+                    onChange={(e) => setPurchaseForm((prev) => ({ ...prev, transactionDate: e.target.value }))}
+                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-700 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-stone-600 mb-1">Ã–deme Åekli</label>
+                  <select
+                    value={purchaseForm.paymentMethod}
+                    onChange={(e) => setPurchaseForm((prev) => ({ ...prev, paymentMethod: e.target.value }))}
+                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-700 font-semibold"
+                  >
+                    <option value="nakit">Nakit</option>
+                    <option value="kredi_karti">Kredi KartÄ±</option>
+                    <option value="havale_eft">Havale / EFT</option>
+                    <option value="veresiye">Veresiye / AÃ§Ä±k Hesap Borcu</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Veresiye SeÃ§ildiyse Vade / Ã–deme Tarihi GiriÅŸi */}
+              {purchaseForm.paymentMethod === 'veresiye' && (
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-2xl space-y-2 animate-in fade-in">
+                  <div className="flex items-center gap-1.5 text-amber-900 font-bold text-xs">
+                    <Clock className="w-4 h-4 text-amber-700" />
+                    <span>ToptancÄ±ya AÃ§Ä±k Hesap Borcu</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800">
+                    ToptancÄ±ya Ã¶deme henÃ¼z yapÄ±lmadÄ±. Bu tutar <strong>Bekleyen BorÃ§lar</strong> hanesine eklenecektir.
+                  </p>
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">Ã–deme Vadesi / Tarihi (Opsiyonel)</label>
+                    <input
+                      type="date"
+                      value={purchaseForm.dueDate}
+                      onChange={(e) => setPurchaseForm((prev) => ({ ...prev, dueDate: e.target.value }))}
+                      className="w-full p-2 bg-white border border-amber-300 rounded-xl text-stone-900 text-xs font-semibold"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => setIsPurchaseModalOpen(false)}
+                  className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl cursor-pointer"
+                >
+                  VazgeÃ§
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Boxes className="w-4 h-4" />}
+                  <span>{purchaseForm.isNewProductMode ? 'ÃœrÃ¼nÃ¼ OluÅŸtur & AlÄ±ÅŸÄ± Kaydet' : 'AlÄ±ÅŸÄ± Kaydet & StoÄŸa Ekle'}</span>
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 3: GÄ°DER GÄ°RÄ°ÅÄ° */}
+      {/* ========================================================= */}
+      {isExpenseModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-4">
+            
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200">
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-rose-100 text-rose-900 font-bold">
+                  <ReceiptText className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="text-base font-bold font-serif text-stone-900">Ek Ä°ÅŸletme Gideri Ekle</h3>
+                  <p className="text-[11px] text-stone-500">Kargo, koli, dÃ¼kkan masraflarÄ± vb. genel giderler.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsExpenseModalOpen(false)}
+                className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveExpense} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-stone-700 mb-1">Gider BaÅŸlÄ±ÄŸÄ± / AÃ§Ä±klamasÄ± *</label>
+                <input
+                  type="text"
+                  required
+                  value={expenseForm.expenseTitle}
+                  onChange={(e) => setExpenseForm((prev) => ({ ...prev, expenseTitle: e.target.value }))}
+                  className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-semibold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-stone-700 mb-1">Gider TutarÄ± (TL) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    required
+                    value={expenseForm.amount}
+                    onChange={(e) => setExpenseForm((prev) => ({ ...prev, amount: e.target.value }))}
+                    placeholder="500 TL"
+                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-stone-700 mb-1">Gider Tarihi *</label>
+                  <input
+                    type="date"
+                    required
+                    value={expenseForm.transactionDate}
+                    onChange={(e) => setExpenseForm((prev) => ({ ...prev, transactionDate: e.target.value }))}
+                    className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-stone-900 font-semibold"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => setIsExpenseModalOpen(false)}
+                  className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl cursor-pointer"
+                >
+                  VazgeÃ§
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 bg-stone-900 hover:bg-black text-white font-bold rounded-xl shadow-md transition disabled:opacity-50 cursor-pointer"
+                >
+                  Gideri Kaydet
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
