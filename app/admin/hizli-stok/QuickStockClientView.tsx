@@ -31,12 +31,12 @@ interface RowEditState {
 function buildInitialMap(list: Product[]) {
   const initialMap: Record<string, RowEditState> = {};
   list.forEach((p) => {
-    initialMap[p.id] = { 
-      stock: p.stock, 
+    initialMap[p.id] = {
+      stock: p.stock,
       price: p.price,
       costPrice: p.cost_price !== undefined && p.cost_price !== null ? p.cost_price : '',
       wholesalePrice: p.wholesale_price !== undefined && p.wholesale_price !== null ? p.wholesale_price : '',
-      isPublished: p.is_published !== false
+      isPublished: p.is_published !== false,
     };
   });
   return initialMap;
@@ -65,7 +65,7 @@ export default function QuickStockClientView({
         } finally {
           setIsLoading(false);
         }
-      }
+      };
       loadProducts();
     }
   }, [initialProducts.length]);
@@ -103,8 +103,8 @@ export default function QuickStockClientView({
     setIsSaving((prev) => ({ ...prev, [product.id]: false }));
 
     if (res.success) {
-      toast.success(`"${product.name}" gÃ¼ncellendi!`, {
-        description: `Stok: ${current.stock} | Perakende: ${formatPrice(Number(current.price) || 0)} | AlÄ±ÅŸ: ${cPrice ? formatPrice(cPrice) : 'Yok'} | Durum: ${current.isPublished ? 'YayÄ±nda' : 'Sadece Depo'}`,
+      toast.success(`"${product.name}" güncellendi!`, {
+        description: `Stok: ${current.stock} | Perakende: ${formatPrice(Number(current.price) || 0)} | Alış: ${cPrice ? formatPrice(cPrice) : 'Yok'} | Durum: ${current.isPublished ? 'Yayında' : 'Sadece Depo'}`,
       });
       setProducts((prev) =>
         prev.map((p) =>
@@ -121,7 +121,7 @@ export default function QuickStockClientView({
         )
       );
     } else {
-      toast.error(res.error || 'GÃ¼ncelleme kaydedilemedi.');
+      toast.error(res.error || 'Güncelleme kaydedilemedi.');
     }
   };
 
@@ -143,7 +143,7 @@ export default function QuickStockClientView({
     });
 
     if (changedProducts.length === 0) {
-      toast.info('DeÄŸiÅŸiklik yapÄ±lan Ã¼rÃ¼n bulunmuyor.');
+      toast.info('Değişiklik yapılan ürün bulunmuyor.');
       return;
     }
 
@@ -172,7 +172,7 @@ export default function QuickStockClientView({
     }
 
     setIsSavingAll(false);
-    toast.success(`${successCount} Ã¼rÃ¼n baÅŸarÄ±yla gÃ¼ncellendi!`);
+    toast.success(`${successCount} ürün başarıyla güncellendi!`);
 
     const list = await DataService.getAllAdminProducts();
     setProducts(list);
@@ -198,10 +198,10 @@ export default function QuickStockClientView({
           <div>
             <h1 className="text-xl sm:text-2xl font-serif font-black text-stone-900 flex items-center gap-2">
               <Zap className="w-6 h-6 text-amber-600 fill-amber-500" />
-              <span>HÄ±zlÄ± Stok, Ã‡ift Fiyat & YayÄ±nlama EditÃ¶rÃ¼</span>
+              <span>Hızlı Stok, Çift Fiyat & Yayınlama Editörü</span>
             </h1>
             <p className="text-xs text-stone-500 mt-0.5">
-              Excel gibi tek ekrandan perakende/toptan fiyatlarÄ±, stok adetlerini ve sitede yayÄ±n durumunu gÃ¼ncelleyin.
+              Excel gibi tek ekrandan perakende/toptan fiyatları, stok adetlerini ve sitede yayın durumunu güncelleyin.
             </p>
           </div>
         </div>
@@ -212,7 +212,7 @@ export default function QuickStockClientView({
           className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md transition min-h-[44px] disabled:opacity-60"
         >
           {isSavingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          <span>TÃ¼m DeÄŸiÅŸiklikleri Topluca Kaydet</span>
+          <span>Tüm Değişiklikleri Topluca Kaydet</span>
         </button>
       </div>
 
@@ -222,14 +222,14 @@ export default function QuickStockClientView({
           <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="HÄ±zlÄ± arama yapÄ±n (ÃœrÃ¼n adÄ± veya barkod)..."
+            placeholder="Hızlı arama yapın (Ürün adı veya barkod)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-2 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-brand-500 transition"
           />
         </div>
         <div className="text-xs text-stone-500 font-medium hidden sm:block">
-          Listelenen: <strong>{filtered.length}</strong> Ã¼rÃ¼n
+          Listelenen: <strong>{filtered.length}</strong> ürün
         </div>
       </div>
 
@@ -239,13 +239,13 @@ export default function QuickStockClientView({
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-stone-50 border-b border-stone-200 text-stone-500 font-bold uppercase tracking-wider">
-                <th className="py-3.5 px-4 w-14 text-center">GÃ¶rsel</th>
-                <th className="py-3.5 px-4 min-w-[200px]">ÃœrÃ¼n & Kod</th>
-                <th className="py-3.5 px-4 w-32">AlÄ±ÅŸ Maliyeti (â‚º)</th>
-                <th className="py-3.5 px-4 w-32">Perakende (â‚º)</th>
-                <th className="py-3.5 px-4 w-32">Toptan (â‚º)</th>
-                <th className="py-3.5 px-4 w-28 text-center">Depo StoÄŸu</th>
-                <th className="py-3.5 px-4 w-40 text-center">Web SatÄ±ÅŸ (YayÄ±n)</th>
+                <th className="py-3.5 px-4 w-14 text-center">Görsel</th>
+                <th className="py-3.5 px-4 min-w-[200px]">Ürün & Kod</th>
+                <th className="py-3.5 px-4 w-32">Alış Maliyeti (₺)</th>
+                <th className="py-3.5 px-4 w-32">Perakende (₺)</th>
+                <th className="py-3.5 px-4 w-32">Toptan (₺)</th>
+                <th className="py-3.5 px-4 w-28 text-center">Depo Stoğu</th>
+                <th className="py-3.5 px-4 w-40 text-center">Web Satış (Yayın)</th>
                 <th className="py-3.5 px-4 w-24 text-right">Kaydet</th>
               </tr>
             </thead>
@@ -254,7 +254,7 @@ export default function QuickStockClientView({
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-stone-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-brand-600" />
-                    <span>Envanter yÃ¼kleniyor...</span>
+                    <span>Envanter yükleniyor...</span>
                   </td>
                 </tr>
               ) : filtered.length > 0 ? (
@@ -369,7 +369,7 @@ export default function QuickStockClientView({
                         />
                       </td>
 
-                      {/* Web SatÄ±ÅŸ (is_published) Toggle */}
+                      {/* Web Satış (is_published) Toggle */}
                       <td className="py-3 px-4 text-center">
                         <button
                           type="button"
@@ -381,7 +381,7 @@ export default function QuickStockClientView({
                           }`}
                         >
                           {current.isPublished ? <Globe className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
-                          <span>{current.isPublished ? 'Sitede SatÄ±ÅŸta' : 'Sadece Depo'}</span>
+                          <span>{current.isPublished ? 'Sitede Satışta' : 'Sadece Depo'}</span>
                         </button>
                       </td>
 
@@ -395,7 +395,7 @@ export default function QuickStockClientView({
                               ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs animate-pulse'
                               : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
                           }`}
-                          title="Bu SatÄ±rÄ± Kaydet"
+                          title="Bu Satırı Kaydet"
                         >
                           {isSaving[product.id] ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -412,7 +412,7 @@ export default function QuickStockClientView({
               ) : (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-stone-400">
-                    Aramaya uygun Ã¼rÃ¼n bulunamadÄ±.
+                    Aramaya uygun ürün bulunamadı.
                   </td>
                 </tr>
               )}
