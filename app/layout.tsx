@@ -1,4 +1,5 @@
 import { DataService } from '@/lib/data/store-data';
+import { ensureCatalog261026Seeded } from '@/lib/data/catalog-261026-sync';
 import { Suspense } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
@@ -66,6 +67,7 @@ export default async function RootLayout({
     : DEFAULT_LANGUAGE;
   const isRTL = initialLang === 'ar';
 
+  await ensureCatalog261026Seeded();
   const initialCategories = await DataService.getCategories();
 
   return (

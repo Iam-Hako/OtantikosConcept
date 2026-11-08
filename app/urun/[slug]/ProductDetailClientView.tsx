@@ -228,10 +228,13 @@ export default function ProductDetailClientView({
 
   const handleSelectVariant = (variant: ProductVariant) => {
     setSelectedVariant(variant);
-    // If variant has specific image, switch gallery index or display
     if (variant.image_url && product?.images) {
-      const imgIdx = product.images.findIndex((img) => img.image_url === variant.image_url);
+      const filteredImgs = product.images.filter(
+        (img) => img.image_url && img.image_url !== '/images/logo.webp' && !img.image_url.endsWith('logo.webp')
+      );
+      const imgIdx = filteredImgs.findIndex((img) => img.image_url === variant.image_url);
       if (imgIdx > -1) {
+        setActiveMedia('image');
         setActiveImageIndex(imgIdx);
       }
     }
@@ -394,21 +397,31 @@ export default function ProductDetailClientView({
                       onClick={() => {
                         setActiveMedia('image');
                         setActiveImageIndex(idx);
+                        if (product.variants && product.variants.length > 0) {
+                          const matchedVar = product.variants.find((v) => v.image_url === img.image_url);
+                          if (matchedVar) setSelectedVariant(matchedVar);
+                        }
                       }}
                       className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition shrink-0 bg-stone-100 ${
                         !isShowingVideo && activeImageIndex === idx
                           ? 'border-[#e60012] ring-2 ring-red-500/20'
                           : 'border-stone-200 hover:border-stone-400'
                       }`}
+                      title={`${idx + 1}. Görsel`}
                     >
-                    <Image
-                      src={img.image_url}
-                      alt={img.alt_text || product.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </button>
-                ))}
+                      <Image
+                        src={img.image_url}
+                        alt={img.alt_text || `${product.name} - ${idx + 1}. Görsel`}
+                        fill
+                        className="object-cover"
+                      />
+                      {validImages.length > 1 && (
+                        <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-stone-900/75 text-white text-[9px] font-bold tabular-nums leading-none">
+                          {idx + 1}
+                        </span>
+                      )}
+                    </button>
+                  ))}
               </div>
             )}
 
@@ -517,6 +530,13 @@ export default function ProductDetailClientView({
                     />
                   )}
 
+                  {/* Image Counter Pill */}
+                  {validImages.length > 1 && (
+                    <div className="absolute top-3 left-3 bg-stone-900/75 text-white text-[11px] font-bold tabular-nums px-2.5 py-1 rounded-full">
+                      {activeImageIndex + 1} / {validImages.length}
+                    </div>
+                  )}
+
                   {/* Hover Badge */}
                   <div className="absolute bottom-3 right-3 bg-stone-900/70 backdrop-blur-xs text-white text-[10px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 opacity-80 group-hover:opacity-100 transition">
                     <Eye className="w-3 h-3 text-[#e60012]" />
@@ -607,11 +627,22 @@ export default function ProductDetailClientView({
           {/* Dynamic Variant Selector */}
           {product.variants && product.variants.length > 0 && (
             <div className="space-y-3">
-              <label className="block text-xs font-bold text-stone-900">
-                Seçenek / {product.variants[0].name}:{' '}
-                <strong className="text-[#e60012]">{selectedVariant?.value}</strong>
-              </label>
-              <div className="flex flex-wrap gap-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <label className="block text-xs font-bold text-stone-900">
+                  Seçenek / {product.variants[0].name}:{' '}
+                  <strong className="text-[#e60012]">{selectedVariant?.value}</strong>
+                </label>
+                {product.variants.length > 1 && (
+                  <span className="text-[11px] text-stone-500 font-medium tabular-nums">
+                    {product.variants.length} Model
+                  </span>
+                )}
+              </div>
+              <div
+                className={`flex flex-wrap gap-2 ${
+                  product.variants.length > 12 ? 'max-h-64 overflow-y-auto pr-1.5 py-0.5' : ''
+                }`}
+              >
                 {product.variants.map((variant) => {
                   const isSelected = selectedVariant && (
                     (selectedVariant.id && variant.id && selectedVariant.id === variant.id) ||

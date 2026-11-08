@@ -17,11 +17,12 @@ import {
   CheckCircle2,
   XCircle,
   Eye,
-  EyeOff
+  EyeOff,
+  RefreshCw
 } from 'lucide-react';
 import { Product } from '@/lib/types/ecommerce';
 import { DataService, normalizeTurkish } from '@/lib/data/store-data';
-import { actionDeleteProduct, actionToggleProductPublish } from '@/app/actions/ecommerce-actions';
+import { actionDeleteProduct, actionToggleProductPublish, actionSyncCatalog261026 } from '@/app/actions/ecommerce-actions';
 import { formatPrice } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
@@ -34,7 +35,32 @@ export default function AdminProductsClientView({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'published' | 'depot'>('all');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSyncingCatalog, setIsSyncingCatalog] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const handleSyncCatalog = async () => {
+    setIsSyncingCatalog(true);
+    try {
+      const res = await actionSyncCatalog261026();
+      if (res.success) {
+        const updatedList = await DataService.getAllAdminProducts();
+        setProducts(updatedList);
+        if (res.insertedProducts > 0 || res.insertedImages > 0) {
+          toast.success(
+            `Katalog senkronize edildi: ${res.insertedProducts} yeni ürün, ${res.insertedImages} görsel ve ${res.insertedVariants} varyant eklendi.`
+          );
+        } else {
+          toast.info(`Tüm katalog ürünleri zaten güncel (${res.skippedExisting} ürün mevcut).`);
+        }
+      } else {
+        toast.error(res.error || 'Katalog senkronizasyonu başarısız oldu.');
+      }
+    } catch {
+      toast.error('Katalog senkronizasyonu sırasında bir hata oluştu.');
+    } finally {
+      setIsSyncingCatalog(false);
+    }
+  };
 
   useEffect(() => {
     if (initialProducts.length === 0) {
@@ -122,13 +148,25 @@ export default function AdminProductsClientView({
           </p>
         </div>
 
-        <Link
-          href="/admin/urunler/yeni"
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs transition min-h-[44px]"
-        >
-          <Plus className="w-4 h-4" />
-          <span>+ Yeni Ürün Ekle</span>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={handleSyncCatalog}
+            disabled={isSyncingCatalog}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-stone-900 hover:bg-stone-800 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-xs transition min-h-[44px]"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncingCatalog ? 'animate-spin' : ''}`} />
+            <span>{isSyncingCatalog ? 'Katalog Yükleniyor...' : 'Katalog Ürünlerini Senkronize Et'}</span>
+          </button>
+
+          <Link
+            href="/admin/urunler/yeni"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs transition min-h-[44px]"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Yeni Ürün Ekle</span>
+          </Link>
+        </div>
       </div>
 
       {/* Filter Tabs & Search Bar */}

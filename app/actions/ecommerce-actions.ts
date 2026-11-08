@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { DataService } from '@/lib/data/store-data';
+import { syncCatalog261026ToSupabase } from '@/lib/data/catalog-261026-sync';
 import { Product, Category, Order, ReturnRequest, AccountingTransaction } from '@/lib/types/ecommerce';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -1087,5 +1088,30 @@ export async function actionUpdateProductCostPrice(productId: string, costPrice:
     return { success: false, error: err?.message || 'Maliyet fiyatı güncellenemedi.' };
   }
 }
+
+export async function actionSyncCatalog261026() {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) {
+    return {
+      success: false,
+      insertedProducts: 0,
+      skippedExisting: 0,
+      insertedImages: 0,
+      insertedVariants: 0,
+      categoryCreated: false,
+      error: 'Bu işlem için yetkiniz bulunmamaktadır.',
+    };
+  }
+
+  const res = await syncCatalog261026ToSupabase();
+  revalidatePath('/', 'layout');
+  revalidatePath('/');
+  revalidatePath('/kategori/[slug]', 'page');
+  revalidatePath('/admin/urunler');
+  revalidatePath('/admin/kategoriler');
+  revalidatePath('/admin/hizli-stok');
+  return res;
+}
+
 
 

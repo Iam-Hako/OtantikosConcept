@@ -168,6 +168,28 @@ export const DEFAULT_HOME_BANNERS: HomeBanner[] = [
 
 let runtimeBanners: HomeBanner[] = [...DEFAULT_HOME_BANNERS];
 
+function normalizeProductRow(p: any): Product {
+  const sortedImages = Array.isArray(p.images)
+    ? [...p.images].sort((a: any, b: any) => (Number(a.display_order) || 0) - (Number(b.display_order) || 0))
+    : [];
+  const sortedVariants = Array.isArray(p.variants)
+    ? [...p.variants].sort((a: any, b: any) => {
+        if (a.sku && b.sku) {
+          return String(a.sku).localeCompare(String(b.sku), undefined, { numeric: true });
+        }
+        return 0;
+      })
+    : [];
+
+  return {
+    ...p,
+    images: sortedImages,
+    variants: sortedVariants,
+    is_published: p.is_published ?? true,
+    wholesale_price: p.wholesale_price ? Number(p.wholesale_price) : null,
+  } as Product;
+}
+
 export const DataService = {
   // ==========================================
   // 1. PRODUCTS & CATALOG
@@ -188,11 +210,7 @@ export const DataService = {
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        runtimeProducts = data.map((p: any) => ({
-          ...p,
-          is_published: p.is_published ?? true,
-          wholesale_price: p.wholesale_price ? Number(p.wholesale_price) : null,
-        })) as Product[];
+        runtimeProducts = data.map(normalizeProductRow);
         
         return runtimeProducts;
       }
@@ -233,11 +251,7 @@ export const DataService = {
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        runtimeProducts = data.map((p: any) => ({
-          ...p,
-          is_published: p.is_published ?? true,
-          wholesale_price: p.wholesale_price ? Number(p.wholesale_price) : null,
-        })) as Product[];
+        runtimeProducts = data.map(normalizeProductRow);
         
         return runtimeProducts;
       }
@@ -266,7 +280,7 @@ export const DataService = {
         .maybeSingle();
 
       if (!error && data) {
-        return data as Product;
+        return normalizeProductRow(data);
       }
     } catch {
       // Fallback
@@ -291,7 +305,7 @@ export const DataService = {
         .maybeSingle();
 
       if (!error && data) {
-        return data as Product;
+        return normalizeProductRow(data);
       }
     } catch {
       // Fallback
