@@ -168,17 +168,28 @@ export const DEFAULT_HOME_BANNERS: HomeBanner[] = [
 
 let runtimeBanners: HomeBanner[] = [...DEFAULT_HOME_BANNERS];
 
+function upgradeCatalogImgUrl(url: string | null | undefined): string | null | undefined {
+  if (typeof url === 'string' && url.startsWith('/images/katalog/') && !url.endsWith('?v=2')) {
+    return `${url.split('?')[0]}?v=2`;
+  }
+  return url;
+}
+
 function normalizeProductRow(p: any): Product {
   const sortedImages = Array.isArray(p.images)
-    ? [...p.images].sort((a: any, b: any) => (Number(a.display_order) || 0) - (Number(b.display_order) || 0))
+    ? [...p.images]
+        .sort((a: any, b: any) => (Number(a.display_order) || 0) - (Number(b.display_order) || 0))
+        .map((img: any) => ({ ...img, image_url: upgradeCatalogImgUrl(img.image_url) || img.image_url }))
     : [];
   const sortedVariants = Array.isArray(p.variants)
-    ? [...p.variants].sort((a: any, b: any) => {
-        if (a.sku && b.sku) {
-          return String(a.sku).localeCompare(String(b.sku), undefined, { numeric: true });
-        }
-        return 0;
-      })
+    ? [...p.variants]
+        .sort((a: any, b: any) => {
+          if (a.sku && b.sku) {
+            return String(a.sku).localeCompare(String(b.sku), undefined, { numeric: true });
+          }
+          return 0;
+        })
+        .map((v: any) => ({ ...v, image_url: upgradeCatalogImgUrl(v.image_url) ?? null }))
     : [];
 
   return {

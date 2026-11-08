@@ -157,6 +157,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                               src={coverImage.image_url}
                               alt={product.name}
                               fill
+                              unoptimized={Boolean(coverImage.image_url?.startsWith('/images/katalog/'))}
                               className="object-cover group-hover:scale-105 transition"
                             />
                           ) : (

@@ -99,13 +99,15 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
   return (
     <div className="group bg-white rounded-xl border border-stone-200 overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col h-full">
       {/* Product Image Box */}
-      <div className="relative aspect-square bg-stone-50 overflow-hidden shrink-0">
+      <div className="relative aspect-square bg-white overflow-hidden shrink-0">
         <Link href={`/urun/${product.slug}`} className="block w-full h-full relative">
           {hasValidImages ? (
             <Image
               src={coverImage}
               alt={product.name}
               fill
+              quality={92}
+              unoptimized={Boolean(coverImage?.startsWith('/images/katalog/'))}
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               priority={priority}
               className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"

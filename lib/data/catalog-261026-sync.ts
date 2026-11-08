@@ -114,7 +114,7 @@ export async function syncCatalog261026ToSupabase(): Promise<CatalogSyncResult> 
             name: 'Oyunlar',
             slug: 'kutu-oyunları',
             description: 'Parti kart oyunları, dedektif vaka dosyaları, kaçış oyunları ve tarot desteleri.',
-            image_url: '/images/katalog/p02-01.webp',
+            image_url: '/images/katalog/p02-01.webp?v=2',
             display_order: 5,
             is_active: true,
           },
@@ -142,7 +142,7 @@ export async function syncCatalog261026ToSupabase(): Promise<CatalogSyncResult> 
             slug: 'kirtasiye-aksesuar',
             description:
               'Sevimli sticker setleri, mini çizgisiz defterler, büzgülü bez çantalar, ikili anahtarlıklar, akrilik charmlar ve magnetli kapak açacakları.',
-            image_url: '/images/katalog/p71-01.webp',
+            image_url: '/images/katalog/p71-01.webp?v=2',
             display_order: maxOrder + 1,
             is_active: true,
           },
@@ -336,6 +336,57 @@ export async function syncCatalog261026ToSupabase(): Promise<CatalogSyncResult> 
       }
     }
 
+    // 6. Upgrade any existing catalog image URLs without ?v=2 cache-buster (4x AI SR 1600x1600 upgrade)
+    const [{ data: staleImgs }, { data: staleVars }, { data: staleCats }] = await Promise.all([
+      supabaseAdmin
+        .from('product_images')
+        .select('id, image_url')
+        .like('image_url', '/images/katalog/%')
+        .not('image_url', 'like', '%?v=2')
+        .limit(2000),
+      supabaseAdmin
+        .from('product_variants')
+        .select('id, image_url')
+        .like('image_url', '/images/katalog/%')
+        .not('image_url', 'like', '%?v=2')
+        .limit(2000),
+      supabaseAdmin
+        .from('categories')
+        .select('id, image_url')
+        .like('image_url', '/images/katalog/%')
+        .not('image_url', 'like', '%?v=2')
+        .limit(50),
+    ]);
+
+    for (const batch of chunkArray(staleImgs || [], 40)) {
+      await Promise.all(
+        batch.map((row: any) =>
+          supabaseAdmin
+            .from('product_images')
+            .update({ image_url: `${String(row.image_url).split('?')[0]}?v=2` })
+            .eq('id', row.id)
+        )
+      );
+    }
+
+    for (const batch of chunkArray(staleVars || [], 40)) {
+      await Promise.all(
+        batch.map((row: any) =>
+          supabaseAdmin
+            .from('product_variants')
+            .update({ image_url: `${String(row.image_url).split('?')[0]}?v=2` })
+            .eq('id', row.id)
+        )
+      );
+    }
+
+    for (const row of staleCats || []) {
+      await supabaseAdmin
+        .from('categories')
+        .update({ image_url: `${String(row.image_url).split('?')[0]}?v=2` })
+        .eq('id', row.id);
+    }
+
     seedCompletedInMemory = true;
     return {
       success: true,
@@ -371,12 +422,19 @@ export async function ensureCatalog261026Seeded(): Promise<void> {
   seedInFlightPromise = (async () => {
     try {
       const supabaseAdmin = createAdminClient();
-      const { count, error } = await supabaseAdmin
-        .from('products')
-        .select('id', { count: 'exact', head: true })
-        .like('sku', 'OTK-KAT-%');
+      const [{ count, error }, { count: staleImgCount, error: staleErr }] = await Promise.all([
+        supabaseAdmin
+          .from('products')
+          .select('id', { count: 'exact', head: true })
+          .like('sku', 'OTK-KAT-%'),
+        supabaseAdmin
+          .from('product_images')
+          .select('id', { count: 'exact', head: true })
+          .like('image_url', '/images/katalog/%')
+          .not('image_url', 'like', '%?v=2'),
+      ]);
 
-      if (!error && (count ?? 0) >= 145) {
+      if (!error && !staleErr && (count ?? 0) >= 145 && (staleImgCount ?? 0) === 0) {
         seedCompletedInMemory = true;
         return {
           success: true,

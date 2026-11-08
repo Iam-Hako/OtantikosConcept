@@ -402,7 +402,7 @@ export default function ProductDetailClientView({
                           if (matchedVar) setSelectedVariant(matchedVar);
                         }
                       }}
-                      className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition shrink-0 bg-stone-100 ${
+                      className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition shrink-0 bg-white ${
                         !isShowingVideo && activeImageIndex === idx
                           ? 'border-[#e60012] ring-2 ring-red-500/20'
                           : 'border-stone-200 hover:border-stone-400'
@@ -413,6 +413,7 @@ export default function ProductDetailClientView({
                         src={img.image_url}
                         alt={img.alt_text || `${product.name} - ${idx + 1}. Görsel`}
                         fill
+                        unoptimized={Boolean(img.image_url?.startsWith('/images/katalog/'))}
                         className="object-cover"
                       />
                       {validImages.length > 1 && (
@@ -431,7 +432,7 @@ export default function ProductDetailClientView({
               onMouseEnter={() => !isShowingVideo && setIsZooming(true)}
               onMouseLeave={() => !isShowingVideo && setIsZooming(false)}
               onMouseMove={!isShowingVideo ? handleMouseMove : undefined}
-              className="relative flex-1 aspect-square bg-stone-950 rounded-3xl overflow-hidden border border-stone-200 shadow-xs group"
+              className={`relative flex-1 aspect-square ${isShowingVideo ? 'bg-stone-950' : 'bg-white'} rounded-3xl overflow-hidden border border-stone-200 shadow-xs group`}
             >
               {isShowingVideo ? (
                 // Direct Video Player or Embed with Crystal-Clear Audio Controls
@@ -509,11 +510,13 @@ export default function ProductDetailClientView({
                 </div>
               ) : hasValidImages ? (
                 // Photo with Optical Loupe Lens Zoom
-                <div className="relative w-full h-full cursor-crosshair bg-stone-100">
+                <div className="relative w-full h-full cursor-crosshair bg-white">
                   <Image
                     src={currentActiveImage}
                     alt={product.name}
                     fill
+                    quality={95}
+                    unoptimized={Boolean(currentActiveImage?.startsWith('/images/katalog/'))}
                     className="object-cover"
                     priority
                   />

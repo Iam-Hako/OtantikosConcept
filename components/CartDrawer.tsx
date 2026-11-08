@@ -109,11 +109,12 @@ export default function CartDrawer() {
                 return (
                   <div key={`${item.product.id}-${item.variant?.id || 'base'}`} className="py-4 flex gap-4">
                     {/* Item Image */}
-                    <div className="relative w-20 h-20 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden shrink-0">
+                    <div className="relative w-20 h-20 rounded-xl bg-white border border-stone-200 overflow-hidden shrink-0">
                       <Image
                         src={coverImage}
                         alt={item.product.name}
                         fill
+                        unoptimized={Boolean(coverImage?.startsWith('/images/katalog/'))}
                         className="object-cover"
                       />
                     </div>
