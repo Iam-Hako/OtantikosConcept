@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { UserProfile } from '@/lib/types/ecommerce';
 import { createClient } from '@/lib/supabase/client';
+import { IS_MAINTENANCE_MODE } from '@/lib/maintenance';
 import { toast } from 'sonner';
 
 interface AuthContextType {
@@ -55,6 +56,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
 
   useEffect(() => {
+    if (IS_MAINTENANCE_MODE) {
+      setIsLoading(false);
+      return;
+    }
+
     async function loadUser() {
       try {
         const { data: { session } } = await supabase.auth.getSession();

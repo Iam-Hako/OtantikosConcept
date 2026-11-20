@@ -19,6 +19,7 @@ import CookieConsent from '@/components/CookieConsent';
 import NavigationLoader from '@/components/NavigationLoader';
 import NotificationPrompt from '@/components/NotificationPrompt';
 import PwaInstallPrompt from '@/components/PwaInstallPrompt';
+import { IS_MAINTENANCE_MODE } from '@/lib/maintenance';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -60,6 +61,22 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  if (IS_MAINTENANCE_MODE) {
+    return (
+      <html lang="tr" className="bg-[#faf9f7]">
+        <body className="min-h-screen font-sans text-stone-900 antialiased bg-[#faf9f7]">
+          <AuthProvider>
+            <LanguageProvider initialLanguage="tr">
+              <WishlistProvider>
+                <CartProvider>{children}</CartProvider>
+              </WishlistProvider>
+            </LanguageProvider>
+          </AuthProvider>
+        </body>
+      </html>
+    );
+  }
+
   const cookieStore = cookies();
   const rawLocale = cookieStore.get('NEXT_LOCALE')?.value as SupportedLanguage | undefined;
   const initialLang: SupportedLanguage = rawLocale && SUPPORTED_LANGUAGES.some((l) => l.code === rawLocale)
