@@ -45,12 +45,12 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
   const product = await DataService.getProductBySlug(slug);
 
-  if (!product) {
-    // If not found by slug, let client attempt fallback or show not found
+  if (product && product.is_published === false) {
+    notFound();
   }
 
   const [allProducts, questions, reviews] = await Promise.all([
-    DataService.getProducts(),
+    DataService.getPublicProducts(),
     product ? DataService.getQuestions(product.id) : Promise.resolve([]),
     product ? DataService.getReviews(product.id) : Promise.resolve([]),
   ]);

@@ -32,7 +32,7 @@ export default async function OrderTrackingPage({ searchParams }: OrderTrackingP
   }
 
   return (
-    <Suspense fallback={<div className="p-12 text-center text-xs text-stone-500">Sipariş takip masası yükleniyor...</div>}>
+    <Suspense fallback={<div className="min-h-[calc(100dvh-4.5rem)] p-12 text-center text-xs text-stone-500">Sipariş takip masası yükleniyor...</div>}>
       <OrderTrackingClientView 
         initialOrder={initialOrder} 
         initialOrderNumber={orderNumber} 

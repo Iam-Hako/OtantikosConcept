@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { ReturnRequest } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
@@ -18,9 +18,23 @@ export default function AdminReturnsClientView({ initialReturns }: AdminReturnsC
   const [adminResponse, setAdminResponse] = useState('');
 
   const loadReturns = async () => {
+    try {
+      const res = await fetch('/api/returns', { cache: 'no-store' });
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list)) {
+          setReturns(list);
+          return;
+        }
+      }
+    } catch {}
     const list = await DataService.getReturns();
     setReturns(list);
   };
+
+  useEffect(() => {
+    loadReturns();
+  }, []);
 
   const handleUpdateStatus = async (id: string, newStatus: ReturnRequest['status']) => {
     const res = await actionUpdateReturnStatus(id, newStatus, adminResponse);
@@ -169,7 +183,7 @@ export default function AdminReturnsClientView({ initialReturns }: AdminReturnsC
               />
             </div>
 
-            <div className="flex gap-2 justify-end pt-2">
+            <div className="flex flex-wrap gap-2 justify-end pt-2">
               <button
                 onClick={() => handleUpdateStatus(activeReturn.id, 'reddedildi')}
                 className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold rounded-xl text-xs min-h-[40px]"
@@ -178,9 +192,15 @@ export default function AdminReturnsClientView({ initialReturns }: AdminReturnsC
               </button>
               <button
                 onClick={() => handleUpdateStatus(activeReturn.id, 'onaylandi')}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl text-xs min-h-[40px]"
+                className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold rounded-xl text-xs min-h-[40px]"
               >
                 Talebi Onayla
+              </button>
+              <button
+                onClick={() => handleUpdateStatus(activeReturn.id, 'tamamlandi')}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl text-xs min-h-[40px]"
+              >
+                İadeyi Tamamla & Stoğa Ekle
               </button>
             </div>
           </div>

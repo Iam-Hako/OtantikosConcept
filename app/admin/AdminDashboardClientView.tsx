@@ -35,27 +35,27 @@ export default function AdminDashboardClientView({
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (initialProducts.length === 0 && initialOrders.length === 0) {
-      const loadStats = async () => {
-        try {
-          setIsLoading(true);
-          const [pList, oList, pSummary] = await Promise.all([
-            DataService.getAllAdminProducts(),
-            DataService.getOrders(),
-            DataService.getProfitSummary(),
-          ]);
-          setProducts(pList);
-          setOrders(oList);
-          setProfitSummary(pSummary);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      loadStats();
-    }
-  }, [initialProducts.length, initialOrders.length]);
+    const loadStats = async () => {
+      try {
+        setIsLoading(true);
+        const [pList, oList, pSummary] = await Promise.all([
+          DataService.getAllAdminProducts(),
+          DataService.getOrders(),
+          DataService.getProfitSummary(),
+        ]);
+        if (pList.length > 0) setProducts(pList);
+        if (oList.length > 0) setOrders(oList);
+        if (pSummary) setProfitSummary(pSummary);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadStats();
+  }, []);
 
-  const totalRevenue = profitSummary?.totalRevenue ?? orders.reduce((sum, o) => sum + (o.payment_status === 'paid' ? o.total_amount : 0), 0);
+  const totalRevenue =
+    profitSummary?.totalRevenue ??
+    orders.reduce((sum, o) => sum + (o.payment_status === 'paid' && o.status !== 'iptal_edildi' ? o.total_amount : 0), 0);
   const pendingOrders = orders.filter((o) => o.status === 'hazirlaniyor' || o.status === 'siparis_alindi');
   const lowStockProducts = products.filter((p) => p.stock <= 5);
 
@@ -249,6 +249,14 @@ export default function AdminDashboardClientView({
                 <span>{ord.shipping_address?.full_name}</span>
                 <strong className="text-amber-700">{formatPrice(ord.total_amount)}</strong>
               </div>
+              <div className="flex justify-between items-center text-[11px] text-stone-500">
+                <span>Kargo Takip:</span>
+                {ord.tracking_number ? (
+                  <strong className="font-mono text-stone-900">{ord.tracking_carrier || 'DHL Kargo'}: {ord.tracking_number}</strong>
+                ) : (
+                  <span className="italic text-stone-400">Henüz Girilmedi</span>
+                )}
+              </div>
               <Link
                 href={`/admin/siparisler/${ord.id}`}
                 className="w-full py-2 bg-stone-900 hover:bg-amber-600 text-white rounded-lg font-bold text-[11px] transition flex items-center justify-center gap-1.5"
@@ -268,6 +276,7 @@ export default function AdminDashboardClientView({
                 <th className="pb-3">Sipariş No</th>
                 <th className="pb-3">Müşteri</th>
                 <th className="pb-3">Teslimat</th>
+                <th className="pb-3">Kargo Takip No</th>
                 <th className="pb-3">Tutar</th>
                 <th className="pb-3">Durum</th>
                 <th className="pb-3 text-right">İşlem</th>
@@ -280,8 +289,19 @@ export default function AdminDashboardClientView({
                   <td className="py-3">{ord.shipping_address?.full_name}</td>
                   <td className="py-3">
                     <span className="text-[11px] text-stone-600">
-                      {ord.delivery_type === 'pickup' ? '🏪 Tahtakale Mağaza' : '🚚 Standart Kargo'}
+                      {ord.delivery_type === 'pickup' || ord.delivery_type === 'magaza_teslim' ? '🏪 Tahtakale Mağaza' : '🚚 Standart Kargo'}
                     </span>
+                  </td>
+                  <td className="py-3">
+                    {ord.tracking_number ? (
+                      <span className="font-mono font-bold text-stone-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-[11px]">
+                        {ord.tracking_carrier || 'DHL'}: {ord.tracking_number}
+                      </span>
+                    ) : (
+                      <Link href={`/admin/siparisler/${ord.id}`} className="text-[11px] font-bold text-amber-700 hover:underline">
+                        + Takip No Gir
+                      </Link>
+                    )}
                   </td>
                   <td className="py-3 font-bold text-amber-700">{formatPrice(ord.total_amount)}</td>
                   <td className="py-3">

@@ -38,10 +38,10 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         if (isOpen) onClose();
-        else onClose(); // Controlled by parent
+        else window.dispatchEvent(new CustomEvent('otantikos:open_search'));
       }
       if (e.key === 'Escape' && isOpen) {
         onClose();

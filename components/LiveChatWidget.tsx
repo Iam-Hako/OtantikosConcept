@@ -84,7 +84,10 @@ export default function LiveChatWidget() {
           }
           setChatCookie(existingSession.session_id);
         } else {
-          const newId = cookieSessId || `sess-${Date.now()}`;
+          const randomToken = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+          const newId = cookieSessId || `sess-${randomToken}`;
           setSessionId(newId);
           if (user) {
             if (user.full_name) setCustomerName(user.full_name);

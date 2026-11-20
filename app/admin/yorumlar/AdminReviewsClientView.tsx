@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star } from 'lucide-react';
 import { Review, Product } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
@@ -24,6 +24,10 @@ export default function AdminReviewsClientView({ initialReviews, initialProducts
     setReviews(rList);
     setProducts(pList);
   };
+
+  useEffect(() => {
+    loadReviews();
+  }, []);
 
   const handleToggleApprove = async (id: string, current: boolean) => {
     await DataService.moderateReview(id, !current);

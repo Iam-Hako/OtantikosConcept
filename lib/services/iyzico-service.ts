@@ -233,17 +233,11 @@ export async function retrieveIyzicoPaymentResult(
   token: string,
   conversationId?: string
 ): Promise<IyzicoPaymentResult> {
-  // Test simulation check
-  if (!isIyzicoConfigured || token.startsWith('sim-token-')) {
+  if (!isIyzicoConfigured) {
     return {
-      success: true,
-      isSimulated: true,
+      success: false,
       orderNumber: conversationId,
-      paymentId: `sim-pay-${Date.now()}`,
-      cardType: 'CREDIT_CARD',
-      cardAssociation: 'MASTER_CARD',
-      cardFamily: 'Bonus',
-      installment: 1,
+      error: 'Ödeme sistemi henüz yapılandırılmamış veya aktif değil.',
     };
   }
 

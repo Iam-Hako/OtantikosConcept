@@ -73,6 +73,7 @@ export default function AdminWholesaleClientView({ initialRequests }: AdminWhole
   }, []);
 
   useEffect(() => {
+    loadRequests();
     const interval = setInterval(loadRequests, 8000);
     return () => clearInterval(interval);
   }, [loadRequests]);

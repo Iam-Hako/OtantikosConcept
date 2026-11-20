@@ -44,9 +44,6 @@ async function getCurrentAdminUser() {
 }
 
 export async function verifyAdmin() {
-  if (process.env.NODE_ENV === 'development') {
-    return true;
-  }
   const user = await getCurrentAdminUser();
   return Boolean(user);
 }
@@ -80,6 +77,9 @@ export async function actionSaveProduct(productData: Partial<Product>) {
       description: saved.description,
       short_description: saved.short_description || '',
       price: Number(saved.price) || 0,
+      cost_price: saved.cost_price !== undefined && saved.cost_price !== null ? Number(saved.cost_price) : null,
+      wholesale_price: saved.wholesale_price !== undefined && saved.wholesale_price !== null ? Number(saved.wholesale_price) : null,
+      is_published: saved.is_published ?? true,
       stock: Math.max(0, Number(saved.stock) || 0),
       sku: saved.sku,
       category_id: categoryDbId,
@@ -431,7 +431,8 @@ export async function actionDeleteCategory(categoryId: string) {
       const { data: cat } = await supabaseAdmin
         .from('categories')
         .select('id')
-        .or(`id.eq.${categoryId},slug.eq.${categoryId},slug.eq.k-rtasiye-r-nleri`)
+        .in('slug', [categoryId, 'k-rtasiye-r-nleri'])
+        .limit(1)
         .maybeSingle();
       if (cat?.id) dbId = cat.id;
     }
@@ -479,8 +480,17 @@ export async function actionUpdateOrderStatus(
     return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
   }
 
+  const cleanTracking = trackingNumber !== undefined ? trackingNumber.trim() : undefined;
+  const cleanCarrier = trackingCarrier !== undefined ? trackingCarrier.trim() : undefined;
+
+  // Auto-advance status to 'kargoya_verildi' when a tracking number is assigned while still in initial stages
+  const effectiveStatus: Order['status'] =
+    cleanTracking && (status === 'siparis_alindi' || status === 'hazirlaniyor')
+      ? 'kargoya_verildi'
+      : status;
+
   // If status is iptal_edildi, ensure full cancellation and restock workflow is executed
-  if (status === 'iptal_edildi') {
+  if (effectiveStatus === 'iptal_edildi') {
     const cancelRes = await actionCancelOrder(orderId, adminNotes || 'Durum İptal Edildi olarak güncellendi', true);
     return {
       success: cancelRes.success,
@@ -488,29 +498,39 @@ export async function actionUpdateOrderStatus(
     };
   }
 
+  const updateData: any = { status: effectiveStatus, updated_at: new Date().toISOString() };
+  if (cleanTracking !== undefined) updateData.tracking_number = cleanTracking || null;
+  if (cleanCarrier !== undefined) updateData.tracking_carrier = cleanCarrier || null;
+  if (adminNotes !== undefined) updateData.admin_notes = adminNotes;
+
+  const isUuid = UUID_REGEX.test(orderId);
+
   try {
     const supabaseAdmin = createAdminClient();
-    const updateData: any = { status, updated_at: new Date().toISOString() };
-    if (trackingNumber !== undefined) updateData.tracking_number = trackingNumber;
-    if (trackingCarrier !== undefined) updateData.tracking_carrier = trackingCarrier;
-    if (adminNotes !== undefined) updateData.admin_notes = adminNotes;
+    const { error } = isUuid
+      ? await supabaseAdmin.from('orders').update(updateData).eq('id', orderId)
+      : await supabaseAdmin.from('orders').update(updateData).eq('order_number', orderId);
 
-    const isUuid = UUID_REGEX.test(orderId);
-    if (isUuid) {
-      await supabaseAdmin.from('orders').update(updateData).eq('id', orderId);
-    } else {
-      await supabaseAdmin.from('orders').update(updateData).eq('order_number', orderId);
+    if (error) {
+      const serverSupabase = await createClient();
+      if (isUuid) {
+        await serverSupabase.from('orders').update(updateData).eq('id', orderId);
+      } else {
+        await serverSupabase.from('orders').update(updateData).eq('order_number', orderId);
+      }
     }
   } catch (err) {
     console.error('Supabase admin update order error:', err);
   }
 
-  const ok = await DataService.updateOrderStatus(orderId, status, trackingNumber, trackingCarrier, adminNotes);
+  const ok = await DataService.updateOrderStatus(orderId, effectiveStatus, cleanTracking, cleanCarrier, adminNotes);
   revalidatePath('/siparis-takip');
   revalidatePath('/hesabim');
+  revalidatePath('/admin');
   revalidatePath('/admin/siparisler');
   revalidatePath(`/admin/siparisler/${orderId}`);
-  return { success: ok };
+  revalidatePath('/admin/kargo-etiketi');
+  return { success: ok, status: effectiveStatus, tracking_number: cleanTracking, tracking_carrier: cleanCarrier };
 }
 
 export async function actionCancelOrder(
@@ -523,10 +543,8 @@ export async function actionCancelOrder(
     return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
   }
 
-  // Eğer sipariş DHL'e iletilmişse DHL eCommerce sisteminden de iptal kaydı oluştur
   try {
-    const orders = await DataService.getOrders();
-    const targetOrder = orders.find((o) => o.id === orderId || o.order_number === orderId);
+    const targetOrder = await DataService.getOrderById(orderId);
     if (targetOrder && targetOrder.tracking_number) {
       await cancelDhlShipment(targetOrder.order_number, targetOrder.tracking_number);
     }
@@ -537,10 +555,12 @@ export async function actionCancelOrder(
   const result = await DataService.cancelOrder(orderId, reason, restockItems);
   revalidatePath('/siparis-takip');
   revalidatePath('/hesabim');
+  revalidatePath('/admin');
   revalidatePath('/admin/siparisler');
   revalidatePath(`/admin/siparisler/${orderId}`);
   revalidatePath('/admin/urunler');
   revalidatePath('/admin/hizli-stok');
+  revalidatePath('/admin/kar-zarar');
   return result;
 }
 

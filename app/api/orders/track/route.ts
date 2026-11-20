@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
-import { DataService } from '@/lib/data/store-data';
+import { createClient as createServerClient } from '@/lib/supabase/server';
+import { verifyAdminAuth, getAuthenticatedSessionUser } from '@/lib/supabase/auth-guard';
+import { DataService, normalizeTurkish } from '@/lib/data/store-data';
 import { applyRateLimit } from '@/lib/security/rate-limit';
 import { sanitizeInput } from '@/lib/security/sanitize';
 
@@ -17,64 +18,104 @@ function maskPhone(phone?: string | null): string {
 function maskEmail(email?: string | null): string {
   if (!email || !email.includes('@')) return '';
   const [local, domain] = email.split('@');
-  if (local.length <= 2) return `${local[0]}*@${domain}`;
+  if (local.length <= 2) return `${local[0] || '*'}*@${domain}`;
   return `${local.slice(0, 2)}***${local.slice(-1)}@${domain}`;
+}
+
+function maskTextWords(text?: string | null, keepFirstWords = 0): string {
+  if (!text) return '';
+  return text
+    .split(/\s+/)
+    .map((w, idx) => (idx >= keepFirstWords && w.length > 2 ? `${w.slice(0, 2)}***` : w))
+    .join(' ');
+}
+
+function matchesOrderVerification(ord: any, verification: string): boolean {
+  const q = normalizeTurkish(verification.trim());
+  if (!q || q.length < 3) return false;
+
+  const guestEmail = (ord.guest_email || '').trim().toLowerCase();
+  if (guestEmail && guestEmail === verification.trim().toLowerCase()) {
+    return true;
+  }
+
+  const fullName = normalizeTurkish(ord.shipping_address?.full_name || ord.guest_name || '');
+  if (!fullName) return false;
+  if (fullName === q) return true;
+
+  // Also allow matching by full first name or full last name token (min 3 chars)
+  const nameTokens = fullName.split(/\s+/).filter((tok) => tok.length >= 3);
+  return nameTokens.some((tok) => tok === q);
 }
 
 export async function GET(request: Request) {
   try {
-    // 1. Rate Limiting: Max 15 lookups per minute per IP to prevent order enumeration
     const rateLimitResponse = applyRateLimit(request, {
       actionName: 'order-track',
-      limit: 15,
+      limit: 20,
       windowSeconds: 60,
       errorMessage: 'Çok fazla sipariş sorgusu yapıldı. Lütfen bir süre sonra tekrar deneyiniz.',
     });
     if (rateLimitResponse) return rateLimitResponse;
 
     const { searchParams } = new URL(request.url);
-    const orderNumber = searchParams.get('order_number') || searchParams.get('siparis') || '';
+    const rawOrderParam = searchParams.get('order_number') || searchParams.get('siparis') || '';
     const emailOrName = searchParams.get('email') || '';
 
-    if (!orderNumber.trim()) {
+    if (!rawOrderParam.trim()) {
       return NextResponse.json({ error: 'Sipariş numarası gereklidir.' }, { status: 400 });
     }
 
-    const cleanNumber = sanitizeInput(orderNumber, 40).toUpperCase();
-    const cleanVerification = sanitizeInput(emailOrName, 100);
+    const cleanRaw = sanitizeInput(rawOrderParam, 50).trim();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanRaw);
+    const cleanNumber = isUuid ? cleanRaw.toLowerCase() : cleanRaw.toUpperCase();
+    const cleanVerification = sanitizeInput(emailOrName, 100).trim();
 
-    // Verify if caller is an authorized admin
     const auth = await verifyAdminAuth();
     const isAdmin = auth.isAuthorized;
+    const sessionUser = auth.user || (await getAuthenticatedSessionUser());
 
-    // Non-admin callers MUST provide verification (at least 2 characters)
-    if (!isAdmin) {
-      if (!cleanVerification || cleanVerification.length < 2) {
-        return NextResponse.json(
-          { error: 'Güvenlik doğrulaması için alıcı adı veya e-posta adresi zorunludur.' },
-          { status: 400 }
-        );
+    const isSessionOwnerOfOrder = (ord: any): boolean => {
+      if (!sessionUser || !ord) return false;
+      if (ord.user_id && sessionUser.id && ord.user_id === sessionUser.id) return true;
+      if (
+        sessionUser.email &&
+        ord.guest_email &&
+        String(ord.guest_email).trim().toLowerCase() === String(sessionUser.email).trim().toLowerCase()
+      ) {
+        return true;
       }
-    }
+      return false;
+    };
 
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanNumber);
-
-    // Helper to sanitize public response
-    const sanitizeOrderForPublic = (ord: any) => {
+    const sanitizeOrderResponse = (ord: any, isOwner: boolean) => {
       if (isAdmin) return ord;
+      if (isOwner) {
+        const { admin_notes: _adminNotes, ...rest } = ord;
+        return rest;
+      }
       return {
         ...ord,
+        user_id: null,
+        admin_notes: null,
         guest_email: ord.guest_email ? maskEmail(ord.guest_email) : null,
         guest_phone: ord.guest_phone ? maskPhone(ord.guest_phone) : null,
         shipping_address: ord.shipping_address
           ? {
               ...ord.shipping_address,
+              full_name: maskTextWords(ord.shipping_address.full_name, 0),
+              full_address: maskTextWords(ord.shipping_address.full_address, 1),
+              address_detail: maskTextWords(ord.shipping_address.address_detail, 1),
               phone: maskPhone(ord.shipping_address.phone),
+              identity_number: undefined,
+              tax_number: undefined,
             }
           : ord.shipping_address,
-        billing_address: undefined, // Hide billing identity for public tracking
+        billing_address: undefined,
       };
     };
+
+    let foundOrder: any = null;
 
     // 1. Try Supabase with Admin Client
     try {
@@ -86,37 +127,68 @@ export async function GET(request: Request) {
         query = query.eq('order_number', cleanNumber);
       }
       const { data, error } = await query.maybeSingle();
-
       if (!error && data) {
-        if (!isAdmin) {
-          const q = cleanVerification.toLowerCase();
-          const guestEmail = (data.guest_email || '').toLowerCase();
-          const name = (data.shipping_address?.full_name || '').toLowerCase();
-          if (!guestEmail.includes(q) && !name.includes(q)) {
-            return NextResponse.json({ error: 'E-posta veya isim sipariş ile eşleşmiyor.' }, { status: 403 });
-          }
-        }
-        return NextResponse.json({ success: true, order: sanitizeOrderForPublic(data) });
+        foundOrder = data;
       }
     } catch {
-      // Fallback to in-memory store
+      // Fallback
     }
 
-    // 2. Fallback to store data service
-    const localOrder = await DataService.getOrderById(cleanNumber);
-    if (localOrder) {
-      if (!isAdmin) {
-        const q = cleanVerification.toLowerCase();
-        const guestEmail = (localOrder.guest_email || '').toLowerCase();
-        const name = (localOrder.shipping_address?.full_name || '').toLowerCase();
-        if (!guestEmail.includes(q) && !name.includes(q)) {
-          return NextResponse.json({ error: 'E-posta veya isim sipariş ile eşleşmiyor.' }, { status: 403 });
+    // 2. Try Supabase with SSR Cookie Client
+    if (!foundOrder) {
+      try {
+        const serverSupabase = await createServerClient();
+        let query = serverSupabase.from('orders').select('*, items:order_items(*)');
+        if (isUuid) {
+          query = query.eq('id', cleanNumber);
+        } else {
+          query = query.eq('order_number', cleanNumber);
         }
+        const { data, error } = await query.maybeSingle();
+        if (!error && data) {
+          foundOrder = data;
+        }
+      } catch {
+        // Fallback
       }
-      return NextResponse.json({ success: true, order: sanitizeOrderForPublic(localOrder) });
     }
 
-    return NextResponse.json({ error: 'Sipariş bulunamadı.' }, { status: 404 });
+    // 3. Fallback to in-memory store
+    if (!foundOrder) {
+      const allOrders = await DataService.getOrders();
+      foundOrder =
+        allOrders.find(
+          (o) =>
+            o.id.toLowerCase() === cleanNumber.toLowerCase() ||
+            o.order_number.toUpperCase() === cleanNumber.toUpperCase()
+        ) || null;
+    }
+
+    if (!foundOrder) {
+      return NextResponse.json({ error: 'Sipariş bulunamadı.' }, { status: 404 });
+    }
+
+    const isOwner = isSessionOwnerOfOrder(foundOrder);
+
+    if (!isAdmin && !isOwner) {
+      if (!cleanVerification || cleanVerification.length < 3) {
+        return NextResponse.json(
+          { error: 'Güvenlik doğrulaması için sipariş e-posta adresinizi veya alıcı adını giriniz.' },
+          { status: 400 }
+        );
+      }
+      if (!matchesOrderVerification(foundOrder, cleanVerification)) {
+        return NextResponse.json(
+          { error: 'E-posta veya alıcı adı sipariş ile eşleşmiyor.' },
+          { status: 403 }
+        );
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      order: sanitizeOrderResponse(foundOrder, isOwner),
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Sipariş sorgulanamadı.' }, { status: 500 });
   }

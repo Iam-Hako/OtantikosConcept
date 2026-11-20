@@ -92,13 +92,13 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-stone-700 mb-1">Şifre (En az 6 karakter) *</label>
+              <label className="block text-[11px] font-bold text-stone-700 mb-1">Şifre (En az 8 karakter, harf ve rakam) *</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   autoComplete="new-password"
-                  minLength={6}
+                  minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full text-base sm:text-xs p-3 pl-10 pr-10 bg-stone-50 border border-stone-300 rounded-xl focus:bg-white focus:outline-none focus:border-[#e60012] text-stone-900 transition"

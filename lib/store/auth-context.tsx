@@ -18,6 +18,37 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function isConfirmedOwnerUser(authUser: any): boolean {
+  if (!authUser) return false;
+  const cleanEmail = (authUser.email || '').toLowerCase().trim();
+  return (
+    (cleanEmail === 'chessvip11@gmail.com' || cleanEmail === 'admin@otantikosconcept.com') &&
+    Boolean(authUser.email_confirmed_at)
+  );
+}
+
+function buildResolvedUserProfile(authUser: any, profile: any): UserProfile {
+  const hasAdminRole =
+    profile?.role === 'admin' ||
+    authUser?.app_metadata?.role === 'admin' ||
+    isConfirmedOwnerUser(authUser);
+
+  if (profile) {
+    return {
+      ...(profile as UserProfile),
+      role: hasAdminRole ? 'admin' : profile.role,
+    };
+  }
+
+  return {
+    id: authUser.id,
+    email: authUser.email || '',
+    full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Kullanıcı',
+    role: hasAdminRole ? 'admin' : 'customer',
+    created_at: authUser.created_at,
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -34,22 +65,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .eq('id', session.user.id)
             .maybeSingle();
 
-          if (profile) {
-            setUser(profile as UserProfile);
-          } else {
-            const hasAdminMeta = session.user.app_metadata?.role === 'admin';
-            setUser({
-              id: session.user.id,
-              email: session.user.email || '',
-              full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Kullanıcı',
-              role: hasAdminMeta ? 'admin' : 'customer',
-              created_at: session.user.created_at,
-            });
-          }
+          setUser(buildResolvedUserProfile(session.user, profile));
         } else {
           setUser(null);
         }
-      } catch (err) {
+      } catch {
         // Fallback
       } finally {
         setIsLoading(false);
@@ -58,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     loadUser();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -66,18 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq('id', session.user.id)
           .maybeSingle();
 
-        if (profile) {
-          setUser(profile as UserProfile);
-        } else {
-          const hasAdminMeta = session.user.app_metadata?.role === 'admin';
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-            full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Kullanıcı',
-            role: hasAdminMeta ? 'admin' : 'customer',
-            created_at: session.user.created_at,
-          });
-        }
+        setUser(buildResolvedUserProfile(session.user, profile));
       } else {
         setUser(null);
       }
@@ -108,18 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq('id', data.user.id)
           .maybeSingle();
 
-        if (profile) {
-          setUser(profile as UserProfile);
-        } else {
-          const hasAdminMeta = data.user.app_metadata?.role === 'admin';
-          setUser({
-            id: data.user.id,
-            email: data.user.email || '',
-            full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Kullanıcı',
-            role: hasAdminMeta ? 'admin' : 'customer',
-            created_at: data.user.created_at,
-          });
-        }
+        setUser(buildResolvedUserProfile(data.user, profile));
       }
 
       toast.success('Google ile giriş başarılı!');
@@ -154,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithEmail = async (email: string, pass: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password: pass,
       });
@@ -170,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUpWithEmail = async (email: string, pass: string, fullName: string) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password: pass,
         options: {

@@ -120,13 +120,11 @@ export default function AdminCargoLabelClientView({ initialLabels, initialOrders
   };
 
   useEffect(() => {
-    if (initialLabels.length === 0) {
-      loadCargoLabels();
-    }
-    if (initialOrders.length === 0) {
-      DataService.getOrders().then(setSiparisler).catch(() => {});
-    }
-  }, [initialLabels, initialOrders]);
+    loadCargoLabels();
+    DataService.getOrders().then((fresh) => {
+      if (fresh && fresh.length > 0) setSiparisler(fresh);
+    }).catch(() => {});
+  }, []);
 
   // Update from URL params if present
   useEffect(() => {
@@ -461,10 +459,20 @@ export default function AdminCargoLabelClientView({ initialLabels, initialOrders
                 <option value="">-- Listeden Sipariş Seçin (İsteğe Bağlı) --</option>
                 {siparisler.map((s) => (
                   <option key={s.id} value={s.order_number}>
-                    #{s.order_number} - {s.shipping_address?.full_name} ({s.shipping_address?.province || 'Şehir Yok'})
+                    #{s.order_number} - {s.shipping_address?.full_name} ({s.shipping_address?.province || 'Şehir Yok'}){s.tracking_number ? ` [Takip: ${s.tracking_number}]` : ''}
                   </option>
                 ))}
               </select>
+              {secilenSiparis && (() => {
+                const selectedOrd = siparisler.find((o) => o.order_number === secilenSiparis);
+                if (!selectedOrd?.tracking_number) return null;
+                return (
+                  <div className="mt-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-[11px] text-emerald-900">
+                    <span className="font-semibold">{selectedOrd.tracking_carrier || 'DHL Kargo'} Takip No:</span>
+                    <strong className="font-mono font-bold">{selectedOrd.tracking_number}</strong>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Form inputs */}

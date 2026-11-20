@@ -143,7 +143,7 @@ export default function HomeClientView({ initialProducts, initialCategories, ini
   const displayProducts = featuredProducts.length > 0 ? featuredProducts : products;
 
   return (
-    <div className="space-y-6 sm:space-y-10 pb-20 relative bg-white min-h-screen overflow-x-clip transform-gpu">
+    <div className="space-y-6 sm:space-y-10 pb-20 relative bg-white min-h-screen overflow-x-clip">
       
       {/* ============================================================ */}
       {/* 1. HERO BANNER SLIDER                                        */}

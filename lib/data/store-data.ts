@@ -24,6 +24,64 @@ import { safeDecodeURIComponent } from '@/lib/utils/format';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function generateUuidV4(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+export function deduplicateOrders(list: Order[]): Order[] {
+  if (!Array.isArray(list)) return [];
+  const seenIds = new Set<string>();
+  const seenNumbers = new Set<string>();
+  const recentFingerprints = new Map<string, { timestamp: number; index: number }>();
+  const result: Order[] = [];
+
+  for (const ord of list) {
+    if (!ord) continue;
+    const idKey = (ord.id || '').trim().toLowerCase();
+    const numKey = (ord.order_number || '').trim().toUpperCase();
+
+    if ((idKey && seenIds.has(idKey)) || (numKey && seenNumbers.has(numKey))) {
+      continue;
+    }
+
+    // Detect rapid accidental duplicate submissions (same customer phone/name + same total_amount + same item count within 20s)
+    const phoneKey = (ord.shipping_address?.phone || ord.guest_phone || '').replace(/\D/g, '');
+    const nameKey = (ord.shipping_address?.full_name || ord.guest_name || '').trim().toLowerCase();
+    const itemCount = Array.isArray(ord.items) ? ord.items.length : 0;
+    const fingerprint = `${phoneKey || nameKey}|${Number(ord.total_amount).toFixed(2)}|${itemCount}|${ord.delivery_type || ''}`;
+    const createdTs = new Date(ord.created_at || 0).getTime();
+
+    if ((phoneKey || nameKey) && createdTs > 0 && recentFingerprints.has(fingerprint)) {
+      const prev = recentFingerprints.get(fingerprint)!;
+      if (Math.abs(prev.timestamp - createdTs) < 20000) {
+        // Keep the paid one if one is paid and the other is pending
+        const prevOrd = result[prev.index];
+        if (prevOrd && prevOrd.payment_status !== 'paid' && ord.payment_status === 'paid') {
+          result[prev.index] = ord;
+        }
+        continue;
+      }
+    }
+
+    const idx = result.length;
+    result.push(ord);
+    if (idKey) seenIds.add(idKey);
+    if (numKey) seenNumbers.add(numKey);
+    if ((phoneKey || nameKey) && createdTs > 0) {
+      recentFingerprints.set(fingerprint, { timestamp: createdTs, index: idx });
+    }
+  }
+
+  return result;
+}
+
 export function normalizeTurkish(text: string): string {
   if (!text) return '';
   return text
@@ -235,7 +293,9 @@ export const DataService = {
 
   async getPublicProducts(): Promise<Product[]> {
     const all = await this.getProducts();
-    return all.filter(p => p.is_active && p.is_published !== false);
+    return all
+      .filter(p => p.is_active && p.is_published !== false)
+      .map(p => ({ ...p, cost_price: null }));
   },
 
   async toggleProductPublish(id: string, isPublished: boolean): Promise<boolean> {
@@ -276,6 +336,7 @@ export const DataService = {
   async getProductBySlug(slug: string): Promise<Product | null> {
     const raw = (slug || '').trim();
     const decoded = safeDecodeURIComponent(raw).trim().toLowerCase();
+    const candidates = Array.from(new Set([raw, decoded].filter(Boolean)));
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -287,16 +348,18 @@ export const DataService = {
           variants:product_variants(*),
           specifications:product_specifications(*)
         `)
-        .or(`slug.eq.${raw},slug.eq.${decoded}`)
+        .in('slug', candidates)
+        .limit(1)
         .maybeSingle();
 
       if (!error && data) {
-        return normalizeProductRow(data);
+        const normalized = normalizeProductRow(data);
+        return { ...normalized, cost_price: null };
       }
     } catch {
       // Fallback
     }
-    const products = await this.getProducts();
+    const products = await this.getPublicProducts();
     return products.find(p => p.slug === raw || p.slug === decoded || p.id === raw) || null;
   },
 
@@ -539,7 +602,11 @@ export const DataService = {
       await supabase.from('reviews').delete().eq('product_id', productId);
       await supabase.from('questions').delete().eq('product_id', productId);
       await supabase.from('in_stock_alerts').delete().eq('product_id', productId);
-      await supabase.from('products').delete().or(`id.eq.${productId},slug.eq.${productId}`);
+      if (UUID_REGEX.test(productId)) {
+        await supabase.from('products').delete().eq('id', productId);
+      } else {
+        await supabase.from('products').delete().eq('slug', productId);
+      }
     } catch {
       // Ignore
     }
@@ -640,7 +707,11 @@ export const DataService = {
     try {
       const supabase = createClient();
       await supabase.from('products').update({ category_id: null }).eq('category_id', categoryId);
-      await supabase.from('categories').delete().or(`id.eq.${categoryId},slug.eq.${categoryId}`);
+      if (UUID_REGEX.test(categoryId)) {
+        await supabase.from('categories').delete().eq('id', categoryId);
+      } else {
+        await supabase.from('categories').delete().eq('slug', categoryId);
+      }
       runtimeCategories = runtimeCategories.filter((c) => c.id !== categoryId && c.slug !== categoryId);
       return true;
     } catch (err) {
@@ -812,17 +883,19 @@ export const DataService = {
       const { data, error } = await query;
       
       if (!error && data) {
-        if (!userId) {
-          runtimeOrders = data as Order[];
-          
+        const cleanList = deduplicateOrders(data as Order[]);
+        if (!userId && (cleanList.length > 0 || runtimeOrders.length === 0)) {
+          runtimeOrders = cleanList;
         }
-        return data as Order[];
+        if (cleanList.length > 0) {
+          return cleanList;
+        }
       }
     } catch {
       // Fallback
     }
 
-    const localOrders = runtimeOrders;
+    const localOrders = deduplicateOrders(runtimeOrders);
     if (userId) return localOrders.filter(o => o.user_id === userId);
     return localOrders;
   },
@@ -856,11 +929,14 @@ export const DataService = {
 
       if (!error && data) {
         const found = data as Order;
-        if (emailOrName && emailOrName.trim()) {
+        if (emailOrName !== undefined) {
           const q = emailOrName.trim().toLowerCase();
-          const guestEmail = (found.guest_email || '').toLowerCase();
-          const name = (found.shipping_address?.full_name || '').toLowerCase();
-          if (!guestEmail.includes(q) && !name.includes(q)) return null;
+          if (!q) return null;
+          const guestEmail = (found.guest_email || '').trim().toLowerCase();
+          const name = (found.shipping_address?.full_name || found.guest_name || '').trim().toLowerCase();
+          if (guestEmail !== q && name !== q && !(q.length >= 3 && (guestEmail.includes(q) || name.includes(q)))) {
+            return null;
+          }
         }
         return found;
       }
@@ -872,11 +948,14 @@ export const DataService = {
     const found = orders.find(o => o.order_number.toUpperCase() === cleanNumber);
     if (!found) return null;
 
-    if (emailOrName && emailOrName.trim()) {
+    if (emailOrName !== undefined) {
       const q = emailOrName.trim().toLowerCase();
-      const guestEmail = (found.guest_email || '').toLowerCase();
-      const name = (found.shipping_address?.full_name || '').toLowerCase();
-      if (!guestEmail.includes(q) && !name.includes(q)) return null;
+      if (!q) return null;
+      const guestEmail = (found.guest_email || '').trim().toLowerCase();
+      const name = (found.shipping_address?.full_name || found.guest_name || '').trim().toLowerCase();
+      if (guestEmail !== q && name !== q && !(q.length >= 3 && (guestEmail.includes(q) || name.includes(q)))) {
+        return null;
+      }
     }
     return found;
   },
@@ -885,6 +964,26 @@ export const DataService = {
     if (!orderId) return null;
     const cleanId = orderId.trim();
 
+    // 1. Direct authenticated Supabase lookup first (works in both Admin browser session and Server Admin Client)
+    try {
+      const supabase = createClient();
+      const isUuid = UUID_REGEX.test(cleanId);
+      let query = supabase.from('orders').select('*, items:order_items(*)');
+      if (isUuid) {
+        query = query.eq('id', cleanId.toLowerCase());
+      } else {
+        query = query.eq('order_number', cleanId.toUpperCase());
+      }
+      const { data, error } = await query.maybeSingle();
+
+      if (!error && data) {
+        return data as Order;
+      }
+    } catch {
+      // Fallback
+    }
+
+    // 2. Fallback to /api/orders/track in browser
     if (typeof window !== 'undefined') {
       try {
         const url = `/api/orders/track?order_number=${encodeURIComponent(cleanId)}`;
@@ -900,26 +999,8 @@ export const DataService = {
       }
     }
 
-    try {
-      const supabase = createClient();
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
-      let query = supabase.from('orders').select('*, items:order_items(*)');
-      if (isUuid) {
-        query = query.eq('id', cleanId);
-      } else {
-        query = query.eq('order_number', cleanId.toUpperCase());
-      }
-      const { data, error } = await query.maybeSingle();
-
-      if (!error && data) {
-        return data as Order;
-      }
-    } catch {
-      // Fallback
-    }
-
     const orders = await this.getOrders();
-    return orders.find(o => o.id === cleanId || o.order_number === cleanId || o.order_number === cleanId.toUpperCase()) || null;
+    return orders.find(o => o.id === cleanId || o.id.toLowerCase() === cleanId.toLowerCase() || o.order_number === cleanId || o.order_number === cleanId.toUpperCase()) || null;
   },
 
   syncRuntimeProductId(oldId: string, newUuid: string) {
@@ -941,13 +1022,44 @@ export const DataService = {
     const orderPaymentStatus: PaymentStatus = orderData.payment_status || 'paid';
     const initialStatus: OrderStatus = orderData.status || 'siparis_alindi';
 
+    // Server-side idempotency guard: prevent accidental double order creation within 15 seconds for identical cart/customer
+    const incomingPhone = (orderData.shipping_address?.phone || orderData.guest_phone || '').replace(/\D/g, '');
+    const incomingName = (orderData.shipping_address?.full_name || orderData.guest_name || '').trim().toLowerCase();
+    const incomingTotal = Number(orderData.total_amount || 0).toFixed(2);
+    const incomingItemCount = Array.isArray(orderData.items) ? orderData.items.length : 0;
+    const nowMs = Date.now();
+
+    const duplicateRecent = runtimeOrders.find((existing) => {
+      const exPhone = (existing.shipping_address?.phone || existing.guest_phone || '').replace(/\D/g, '');
+      const exName = (existing.shipping_address?.full_name || existing.guest_name || '').trim().toLowerCase();
+      const exTotal = Number(existing.total_amount || 0).toFixed(2);
+      const exItemCount = Array.isArray(existing.items) ? existing.items.length : 0;
+      const exAgeMs = nowMs - new Date(existing.created_at || 0).getTime();
+      return (
+        exAgeMs >= 0 &&
+        exAgeMs < 15000 &&
+        ((incomingPhone && exPhone === incomingPhone) || (incomingName && exName === incomingName)) &&
+        exTotal === incomingTotal &&
+        exItemCount === incomingItemCount &&
+        existing.delivery_type === validDelivery &&
+        existing.payment_method === (orderData.payment_method || 'credit_card')
+      );
+    });
+
+    if (duplicateRecent) {
+      return duplicateRecent;
+    }
+
+    // Always pre-generate a real UUID v4 so INSERT into orders & order_items never needs .select('id') (avoiding SELECT RLS failures!)
+    const orderUuid = orderData.id && UUID_REGEX.test(orderData.id) ? orderData.id : generateUuidV4();
+
     const newOrder: Order = {
-      id: `ord-${Date.now()}`,
+      id: orderUuid,
       order_number: orderData.order_number || `OTN-2026-${Math.floor(10000 + Math.random() * 90000)}`,
-      user_id: orderData.user_id || null,
+      user_id: orderData.user_id && UUID_REGEX.test(orderData.user_id) ? orderData.user_id : null,
       guest_email: orderData.guest_email || null,
-      guest_name: orderData.guest_name || null,
-      guest_phone: orderData.guest_phone || null,
+      guest_name: orderData.guest_name || orderData.shipping_address?.full_name || null,
+      guest_phone: orderData.guest_phone || orderData.shipping_address?.phone || null,
       status: initialStatus,
       total_amount: orderData.total_amount || 0,
       shipping_fee: orderData.shipping_fee || 0,
@@ -957,9 +1069,9 @@ export const DataService = {
       gift_note: orderData.gift_note || null,
       delivery_type: validDelivery,
       shipping_address: orderData.shipping_address!,
-      billing_address: orderData.billing_address!,
-      tracking_number: null,
-      tracking_carrier: null,
+      billing_address: orderData.billing_address || orderData.shipping_address!,
+      tracking_number: orderData.tracking_number || null,
+      tracking_carrier: orderData.tracking_carrier || null,
       admin_notes: orderData.admin_notes || null,
       payment_status: orderPaymentStatus,
       payment_method: orderData.payment_method || 'credit_card',
@@ -969,16 +1081,12 @@ export const DataService = {
       items: orderData.items || [],
     };
 
-    const orders = runtimeOrders;
-    orders.unshift(newOrder);
-    runtimeOrders = orders;
+    runtimeOrders = deduplicateOrders([newOrder, ...runtimeOrders]);
 
-    // Deduct stock immediately ONLY if order is already paid OR store pickup (physical reservation)
-    // For pending online credit card orders (iyzico), stock is reserved in checkout but deducted upon successful callback
-    const shouldDeductStockImmediately = newOrder.payment_status === 'paid' || newOrder.delivery_type === 'magaza_teslim';
+    // Deduct stock immediately ONLY if order is already paid
+    const shouldDeductStockImmediately = newOrder.payment_status === 'paid';
 
     if (shouldDeductStockImmediately) {
-      // Deduct stock locally
       const prods = runtimeProducts;
       newOrder.items?.forEach((item) => {
         const p = prods.find(pr => pr.id === item.product_id || pr.name === item.product_name);
@@ -992,17 +1100,17 @@ export const DataService = {
       });
     }
 
-    // Persist Order, Order Items and Deduct Stock in Supabase using Admin client
+    // Persist Order, Order Items and Deduct Stock in Supabase WITHOUT .select('id')
     try {
       const { createAdminClient } = await import('@/lib/supabase/admin');
       const supabaseAdmin = createAdminClient();
-      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-      const { data: orderRow, error: orderErr } = await supabaseAdmin
+      const { error: orderErr } = await supabaseAdmin
         .from('orders')
         .insert({
+          id: orderUuid,
           order_number: newOrder.order_number,
-          user_id: newOrder.user_id && UUID_REGEX.test(newOrder.user_id) ? newOrder.user_id : null,
+          user_id: newOrder.user_id,
           guest_email: newOrder.guest_email,
           guest_name: newOrder.guest_name,
           guest_phone: newOrder.guest_phone,
@@ -1015,19 +1123,18 @@ export const DataService = {
           delivery_type: newOrder.delivery_type,
           shipping_address: newOrder.shipping_address,
           billing_address: newOrder.billing_address,
+          tracking_number: newOrder.tracking_number,
+          tracking_carrier: newOrder.tracking_carrier,
+          admin_notes: newOrder.admin_notes,
           payment_status: newOrder.payment_status,
           payment_method: newOrder.payment_method,
-        })
-        .select('id')
-        .maybeSingle();
+        });
 
-      if (!orderErr && orderRow && newOrder.items && newOrder.items.length > 0) {
-        newOrder.id = orderRow.id;
-
+      if (!orderErr && newOrder.items && newOrder.items.length > 0) {
         const orderItemsPayload = [];
         for (const item of newOrder.items) {
           let resolvedProdId: string | null = item.product_id && UUID_REGEX.test(item.product_id) ? item.product_id : null;
-          let resolvedVarId: string | null = item.variant_id && UUID_REGEX.test(item.variant_id) ? item.variant_id : null;
+          const resolvedVarId: string | null = item.variant_id && UUID_REGEX.test(item.variant_id) ? item.variant_id : null;
 
           if (!resolvedProdId) {
             const { data: pFound } = await supabaseAdmin.from('products').select('id, stock').eq('name', item.product_name).maybeSingle();
@@ -1035,7 +1142,8 @@ export const DataService = {
           }
 
           orderItemsPayload.push({
-            order_id: orderRow.id,
+            id: generateUuidV4(),
+            order_id: orderUuid,
             product_id: resolvedProdId,
             variant_id: resolvedVarId,
             product_name: item.product_name,
@@ -1045,7 +1153,6 @@ export const DataService = {
             total: item.total,
           });
 
-          // Deduct stock in PostgreSQL if payment is already confirmed or store pickup
           if (shouldDeductStockImmediately) {
             if (resolvedProdId) {
               const { data: pData } = await supabaseAdmin.from('products').select('stock').eq('id', resolvedProdId).maybeSingle();
@@ -1063,6 +1170,8 @@ export const DataService = {
         }
 
         await supabaseAdmin.from('order_items').insert(orderItemsPayload);
+      } else if (orderErr) {
+        console.error('DataService createOrder Supabase insert error:', orderErr.message);
       }
     } catch (err) {
       console.error('DataService createOrder Supabase error:', err);
@@ -1072,42 +1181,57 @@ export const DataService = {
   },
 
   async markOrderPaid(orderNumberOrId: string, paymentMethod: string = 'credit_card'): Promise<boolean> {
-    const orders = runtimeOrders;
-    const order = orders.find(o => o.id === orderNumberOrId || o.order_number === orderNumberOrId);
-    if (!order) return false;
-
-    const wasAlreadyPaid = order.payment_status === 'paid';
-    order.payment_status = 'paid';
-    order.payment_method = paymentMethod;
-    if (order.status === 'siparis_alindi') {
-      order.status = 'hazirlaniyor';
+    let order = runtimeOrders.find(o => o.id === orderNumberOrId || o.order_number === orderNumberOrId) || null;
+    if (!order) {
+      order = await this.getOrderById(orderNumberOrId);
     }
-    order.updated_at = new Date().toISOString();
 
-    // Deduct stock if not previously deducted
-    if (!wasAlreadyPaid && order.delivery_type !== 'magaza_teslim' && order.items && order.items.length > 0) {
-      // 1. In memory
-      const prods = runtimeProducts;
-      order.items.forEach((item) => {
-        const p = prods.find(pr => pr.id === item.product_id || pr.name === item.product_name);
-        if (p) {
-          p.stock = Math.max(0, p.stock - item.quantity);
-          if (item.variant_id && p.variants) {
-            const v = p.variants.find(vr => vr.id === item.variant_id);
-            if (v) v.stock = Math.max(0, v.stock - item.quantity);
+    const wasAlreadyPaid = order?.payment_status === 'paid';
+    const nextStatus: OrderStatus = !order || order.status === 'siparis_alindi' ? 'hazirlaniyor' : order.status;
+    const nowIso = new Date().toISOString();
+
+    if (order) {
+      order.payment_status = 'paid';
+      order.payment_method = paymentMethod;
+      order.status = nextStatus;
+      order.updated_at = nowIso;
+    }
+
+    try {
+      const { createAdminClient } = await import('@/lib/supabase/admin');
+      const supabaseAdmin = createAdminClient();
+      const isUuid = UUID_REGEX.test(orderNumberOrId);
+
+      // Update order status in Supabase
+      const updateData = {
+        payment_status: 'paid',
+        payment_method: paymentMethod,
+        status: nextStatus,
+        updated_at: nowIso,
+      };
+      if (isUuid) {
+        await supabaseAdmin.from('orders').update(updateData).eq('id', orderNumberOrId);
+      } else {
+        await supabaseAdmin.from('orders').update(updateData).eq('order_number', orderNumberOrId);
+      }
+
+      // Deduct stock if not previously paid
+      if (!wasAlreadyPaid && order?.items && order.items.length > 0) {
+        const prods = runtimeProducts;
+        order.items.forEach((item) => {
+          const p = prods.find(pr => pr.id === item.product_id || pr.name === item.product_name);
+          if (p) {
+            p.stock = Math.max(0, p.stock - item.quantity);
+            if (item.variant_id && p.variants) {
+              const v = p.variants.find(vr => vr.id === item.variant_id);
+              if (v) v.stock = Math.max(0, v.stock - item.quantity);
+            }
           }
-        }
-      });
-
-      // 2. In Supabase using admin client
-      try {
-        const { createAdminClient } = await import('@/lib/supabase/admin');
-        const supabaseAdmin = createAdminClient();
-        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        });
 
         for (const item of order.items) {
           let resolvedProdId = item.product_id && UUID_REGEX.test(item.product_id) ? item.product_id : null;
-          let resolvedVarId = item.variant_id && UUID_REGEX.test(item.variant_id) ? item.variant_id : null;
+          const resolvedVarId = item.variant_id && UUID_REGEX.test(item.variant_id) ? item.variant_id : null;
 
           if (!resolvedProdId) {
             const { data: pFound } = await supabaseAdmin.from('products').select('id, stock').eq('name', item.product_name).maybeSingle();
@@ -1117,7 +1241,7 @@ export const DataService = {
           if (resolvedProdId) {
             const { data: pData } = await supabaseAdmin.from('products').select('stock').eq('id', resolvedProdId).maybeSingle();
             if (pData && typeof pData.stock === 'number') {
-              await supabaseAdmin.from('products').update({ stock: Math.max(0, pData.stock - item.quantity), updated_at: new Date().toISOString() }).eq('id', resolvedProdId);
+              await supabaseAdmin.from('products').update({ stock: Math.max(0, pData.stock - item.quantity), updated_at: nowIso }).eq('id', resolvedProdId);
             }
           }
           if (resolvedVarId) {
@@ -1127,72 +1251,45 @@ export const DataService = {
             }
           }
         }
-
-        const isCustomId = order.id.startsWith('ord-');
-        const updateData = {
-          payment_status: 'paid',
-          payment_method: paymentMethod,
-          status: order.status,
-          updated_at: new Date().toISOString(),
-        };
-        if (!isCustomId) {
-          await supabaseAdmin.from('orders').update(updateData).eq('id', order.id);
-        } else {
-          await supabaseAdmin.from('orders').update(updateData).eq('order_number', order.order_number);
-        }
-      } catch (err) {
-        console.error('DataService markOrderPaid Supabase stock deduction error:', err);
       }
-    } else {
-      // Just update status in Supabase if stock was already handled
-      try {
-        const { createAdminClient } = await import('@/lib/supabase/admin');
-        const supabaseAdmin = createAdminClient();
-        const isCustomId = order.id.startsWith('ord-');
-        const updateData = {
-          payment_status: 'paid',
-          payment_method: paymentMethod,
-          status: order.status,
-          updated_at: new Date().toISOString(),
-        };
-        if (!isCustomId) {
-          await supabaseAdmin.from('orders').update(updateData).eq('id', order.id);
-        } else {
-          await supabaseAdmin.from('orders').update(updateData).eq('order_number', order.order_number);
-        }
-      } catch (err) {
-        console.error('DataService markOrderPaid status update error:', err);
-      }
+    } catch (err) {
+      console.error('DataService markOrderPaid Supabase error:', err);
     }
 
     return true;
   },
 
   async markOrderFailed(orderNumberOrId: string, reason?: string): Promise<boolean> {
-    const orders = runtimeOrders;
-    const order = orders.find(o => o.id === orderNumberOrId || o.order_number === orderNumberOrId);
-    if (!order) return false;
+    let order = runtimeOrders.find(o => o.id === orderNumberOrId || o.order_number === orderNumberOrId) || null;
+    if (!order) {
+      order = await this.getOrderById(orderNumberOrId);
+    }
 
-    order.payment_status = 'failed';
-    order.status = 'iptal_edildi';
     const noteText = reason ? `iyzico Ödeme Başarısız: ${reason}` : 'iyzico ödeme başarısız oldu veya kart reddedildi.';
-    order.admin_notes = order.admin_notes ? `${order.admin_notes} | ${noteText}` : noteText;
-    order.updated_at = new Date().toISOString();
+    const mergedNotes = order?.admin_notes ? `${order.admin_notes} | ${noteText}` : noteText;
+    const nowIso = new Date().toISOString();
+
+    if (order) {
+      order.payment_status = 'failed';
+      order.status = 'iptal_edildi';
+      order.admin_notes = mergedNotes;
+      order.updated_at = nowIso;
+    }
 
     try {
       const { createAdminClient } = await import('@/lib/supabase/admin');
       const supabaseAdmin = createAdminClient();
-      const isCustomId = order.id.startsWith('ord-');
+      const isUuid = UUID_REGEX.test(orderNumberOrId);
       const updateData = {
         payment_status: 'failed',
         status: 'iptal_edildi',
-        admin_notes: order.admin_notes,
-        updated_at: new Date().toISOString(),
+        admin_notes: mergedNotes,
+        updated_at: nowIso,
       };
-      if (!isCustomId) {
-        await supabaseAdmin.from('orders').update(updateData).eq('id', order.id);
+      if (isUuid) {
+        await supabaseAdmin.from('orders').update(updateData).eq('id', orderNumberOrId);
       } else {
-        await supabaseAdmin.from('orders').update(updateData).eq('order_number', order.order_number);
+        await supabaseAdmin.from('orders').update(updateData).eq('order_number', orderNumberOrId);
       }
     } catch (err) {
       console.error('DataService markOrderFailed Supabase error:', err);
@@ -1208,35 +1305,59 @@ export const DataService = {
     trackingCarrier?: string,
     adminNotes?: string
   ): Promise<boolean> {
+    const cleanTracking = trackingNumber !== undefined ? trackingNumber.trim() : undefined;
+    const cleanCarrier = trackingCarrier !== undefined ? trackingCarrier.trim() : undefined;
+
+    // Auto-advance status to 'kargoya_verildi' if a tracking number is assigned while still in initial stages
+    const effectiveStatus: Order['status'] =
+      cleanTracking && (status === 'siparis_alindi' || status === 'hazirlaniyor')
+        ? 'kargoya_verildi'
+        : status;
+
     const orders = runtimeOrders;
     const order = orders.find(o => o.id === orderId || o.order_number === orderId);
 
-    // If updating to iptal_edildi, ensure full cancellation and stock return logic is invoked
-    if (status === 'iptal_edildi' && order && order.status !== 'iptal_edildi') {
+    if (effectiveStatus === 'iptal_edildi' && (!order || order.status !== 'iptal_edildi')) {
       await this.cancelOrder(orderId, adminNotes || 'Durum İptal Edildi olarak güncellendi', true);
       return true;
     }
 
+    const nowIso = new Date().toISOString();
     if (order) {
-      order.status = status;
-      if (trackingNumber !== undefined) order.tracking_number = trackingNumber;
-      if (trackingCarrier !== undefined) order.tracking_carrier = trackingCarrier;
+      order.status = effectiveStatus;
+      if (cleanTracking !== undefined) order.tracking_number = cleanTracking || null;
+      if (cleanCarrier !== undefined) order.tracking_carrier = cleanCarrier || null;
       if (adminNotes !== undefined) order.admin_notes = adminNotes;
-      order.updated_at = new Date().toISOString();
+      order.updated_at = nowIso;
     }
 
+    const updateData: any = { status: effectiveStatus, updated_at: nowIso };
+    if (cleanTracking !== undefined) updateData.tracking_number = cleanTracking || null;
+    if (cleanCarrier !== undefined) updateData.tracking_carrier = cleanCarrier || null;
+    if (adminNotes !== undefined) updateData.admin_notes = adminNotes;
+
+    const isUuid = UUID_REGEX.test(orderId);
+
+    // 1. Update via current client (carries browser session on client, or admin client on server)
+    try {
+      const supabase = createClient();
+      if (isUuid) {
+        await supabase.from('orders').update(updateData).eq('id', orderId);
+      } else {
+        await supabase.from('orders').update(updateData).eq('order_number', order?.order_number || orderId);
+      }
+    } catch {
+      // Fallback
+    }
+
+    // 2. Also update via explicit Admin client
     try {
       const { createAdminClient } = await import('@/lib/supabase/admin');
       const supabaseAdmin = createAdminClient();
-      const updateData: any = { status, updated_at: new Date().toISOString() };
-      if (trackingNumber !== undefined) updateData.tracking_number = trackingNumber;
-      if (trackingCarrier !== undefined) updateData.tracking_carrier = trackingCarrier;
-      if (adminNotes !== undefined) updateData.admin_notes = adminNotes;
-
-      if (!orderId.startsWith('ord-')) {
+      if (isUuid) {
         await supabaseAdmin.from('orders').update(updateData).eq('id', orderId);
-      } else if (order?.order_number) {
-        await supabaseAdmin.from('orders').update(updateData).eq('order_number', order.order_number);
+      } else {
+        await supabaseAdmin.from('orders').update(updateData).eq('order_number', order?.order_number || orderId);
       }
     } catch (err) {
       console.error('DataService updateOrderStatus error:', err);
@@ -1249,8 +1370,10 @@ export const DataService = {
     cancelReason?: string,
     restockItems: boolean = true
   ): Promise<{ success: boolean; message: string }> {
-    const orders = runtimeOrders;
-    const order = orders.find((o) => o.id === orderId || o.order_number === orderId);
+    let order = runtimeOrders.find((o) => o.id === orderId || o.order_number === orderId) || null;
+    if (!order) {
+      order = await this.getOrderById(orderId);
+    }
     if (!order) {
       return { success: false, message: 'Sipariş sistemde bulunamadı.' };
     }
@@ -1259,16 +1382,18 @@ export const DataService = {
       return { success: false, message: 'Bu sipariş zaten daha önce iptal edilmiştir.' };
     }
 
-    // Only restock if stock was actually deducted previously (paid order or store pickup)
-    const wasStockDeducted = order.payment_status === 'paid' || order.delivery_type === 'magaza_teslim';
-
-    order.status = 'iptal_edildi';
-    order.payment_status = order.payment_status === 'paid' ? 'refunded' : 'failed';
+    const wasStockDeducted = order.payment_status === 'paid';
+    const nextPaymentStatus: PaymentStatus = order.payment_status === 'paid' ? 'refunded' : 'failed';
     const noteText = cancelReason
       ? `İptal Nedeni: ${cancelReason} (${new Date().toLocaleDateString('tr-TR')} ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })})`
       : `Yönetici tarafından iptal edildi (${new Date().toLocaleDateString('tr-TR')})`;
-    order.admin_notes = order.admin_notes ? `${order.admin_notes} | ${noteText}` : noteText;
-    order.updated_at = new Date().toISOString();
+    const nextNotes = order.admin_notes ? `${order.admin_notes} | ${noteText}` : noteText;
+    const nowIso = new Date().toISOString();
+
+    order.status = 'iptal_edildi';
+    order.payment_status = nextPaymentStatus;
+    order.admin_notes = nextNotes;
+    order.updated_at = nowIso;
 
     // Restock items in memory
     if (restockItems && wasStockDeducted && order.items && order.items.length > 0) {
@@ -1290,15 +1415,15 @@ export const DataService = {
     try {
       const { createAdminClient } = await import('@/lib/supabase/admin');
       const supabaseAdmin = createAdminClient();
-      const isCustomId = order.id.startsWith('ord-');
+      const isUuid = UUID_REGEX.test(order.id);
       const updateData: any = {
         status: 'iptal_edildi',
-        payment_status: order.payment_status,
-        admin_notes: order.admin_notes,
-        updated_at: new Date().toISOString(),
+        payment_status: nextPaymentStatus,
+        admin_notes: nextNotes,
+        updated_at: nowIso,
       };
 
-      if (!isCustomId) {
+      if (isUuid) {
         await supabaseAdmin.from('orders').update(updateData).eq('id', order.id);
       } else {
         await supabaseAdmin.from('orders').update(updateData).eq('order_number', order.order_number);
@@ -1307,13 +1432,13 @@ export const DataService = {
       // Restock items in database
       if (restockItems && wasStockDeducted && order.items && order.items.length > 0) {
         for (const item of order.items) {
-          if (item.product_id && !item.product_id.startsWith('prod-')) {
+          if (item.product_id && UUID_REGEX.test(item.product_id)) {
             const { data: pData } = await supabaseAdmin.from('products').select('stock').eq('id', item.product_id).maybeSingle();
             if (pData && typeof pData.stock === 'number') {
-              await supabaseAdmin.from('products').update({ stock: pData.stock + item.quantity, updated_at: new Date().toISOString() }).eq('id', item.product_id);
+              await supabaseAdmin.from('products').update({ stock: pData.stock + item.quantity, updated_at: nowIso }).eq('id', item.product_id);
             }
           }
-          if (item.variant_id && !item.variant_id.startsWith('var-')) {
+          if (item.variant_id && UUID_REGEX.test(item.variant_id)) {
             const { data: vData } = await supabaseAdmin.from('product_variants').select('stock').eq('id', item.variant_id).maybeSingle();
             if (vData && typeof vData.stock === 'number') {
               await supabaseAdmin.from('product_variants').update({ stock: vData.stock + item.quantity }).eq('id', item.variant_id);
@@ -1414,8 +1539,9 @@ export const DataService = {
 
   async createReturn(req: Partial<ReturnRequest>): Promise<ReturnRequest> {
     const orders = await this.getOrders();
+    const retUuid = generateUuidV4();
     const newReturn: ReturnRequest = {
-      id: `ret-${Date.now()}`,
+      id: retUuid,
       order_id: req.order_id!,
       order_item_id: req.order_item_id || null,
       user_id: req.user_id || null,
@@ -1467,17 +1593,14 @@ export const DataService = {
       }
 
       if (orderDbId && UUID_REGEX.test(orderDbId)) {
-        const { data } = await supabase.from('returns').insert({
+        await supabase.from('returns').insert({
+          id: retUuid,
           order_id: orderDbId,
           user_id: newReturn.user_id && UUID_REGEX.test(newReturn.user_id) ? newReturn.user_id : null,
           reason: newReturn.reason,
           details: newReturn.details,
           status: newReturn.status,
-        }).select('id').maybeSingle();
-
-        if (data) {
-          newReturn.id = data.id;
-        }
+        });
       }
     } catch {
       // Fallback
@@ -1604,21 +1727,29 @@ export const DataService = {
       }
       const { data, error } = await query;
       if (!error && data) {
-        runtimeQuestions = data as Question[];
-        return runtimeQuestions;
+        const mapped = (data as Question[]).map(q => productId ? { ...q, user_email: undefined } : q);
+        if (!productId) {
+          runtimeQuestions = mapped;
+        }
+        return mapped;
       }
     } catch {
       // Fallback
     }
 
     const questions = runtimeQuestions;
-    if (productId) return questions.filter(q => q.product_id === productId && q.is_approved);
+    if (productId) {
+      return questions
+        .filter(q => q.product_id === productId && q.is_approved)
+        .map(q => ({ ...q, user_email: undefined }));
+    }
     return questions;
   },
 
   async addQuestion(productId: string, userName: string, userEmail: string, questionText: string): Promise<Question> {
+    const qUuid = generateUuidV4();
     const newQ: Question = {
-      id: `q-${Date.now()}`,
+      id: qUuid,
       product_id: productId,
       user_name: userName,
       user_email: userEmail,
@@ -1654,17 +1785,14 @@ export const DataService = {
 
     try {
       const supabase = createClient();
-      const { data } = await supabase.from('questions').insert({
+      await supabase.from('questions').insert({
+        id: qUuid,
         product_id: productId && UUID_REGEX.test(productId) ? productId : null,
         user_name: userName,
         user_email: userEmail,
         question_text: questionText,
         is_approved: false,
-      }).select('id').maybeSingle();
-
-      if (data) {
-        newQ.id = data.id;
-      }
+      });
     } catch {
       // Fallback
     }
@@ -1751,8 +1879,9 @@ export const DataService = {
   },
 
   async addReview(productId: string, userName: string, rating: number, comment: string): Promise<Review> {
+    const revUuid = generateUuidV4();
     const newRev: Review = {
-      id: `rev-${Date.now()}`,
+      id: revUuid,
       product_id: productId,
       user_name: userName,
       rating,
@@ -1789,17 +1918,14 @@ export const DataService = {
 
     try {
       const supabase = createClient();
-      const { data } = await supabase.from('reviews').insert({
+      await supabase.from('reviews').insert({
+        id: revUuid,
         product_id: productId && UUID_REGEX.test(productId) ? productId : null,
         user_name: userName,
         rating,
         comment,
         is_approved: true,
-      }).select('id').maybeSingle();
-
-      if (data) {
-        newRev.id = data.id;
-      }
+      });
     } catch {
       // Fallback
     }
@@ -2156,14 +2282,24 @@ export const DataService = {
   // 8. WHOLESALE B2B
   // ==========================================
   async getWholesaleRequests(): Promise<WholesaleRequest[]> {
+    const normalizeRow = (r: any): WholesaleRequest => ({
+      ...r,
+      company_name: r.company_name || r.contact_name || 'Müşteri',
+      contact_name: r.contact_name || r.company_name || 'Müşteri',
+      address: r.address || r.city || '',
+      city: r.city || r.address || '',
+      admin_notes: r.admin_notes || '',
+      status: r.status || 'beklemede',
+    });
+
     if (typeof window !== 'undefined') {
       try {
-        const res = await fetch('/api/wholesale');
+        const res = await fetch('/api/wholesale', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data)) {
-            runtimeWholesale = data;
-            return data;
+          if (Array.isArray(data) && data.length > 0) {
+            runtimeWholesale = data.map(normalizeRow);
+            return runtimeWholesale;
           }
         }
       } catch {
@@ -2178,8 +2314,30 @@ export const DataService = {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        runtimeWholesale = data as WholesaleRequest[];
+      if (!error && Array.isArray(data)) {
+        const dbList = data.map(normalizeRow);
+        const serverStored: WholesaleRequest[] =
+          typeof globalThis !== 'undefined' && Array.isArray((globalThis as any).__otantikos_wholesale_requests)
+            ? (globalThis as any).__otantikos_wholesale_requests
+            : [];
+
+        const mergedMap = new Map<string, WholesaleRequest>();
+        for (const item of dbList) {
+          if (item?.id) mergedMap.set(item.id, item);
+        }
+        for (const item of serverStored) {
+          if (item?.id && !mergedMap.has(item.id)) mergedMap.set(item.id, normalizeRow(item));
+        }
+        for (const item of runtimeWholesale) {
+          if (item?.id && !mergedMap.has(item.id)) mergedMap.set(item.id, normalizeRow(item));
+        }
+
+        const merged = Array.from(mergedMap.values()).sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        if (merged.length > 0 || runtimeWholesale.length === 0) {
+          runtimeWholesale = merged;
+        }
         return runtimeWholesale;
       }
     } catch {
@@ -2190,9 +2348,18 @@ export const DataService = {
   },
 
   async addWholesaleRequest(req: Omit<WholesaleRequest, 'id' | 'status' | 'created_at'>): Promise<WholesaleRequest> {
+    const reqUuid = generateUuidV4();
+    const cleanAddress = (req.address || req.city || '').trim();
+    const cleanPhoneDigits = (req.phone || '').replace(/\D/g, '');
+    const fallbackEmail = (req.email && req.email.trim()) ? req.email.trim() : `${cleanPhoneDigits || 'talep'}@otantikosconcept.com`;
+
     const newReq: WholesaleRequest = {
       ...req,
-      id: `ws-${Date.now()}`,
+      id: reqUuid,
+      company_name: req.contact_name || req.company_name,
+      address: cleanAddress,
+      city: cleanAddress,
+      email: fallbackEmail,
       status: 'beklemede',
       admin_notes: '',
       created_at: new Date().toISOString(),
@@ -2201,6 +2368,8 @@ export const DataService = {
     const list = runtimeWholesale;
     list.unshift(newReq);
     runtimeWholesale = list;
+
+    let savedViaApiDb = false;
 
     if (typeof window !== 'undefined') {
       try {
@@ -2212,7 +2381,11 @@ export const DataService = {
         if (res.ok) {
           const data = await res.json();
           if (data?.request) {
-            return data.request;
+            newReq.id = data.request.id || reqUuid;
+          }
+          if (data?.savedToDb) {
+            savedViaApiDb = true;
+            return data.request || newReq;
           }
         }
       } catch {
@@ -2220,35 +2393,42 @@ export const DataService = {
       }
     }
 
-    try {
-      const supabase = createClient();
-      const { data } = await supabase.from('wholesale_requests').insert({
-        company_name: req.contact_name || req.company_name,
-        contact_name: req.contact_name,
-        email: req.email || null,
-        phone: req.phone,
-        city: req.address || req.city,
-        notes: req.notes ? `[Adres: ${req.address || req.city}] ${req.notes}` : `Adres: ${req.address || req.city}`,
-        status: 'beklemede',
-      }).select('id').maybeSingle();
-
-      if (data) {
-        newReq.id = data.id;
+    // If API did not confirm DB write, insert directly via Supabase WITHOUT .select('id') so INSERT RLS ("WITH CHECK (TRUE)") succeeds
+    if (!savedViaApiDb) {
+      try {
+        const supabase = createClient();
+        const insertPayload: Record<string, any> = {
+          id: newReq.id && UUID_REGEX.test(newReq.id) ? newReq.id : reqUuid,
+          company_name: req.contact_name || req.company_name,
+          contact_name: req.contact_name,
+          email: fallbackEmail,
+          phone: req.phone,
+          city: cleanAddress,
+          estimated_volume: 'Belirtilmedi',
+          notes: req.notes || `Teslimat Adresi: ${cleanAddress}`,
+          status: 'beklemede',
+        };
+        let { error } = await supabase.from('wholesale_requests').insert(insertPayload);
+        if (error && error.message?.includes('estimated_volume')) {
+          delete insertPayload.estimated_volume;
+          await supabase.from('wholesale_requests').insert(insertPayload);
+        }
+      } catch {
+        // Fallback
       }
-    } catch {
-      // Fallback
     }
 
     return newReq;
   },
 
   async updateWholesaleStatus(id: string, status: WholesaleRequest['status'], adminNotes?: string): Promise<boolean> {
+    const nowIso = new Date().toISOString();
     const list = runtimeWholesale;
     const item = list.find(r => r.id === id);
     if (item) {
       item.status = status;
       if (adminNotes !== undefined) item.admin_notes = adminNotes;
-      item.updated_at = new Date().toISOString();
+      item.updated_at = nowIso;
     }
     runtimeWholesale = list;
 
@@ -2266,7 +2446,8 @@ export const DataService = {
 
     try {
       const supabase = createClient();
-      const updatePayload: any = { status };
+      const updatePayload: any = { status, updated_at: nowIso };
+      if (adminNotes !== undefined) updatePayload.admin_notes = adminNotes;
       await supabase.from('wholesale_requests').update(updatePayload).eq('id', id);
     } catch {
       // Fallback
@@ -2389,7 +2570,6 @@ export const DataService = {
 
     // Save to Supabase
     try {
-      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       const supabase = createClient();
       const payload: any = {
         type: tx.type,
@@ -2795,10 +2975,14 @@ export const DataService = {
   async deleteUserAddress(addressId: string, userId?: string): Promise<boolean> {
     runtimeAddresses = runtimeAddresses.filter((a) => a.id !== addressId);
     try {
-      const isUuid = addressId ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(addressId) : false;
+      const isUuid = addressId ? UUID_REGEX.test(addressId) : false;
       if (isUuid) {
         const supabase = createClient();
-        await supabase.from('user_addresses').delete().eq('id', addressId);
+        let query = supabase.from('user_addresses').delete().eq('id', addressId);
+        if (userId) {
+          query = query.eq('user_id', userId);
+        }
+        await query;
       }
       return true;
     } catch (err) {

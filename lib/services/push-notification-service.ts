@@ -6,12 +6,14 @@ import { isSafePushEndpoint } from '@/lib/security/sanitize';
 
 // VAPID Configuration
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BMlzKI8nGrboLygwoidtTwbotj7bQ80CO07H8wbfsccqz6EO7KsPv3o3beDHHANNnaEenpmYkzkojGsDJMsikD8';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'VdYl-0JtUtSRiWjW3Sq7ehACThEol7isFspf61v1h7Q';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:info@otantikosconcept.com';
 
 // Initialize web-push
 try {
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  }
 } catch (e) {
   console.warn('[WebPush] setVapidDetails notice:', e);
 }

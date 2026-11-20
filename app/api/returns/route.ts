@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
+import { createClient as createServerClient } from '@/lib/supabase/server';
+import { verifyAdminAuth, getAuthenticatedSessionUser } from '@/lib/supabase/auth-guard';
 import { DataService } from '@/lib/data/store-data';
 import { ReturnRequest } from '@/lib/types/ecommerce';
 import { applyRateLimit } from '@/lib/security/rate-limit';
@@ -64,6 +66,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Yalnızca kendi iade taleplerinizi görüntüleyebilirsiniz.' }, { status: 403 });
     }
 
+    let dbData: any[] | null = null;
     try {
       const supabase = createAdminClient();
       let query = supabase.from('returns').select('*').order('created_at', { ascending: false });
@@ -71,18 +74,40 @@ export async function GET(request: Request) {
         query = query.eq('user_id', userId);
       }
       const { data, error } = await query;
-      if (!error && data && data.length > 0) {
-        return NextResponse.json(data);
+      if (!error && data) {
+        dbData = data;
       }
     } catch {
       // Fallback
     }
 
-    const stored = getStoredReturns();
-    if (userId) {
-      return NextResponse.json(stored.filter((r) => r.user_id === userId));
+    if (!dbData || dbData.length === 0) {
+      try {
+        const serverSupabase = await createServerClient();
+        let query = serverSupabase.from('returns').select('*').order('created_at', { ascending: false });
+        if (userId) {
+          query = query.eq('user_id', userId);
+        }
+        const { data, error } = await query;
+        if (!error && data) {
+          dbData = data;
+        }
+      } catch {
+        // Fallback
+      }
     }
-    return NextResponse.json(stored);
+
+    const stored = getStoredReturns();
+    const mergedMap = new Map<string, any>();
+    (dbData || []).forEach((r) => mergedMap.set(r.id, r));
+    stored.forEach((r) => {
+      if (!mergedMap.has(r.id)) mergedMap.set(r.id, r);
+    });
+    const merged = Array.from(mergedMap.values());
+    if (userId) {
+      return NextResponse.json(merged.filter((r) => r.user_id === userId));
+    }
+    return NextResponse.json(merged);
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'İade talepleri getirilemedi.' }, { status: 500 });
   }
@@ -126,11 +151,15 @@ export async function POST(request: Request) {
       }, { status: 409 });
     }
 
+    const sessionUser = await getAuthenticatedSessionUser();
+    const verifiedUserId = sessionUser?.id && UUID_REGEX.test(sessionUser.id) ? sessionUser.id : null;
+    const generatedId = crypto.randomUUID();
+
     const newRet: ReturnRequest = {
-      id: `ret-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: generatedId,
       order_id,
       order_item_id: order_item_id || null,
-      user_id: user_id && UUID_REGEX.test(user_id) ? user_id : null,
+      user_id: verifiedUserId,
       reason: cleanReason,
       details: cleanDetails,
       status: 'talep_alindi',
@@ -151,19 +180,15 @@ export async function POST(request: Request) {
       }
 
       if (UUID_REGEX.test(orderDbId)) {
-        const { data: insData } = await supabase.from('returns').insert({
+        await supabase.from('returns').insert({
+          id: generatedId,
           order_id: orderDbId,
           order_item_id: newRet.order_item_id && UUID_REGEX.test(newRet.order_item_id) ? newRet.order_item_id : null,
           user_id: newRet.user_id,
           reason: cleanReason,
           details: cleanDetails,
           status: 'talep_alindi',
-        }).select('id').maybeSingle();
-
-        if (insData?.id) {
-          newRet.id = insData.id;
-          saveStoredReturns(list);
-        }
+        });
       }
     } catch {
       // Fallback

@@ -275,7 +275,7 @@ export default function KarZararClientView({
       });
 
       orders.forEach((o) => {
-        if (o.payment_status === 'paid' && isDateMatch(o.created_at)) {
+        if (o.payment_status === 'paid' && o.status !== 'iptal_edildi' && isDateMatch(o.created_at)) {
           totalRevenue += o.total_amount;
           salesByChannel.website += o.total_amount;
           totalSalesCount++;

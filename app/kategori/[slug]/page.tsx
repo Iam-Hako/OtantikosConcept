@@ -48,7 +48,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   ]);
 
   return (
-    <Suspense fallback={<div className="p-12 text-center text-xs text-stone-500">Koleksiyon yükleniyor...</div>}>
+    <Suspense fallback={<div className="min-h-[calc(100dvh-4.5rem)] p-12 text-center text-xs text-stone-500">Koleksiyon yükleniyor...</div>}>
       <CategoryClientView
         initialProducts={initialProducts}
         initialCategories={initialCategories}

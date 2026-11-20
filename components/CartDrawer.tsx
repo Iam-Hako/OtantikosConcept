@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { X, Trash2, Plus, Minus, Gift, ShoppingBag, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useCart } from '@/lib/store/cart-store';
 import { useTranslation } from '@/lib/i18n/language-context';
@@ -10,6 +11,7 @@ import { formatPrice } from '@/lib/utils/format';
 import { CouponInput } from '@/components/CouponInput';
 
 export default function CartDrawer() {
+  const pathname = usePathname();
   const { t, isRTL } = useTranslation();
   const {
     items,
@@ -44,7 +46,7 @@ export default function CartDrawer() {
     return maxStock <= 0 || item.quantity > maxStock;
   });
 
-  if (!isDrawerOpen) return null;
+  if (!isDrawerOpen || pathname?.startsWith('/admin')) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden animate-fade-in">

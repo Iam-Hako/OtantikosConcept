@@ -3,14 +3,19 @@ import { revalidatePath } from 'next/cache';
 import { DataService } from '@/lib/data/store-data';
 import { createDhlShipment } from '@/lib/services/dhl-service';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(request: Request) {
   try {
-    // Admin Authentication Guard: Only authenticated administrators can generate official DHL shipping labels
     const auth = await verifyAdminAuth();
     if (!auth.isAuthorized) {
-      return NextResponse.json({ error: auth.error || 'DHL kargo etiketi oluşturmak için yönetici yetkisi gereklidir.' }, { status: 401 });
+      return NextResponse.json(
+        { error: auth.error || 'DHL kargo etiketi oluşturmak için yönetici yetkisi gereklidir.' },
+        { status: 401 }
+      );
     }
 
     const body = await request.json();
@@ -20,33 +25,86 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Sipariş ID veya sipariş numarası zorunludur.' }, { status: 400 });
     }
 
-    // 1. Fetch order
-    let order = order_id ? await DataService.getOrderById(order_id) : null;
+    let order: any = null;
+    const supabaseAdmin = createAdminClient();
+
+    // 1. Direct Supabase query via Admin client
+    try {
+      if (order_id && UUID_REGEX.test(order_id)) {
+        const { data } = await supabaseAdmin
+          .from('orders')
+          .select('*, items:order_items(*)')
+          .eq('id', order_id)
+          .maybeSingle();
+        if (data) order = data;
+      }
+      if (!order && order_number) {
+        const { data } = await supabaseAdmin
+          .from('orders')
+          .select('*, items:order_items(*)')
+          .eq('order_number', String(order_number).trim().toUpperCase())
+          .maybeSingle();
+        if (data) order = data;
+      }
+    } catch {
+      // Fallback
+    }
+
+    // 2. Fallback to SSR cookie client
+    if (!order) {
+      try {
+        const serverSupabase = await createServerClient();
+        if (order_id && UUID_REGEX.test(order_id)) {
+          const { data } = await serverSupabase
+            .from('orders')
+            .select('*, items:order_items(*)')
+            .eq('id', order_id)
+            .maybeSingle();
+          if (data) order = data;
+        }
+        if (!order && order_number) {
+          const { data } = await serverSupabase
+            .from('orders')
+            .select('*, items:order_items(*)')
+            .eq('order_number', String(order_number).trim().toUpperCase())
+            .maybeSingle();
+          if (data) order = data;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    // 3. Fallback to DataService in-memory store
+    if (!order && order_id) {
+      order = await DataService.getOrderById(order_id);
+    }
     if (!order && order_number) {
       order = await DataService.getOrderByNumber(order_number);
-    }
-    if (!order) {
-      const allOrders = await DataService.getOrders();
-      order = allOrders.find((o) => (order_id && o.id === order_id) || (order_number && o.order_number === order_number)) || null;
     }
 
     if (!order) {
       return NextResponse.json({ error: 'Sipariş bulunamadı.' }, { status: 404 });
     }
 
-    const shipping = order.shipping_address as any;
-    const addressLine = shipping?.full_address || shipping?.address_detail || shipping?.address || '';
-    if (!shipping || !shipping.full_name || !addressLine) {
-      return NextResponse.json({ error: 'Sipariş teslimat adresi eksik veya geçersiz.' }, { status: 400 });
+    const shipping = (order.shipping_address || {}) as any;
+    const addressLine =
+      shipping?.full_address ||
+      shipping?.address_detail ||
+      shipping?.address ||
+      `${shipping?.neighborhood || ''} ${shipping?.street || ''} ${shipping?.district || ''} / ${shipping?.province || 'İstanbul'}`.trim();
+
+    if (!shipping?.full_name && !order.guest_name) {
+      return NextResponse.json({ error: 'Sipariş alıcı adı eksik.' }, { status: 400 });
     }
 
-    // 2. Call DHL shipment creation service
+    // 4. Call DHL shipment creation service
     const dhlRes = await createDhlShipment({
       orderNumber: order.order_number,
-      recipientName: shipping.full_name,
+      recipientName: shipping.full_name || order.guest_name || 'Müşteri',
       phone: shipping.phone || order.guest_phone || '+905000000000',
       email: order.guest_email || undefined,
-      addressLine: addressLine,
+      addressLine: addressLine || 'Tahtakale Eminönü Teslimat',
       city: shipping.province || 'İstanbul',
       district: shipping.district || undefined,
       postalCode: shipping.postal_code || shipping.zip_code || undefined,
@@ -57,41 +115,48 @@ export async function POST(request: Request) {
     });
 
     if (!dhlRes.success || !dhlRes.trackingNumber) {
-      return NextResponse.json({
-        error: dhlRes.error || 'DHL kargo gönderisi oluşturulamadı.',
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: dhlRes.error || 'DHL kargo gönderisi oluşturulamadı.',
+        },
+        { status: 500 }
+      );
     }
 
-    // 3. Update order in Supabase and DataService
+    const nowIso = new Date().toISOString();
+    const updatePayload = {
+      status: 'kargoya_verildi',
+      tracking_number: dhlRes.trackingNumber,
+      tracking_carrier: 'DHL Kargo',
+      updated_at: nowIso,
+    };
+
+    // 5. Persist tracking number in Supabase via both Admin & SSR Cookie clients
     try {
-      const supabaseAdmin = createAdminClient();
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(order.id);
-      let updateQuery = supabaseAdmin.from('orders').update({
-        status: 'kargoya_verildi',
-        tracking_number: dhlRes.trackingNumber,
-        tracking_carrier: 'DHL Kargo',
-        updated_at: new Date().toISOString(),
-      });
-      if (isUuid) {
-        await updateQuery.eq('id', order.id);
-      } else {
-        await updateQuery.eq('order_number', order.order_number);
+      const isUuid = UUID_REGEX.test(order.id);
+      const { error } = isUuid
+        ? await supabaseAdmin.from('orders').update(updatePayload).eq('id', order.id)
+        : await supabaseAdmin.from('orders').update(updatePayload).eq('order_number', order.order_number);
+
+      if (error) {
+        const serverSupabase = await createServerClient();
+        if (isUuid) {
+          await serverSupabase.from('orders').update(updatePayload).eq('id', order.id);
+        } else {
+          await serverSupabase.from('orders').update(updatePayload).eq('order_number', order.order_number);
+        }
       }
     } catch (err) {
       console.warn('Supabase direct order update notice:', err);
     }
 
-    await DataService.updateOrderStatus(
-      order.id,
-      'kargoya_verildi',
-      dhlRes.trackingNumber,
-      'DHL Kargo'
-    );
+    await DataService.updateOrderStatus(order.id, 'kargoya_verildi', dhlRes.trackingNumber, 'DHL Kargo');
 
-    // 4. Revalidate pages
     try {
+      revalidatePath('/admin');
       revalidatePath('/admin/siparisler');
       revalidatePath(`/admin/siparisler/${order.id}`);
+      revalidatePath('/admin/kargo-etiketi');
       revalidatePath('/siparis-takip');
       revalidatePath('/hesabim');
     } catch {

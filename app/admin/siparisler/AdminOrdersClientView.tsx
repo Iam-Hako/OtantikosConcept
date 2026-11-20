@@ -42,10 +42,12 @@ export default function AdminOrdersClientView({
   const [isClearingAll, setIsClearingAll] = useState(false);
 
   useEffect(() => {
-    if (initialOrders.length === 0) {
-      DataService.getOrders().then(setOrders);
-    }
-  }, [initialOrders.length]);
+    DataService.getOrders().then((list) => {
+      if (Array.isArray(list) && list.length > 0) {
+        setOrders(list);
+      }
+    });
+  }, []);
 
   const handleConfirmDeleteOrder = async () => {
     if (!deletingOrder) return;
@@ -127,7 +129,8 @@ export default function AdminOrdersClientView({
     const numMatch = normalizeTurkish(o.order_number).includes(q);
     const nameMatch = normalizeTurkish(o.shipping_address?.full_name || '').includes(q);
     const emailMatch = normalizeTurkish(o.guest_email || '').includes(q);
-    return numMatch || nameMatch || emailMatch;
+    const trackMatch = normalizeTurkish(o.tracking_number || '').includes(q);
+    return numMatch || nameMatch || emailMatch || trackMatch;
   });
 
   return (
@@ -225,6 +228,21 @@ export default function AdminOrdersClientView({
                 <div className="flex justify-between">
                   <span className="text-stone-400">Teslimat:</span>
                   <span>{ord.delivery_type === 'magaza_teslim' || ord.delivery_type === 'pickup' ? '🏪 Mağaza Teslim' : `🚚 ${ord.shipping_address?.province || ''}`}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-stone-400">Kargo Takip No:</span>
+                  {ord.tracking_number ? (
+                    <span className="font-mono font-bold text-stone-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-[11px]">
+                      {ord.tracking_carrier || 'DHL Kargo'}: {ord.tracking_number}
+                    </span>
+                  ) : (
+                    <Link
+                      href={`/admin/siparisler/${ord.id}`}
+                      className="text-[11px] font-bold text-amber-700 hover:underline"
+                    >
+                      + Takip No Gir
+                    </Link>
+                  )}
                 </div>
                 <div className="flex justify-between font-bold pt-1 border-t border-stone-100 text-stone-900">
                   <span>Toplam Tutar:</span>
@@ -334,12 +352,17 @@ export default function AdminOrdersClientView({
 
                   <td className="py-3.5 px-4">
                     {ord.tracking_number ? (
-                      <div className="text-[11px]">
-                        <span className="text-stone-500">{ord.tracking_carrier}:</span>
-                        <strong className="font-mono text-stone-900 ml-1">{ord.tracking_number}</strong>
+                      <div className="inline-flex flex-col gap-0.5 bg-amber-50/80 border border-amber-200 px-2.5 py-1 rounded-lg text-[11px]">
+                        <span className="text-[10px] font-semibold text-amber-900">{ord.tracking_carrier || 'DHL Kargo'}</span>
+                        <strong className="font-mono text-stone-900 select-all">{ord.tracking_number}</strong>
                       </div>
                     ) : (
-                      <span className="text-[10px] text-stone-400 italic">Henüz Girilmedi</span>
+                      <Link
+                        href={`/admin/siparisler/${ord.id}`}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-amber-50 text-stone-600 hover:text-amber-800 border border-stone-200 hover:border-amber-300 text-[11px] font-bold transition"
+                      >
+                        <span>+ Takip No Gir</span>
+                      </Link>
                     )}
                   </td>
 

@@ -68,10 +68,27 @@ function CheckoutContent() {
 
   // Step & Modal state
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [paymentMethod, setPaymentMethod] = useState<'iyzico' | 'magaza_nakit' | 'admin_test'>('iyzico');
   const [isIyzicoModalOpen, setIsIyzicoModalOpen] = useState(false);
   const [iyzicoHtml, setIyzicoHtml] = useState('');
   const iyzicoContainerRef = useRef<HTMLDivElement>(null);
+
+  // Default to admin_test when online sales are pre-launch and an admin is logged in
+  useEffect(() => {
+    if (!isOnlineSalesActive && (isAdmin || user?.role === 'admin')) {
+      setPaymentMethod((prev) => (prev === 'iyzico' ? 'admin_test' : prev));
+    }
+  }, [isAdmin, user?.role]);
+
+  // Sync user profile fields when auth resolves
+  useEffect(() => {
+    if (user) {
+      setFullName((prev) => prev || user.full_name || '');
+      setEmail((prev) => prev || user.email || '');
+      setPhone((prev) => prev || user.phone || '');
+    }
+  }, [user]);
 
   // Address & Contact state
   const [fullName, setFullName] = useState(user?.full_name || '');
@@ -203,6 +220,10 @@ function CheckoutContent() {
   const handleCompleteOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isSubmittingRef.current || isSubmitting) {
+      return;
+    }
+
     if (items.length === 0) {
       toast.error('Sepetiniz boş.');
       router.push('/kategori/tum-urunler');
@@ -232,15 +253,16 @@ function CheckoutContent() {
     }
 
     if (deliveryType !== 'magaza_teslim') {
-      if (!province || !district || !neighborhood) {
+      const hasCompleteSavedAddress = Boolean(selectedAddressId && fullAddress.trim().length >= 8);
+      if (!province || !district || (!neighborhood && !hasCompleteSavedAddress)) {
         toast.error('Lütfen İl, İlçe ve Mahalle seçimlerinizi tamamlayınız.');
         return;
       }
-      if (!street || !street.trim()) {
+      if (!hasCompleteSavedAddress && (!street || !street.trim())) {
         toast.error('Lütfen Cadde veya Sokak bilginizi seçiniz / giriniz.');
         return;
       }
-      if (!buildingNo || !buildingNo.trim()) {
+      if (!hasCompleteSavedAddress && (!buildingNo || !buildingNo.trim())) {
         toast.error('Lütfen Bina / Kapı No bilginizi giriniz.');
         return;
       }
@@ -250,6 +272,7 @@ function CheckoutContent() {
       }
     }
 
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
 
     try {
@@ -420,6 +443,7 @@ function CheckoutContent() {
     } catch (err: any) {
       toast.error(err.message || 'Ödeme işlemi sırasında bir hata oluştu.');
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -775,6 +799,7 @@ function CheckoutContent() {
                           setPhone(addr.phone);
                           setProvince(addr.province);
                           setDistrict(addr.district);
+                          setNeighborhood(addr.neighborhood || '');
                           setFullAddress(addr.address_detail);
                           setPostalCode(addr.postal_code || '');
                         }}

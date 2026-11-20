@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { verifyAdminAuth } from '@/lib/supabase/auth-guard';
+import { verifyAdminAuth, getAuthenticatedSessionUser } from '@/lib/supabase/auth-guard';
 import { Question } from '@/lib/types/ecommerce';
 import { applyRateLimit } from '@/lib/security/rate-limit';
 import { sanitizeInput, isValidEmail } from '@/lib/security/sanitize';
@@ -118,11 +119,14 @@ export async function POST(request: Request) {
     }
 
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const sessionUser = await getAuthenticatedSessionUser();
+    const verifiedUserId = sessionUser?.id && UUID_REGEX.test(sessionUser.id) ? sessionUser.id : null;
+    const generatedId = crypto.randomUUID();
 
     const newQ: Question = {
-      id: `q-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: generatedId,
       product_id: sanitizeInput(product_id, 100),
-      user_id: user_id && UUID_REGEX.test(user_id) ? user_id : null,
+      user_id: verifiedUserId,
       user_name: cleanUserName,
       user_email: cleanEmail,
       question_text: cleanQuestionText,
@@ -145,19 +149,15 @@ export async function POST(request: Request) {
       }
 
       if (UUID_REGEX.test(prodDbId)) {
-        const { data: insData } = await supabase.from('questions').insert({
+        await supabase.from('questions').insert({
+          id: generatedId,
           product_id: prodDbId,
           user_id: newQ.user_id,
           user_name: cleanUserName,
           user_email: cleanEmail,
           question_text: cleanQuestionText,
           is_approved: false,
-        }).select('id').maybeSingle();
-
-        if (insData?.id) {
-          newQ.id = insData.id;
-          saveStoredQuestions(list);
-        }
+        });
       }
     } catch {
       // Fallback

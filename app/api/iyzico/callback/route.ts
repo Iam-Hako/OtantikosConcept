@@ -3,12 +3,15 @@ import { revalidatePath } from 'next/cache';
 import { DataService } from '@/lib/data/store-data';
 import { retrieveIyzicoPaymentResult } from '@/lib/services/iyzico-service';
 
+const ALLOWED_HOSTS = ['www.otantikosconcept.com', 'otantikosconcept.com', 'localhost:3000', '127.0.0.1:3000'];
+
 async function handleCallback(request: Request) {
   let baseUrl = 'https://www.otantikosconcept.com';
   try {
-    const host = request.headers.get('host') || 'www.otantikosconcept.com';
-    const proto = request.headers.get('x-forwarded-proto') || 'https';
-    baseUrl = `${proto}://${host}`;
+    const rawHost = (request.headers.get('host') || 'www.otantikosconcept.com').toLowerCase();
+    const safeHost = ALLOWED_HOSTS.includes(rawHost) ? rawHost : 'www.otantikosconcept.com';
+    const proto = safeHost.startsWith('localhost') || safeHost.startsWith('127.0.0.1') ? 'http' : 'https';
+    baseUrl = `${proto}://${safeHost}`;
 
     const url = new URL(request.url);
     let orderNumber = url.searchParams.get('order_number') || '';
@@ -45,6 +48,22 @@ async function handleCallback(request: Request) {
     if (paymentResult.success) {
       const resolvedOrderNo = paymentResult.orderNumber || orderNumber;
       if (resolvedOrderNo) {
+        const existingOrder = await DataService.getOrderById(resolvedOrderNo);
+        if (
+          existingOrder &&
+          typeof paymentResult.paidPrice === 'number' &&
+          paymentResult.paidPrice > 0 &&
+          paymentResult.paidPrice + 0.05 < Number(existingOrder.total_amount)
+        ) {
+          await DataService.markOrderFailed(
+            resolvedOrderNo,
+            `Ödeme tutarı uyuşmazlığı (Ödenen: ${paymentResult.paidPrice}, Beklenen: ${existingOrder.total_amount})`
+          );
+          return NextResponse.redirect(
+            `${baseUrl}/odeme?error=${encodeURIComponent('Ödeme tutarı sipariş tutarıyla eşleşmedi.')}`,
+            { status: 303 }
+          );
+        }
         await DataService.markOrderPaid(resolvedOrderNo, 'credit_card');
       }
 

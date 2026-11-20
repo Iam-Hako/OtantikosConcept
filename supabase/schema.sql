@@ -359,6 +359,10 @@ BEGIN
     RETURN TRUE;
   END IF;
 
+  IF lower(COALESCE(auth.jwt() ->> 'email', '')) IN ('chessvip11@gmail.com', 'admin@otantikosconcept.com') THEN
+    RETURN TRUE;
+  END IF;
+
   RETURN EXISTS (
     SELECT 1 FROM public.profiles
     WHERE id = auth.uid() AND role = 'admin'
@@ -718,19 +722,19 @@ ALTER TABLE public.user_addresses ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow read user addresses" ON public.user_addresses;
 CREATE POLICY "Allow read user addresses"
-ON public.user_addresses FOR SELECT USING (TRUE);
+ON public.user_addresses FOR SELECT USING (auth.uid()::text = user_id OR public.is_admin());
 
 DROP POLICY IF EXISTS "Allow insert user addresses" ON public.user_addresses;
 CREATE POLICY "Allow insert user addresses"
-ON public.user_addresses FOR INSERT WITH CHECK (TRUE);
+ON public.user_addresses FOR INSERT WITH CHECK (auth.uid()::text = user_id OR public.is_admin());
 
 DROP POLICY IF EXISTS "Allow update user addresses" ON public.user_addresses;
 CREATE POLICY "Allow update user addresses"
-ON public.user_addresses FOR UPDATE USING (TRUE) WITH CHECK (TRUE);
+ON public.user_addresses FOR UPDATE USING (auth.uid()::text = user_id OR public.is_admin()) WITH CHECK (auth.uid()::text = user_id OR public.is_admin());
 
 DROP POLICY IF EXISTS "Allow delete user addresses" ON public.user_addresses;
 CREATE POLICY "Allow delete user addresses"
-ON public.user_addresses FOR DELETE USING (TRUE);
+ON public.user_addresses FOR DELETE USING (auth.uid()::text = user_id OR public.is_admin());
 
 DO $$ BEGIN
   CREATE TRIGGER set_user_addresses_updated_at 
@@ -766,12 +770,12 @@ ALTER TABLE public.home_banners ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public Read Active Banners" ON public.home_banners;
 CREATE POLICY "Public Read Active Banners"
 ON public.home_banners
-    FOR SELECT USING (is_active = true OR auth.role() = 'authenticated');
+    FOR SELECT USING (is_active = true OR public.is_admin());
 
 DROP POLICY IF EXISTS "Admin Manage Banners" ON public.home_banners;
 CREATE POLICY "Admin Manage Banners"
 ON public.home_banners
-    FOR ALL TO authenticated USING (true) WITH CHECK (true);
+    FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 
 -- =====================================================================
@@ -804,10 +808,16 @@ CREATE INDEX IF NOT EXISTS idx_push_subs_created_at ON public.push_subscriptions
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow public subscription insert/update" ON public.push_subscriptions;
-CREATE POLICY "Allow public subscription insert/update"
-ON public.push_subscriptions FOR ALL
-USING (TRUE)
+DROP POLICY IF EXISTS "Allow public subscription insert" ON public.push_subscriptions;
+CREATE POLICY "Allow public subscription insert"
+ON public.push_subscriptions FOR INSERT
 WITH CHECK (TRUE);
+
+DROP POLICY IF EXISTS "Admins manage push subscriptions" ON public.push_subscriptions;
+CREATE POLICY "Admins manage push subscriptions"
+ON public.push_subscriptions FOR ALL
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
 
 -- 2. Bildirim Gönderim Geçmişi Tablosu
 CREATE TABLE IF NOT EXISTS public.notification_history (
@@ -826,5 +836,5 @@ ALTER TABLE public.notification_history ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow admin notification history" ON public.notification_history;
 CREATE POLICY "Allow admin notification history"
 ON public.notification_history FOR ALL
-USING (TRUE)
-WITH CHECK (TRUE);
+USING (public.is_admin())
+WITH CHECK (public.is_admin());

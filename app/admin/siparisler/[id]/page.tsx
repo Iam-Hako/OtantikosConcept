@@ -84,6 +84,16 @@ export default function OrderDetailPage() {
       setTrackingNumber(data.tracking_number);
       setTrackingCarrier('DHL Kargo');
       setStatus('kargoya_verildi');
+      setOrder((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: 'kargoya_verildi',
+              tracking_number: data.tracking_number,
+              tracking_carrier: 'DHL Kargo',
+            }
+          : null
+      );
       if (data.zpl) {
         setZplData(data.zpl);
       }
@@ -116,19 +126,40 @@ export default function OrderDetailPage() {
     e.preventDefault();
     if (!order) return;
 
+    const cleanTracking = trackingNumber.trim();
+    const effectiveStatus: Order['status'] =
+      cleanTracking && (status === 'siparis_alindi' || status === 'hazirlaniyor')
+        ? 'kargoya_verildi'
+        : status;
+
     setIsSaving(true);
     const res = await actionUpdateOrderStatus(
       order.id,
-      status,
-      trackingNumber,
+      effectiveStatus,
+      cleanTracking,
       trackingCarrier,
       adminNotes
     );
     setIsSaving(false);
 
     if (res.success) {
+      setStatus(effectiveStatus);
+      setTrackingNumber(cleanTracking);
+      setOrder((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: effectiveStatus,
+              tracking_number: cleanTracking || null,
+              tracking_carrier: trackingCarrier || null,
+              admin_notes: adminNotes || null,
+            }
+          : null
+      );
       toast.success('Sipariş ve kargo bilgileri güncellendi!', {
-        description: 'Müşteri canlı sipariş takip çizelgesinde anında görüntülenecektir.',
+        description: cleanTracking
+          ? `Kargo Takip No (${trackingCarrier}): ${cleanTracking}`
+          : 'Müşteri canlı sipariş takip çizelgesinde anında görüntülenecektir.',
       });
     } else {
       toast.error(res.error || 'Sipariş güncellenemedi.');
@@ -298,7 +329,8 @@ export default function OrderDetailPage() {
                 type="text"
                 value={trackingNumber}
                 onChange={(e) => setTrackingNumber(e.target.value)}
-                className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl font-mono font-bold text-stone-900"
+                placeholder="Takip / barkod numarası giriniz..."
+                className="w-full text-base sm:text-xs p-3 bg-stone-50 border border-stone-300 rounded-xl font-mono font-bold text-stone-900 focus:bg-white focus:border-amber-600 focus:outline-none"
               />
               <button
                 type="button"
@@ -400,6 +432,13 @@ export default function OrderDetailPage() {
           <div className="text-right">
             <div className="font-mono font-black text-lg text-stone-900">{order.order_number}</div>
             <div className="text-[11px] text-stone-500">{formatDate(order.created_at)}</div>
+            {(trackingNumber || order.tracking_number) && (
+              <div className="mt-1 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-300 text-amber-950 text-[11px]">
+                <Truck className="w-3.5 h-3.5 text-amber-700" />
+                <span className="font-semibold">{trackingCarrier || order.tracking_carrier || 'DHL Kargo'}:</span>
+                <strong className="font-mono font-black">{trackingNumber || order.tracking_number}</strong>
+              </div>
+            )}
           </div>
         </div>
 

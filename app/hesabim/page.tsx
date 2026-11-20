@@ -360,13 +360,48 @@ export default function AccountPage() {
                       </span>
 
                       <Link
-                        href={`/siparis-takip?order_number=${ord.order_number}`}
+                        href={`/siparis-takip?order_number=${encodeURIComponent(ord.order_number)}&email=${encodeURIComponent(ord.guest_email || user?.email || ord.shipping_address?.full_name || '')}`}
                         className="text-[#e60012] font-bold hover:underline flex items-center gap-1 min-h-[36px]"
                       >
                         <Truck className="w-3.5 h-3.5" />
                         <span>Kargo İzle</span>
                       </Link>
                     </div>
+                  </div>
+
+                  {/* Cargo Tracking Number Banner */}
+                  <div className="p-3 rounded-xl bg-stone-50 border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-[#e60012] shrink-0" />
+                      {ord.tracking_number ? (
+                        <div>
+                          <span className="text-stone-500">{ord.tracking_carrier || 'DHL Kargo'} Takip No: </span>
+                          <strong className="font-mono text-stone-900 select-all">{ord.tracking_number}</strong>
+                        </div>
+                      ) : (
+                        <span className="text-stone-500">
+                          {ord.delivery_type === 'magaza_teslim' || ord.delivery_type === 'pickup'
+                            ? '🏪 Tahtakale Mağazadan Teslim Siparişi'
+                            : 'Kargo Takip No: Paketiniz kargoya verildiğinde burada görünecektir.'}
+                        </span>
+                      )}
+                    </div>
+                    {ord.tracking_number && (
+                      <a
+                        href={
+                          (ord.tracking_carrier || '').toLowerCase().includes('dhl') ||
+                          (ord.tracking_carrier || '').toLowerCase().includes('mng') ||
+                          /^\d{10,14}$/.test(ord.tracking_number)
+                            ? `https://kargotakip.mngkargo.com.tr/?k=${encodeURIComponent(ord.tracking_number)}`
+                            : `https://www.google.com/search?q=${encodeURIComponent((ord.tracking_carrier || 'kargo') + ' ' + ord.tracking_number)}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] font-bold text-[#e60012] hover:underline"
+                      >
+                        Kargo Firmasında Sorgula ↗
+                      </a>
+                    )}
                   </div>
 
                   {/* Items */}

@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { Download, Share, PlusSquare, X, Smartphone, Check } from 'lucide-react';
 
 export default function PwaInstallPrompt() {
+  const pathname = usePathname();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isIos, setIsIos] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
@@ -77,14 +79,14 @@ export default function PwaInstallPrompt() {
     localStorage.setItem('otantikos_pwa_dismissed_at', String(Date.now()));
   };
 
-  if (!isVisible || isStandalone) {
+  if (!isVisible || isStandalone || pathname?.startsWith('/admin') || pathname === '/odeme') {
     return null;
   }
 
   return (
     <aside
       aria-label="Uygulamayı Yükle"
-      className="fixed bottom-4 left-4 right-4 sm:left-6 sm:right-auto sm:max-w-sm z-40 animate-in fade-in slide-in-from-bottom-5 duration-300 pointer-events-auto"
+      className="fixed bottom-20 lg:bottom-6 left-4 right-4 sm:left-6 sm:right-auto sm:max-w-sm z-40 animate-in fade-in slide-in-from-bottom-5 duration-300 pointer-events-auto"
     >
       <div className="bg-stone-900 text-white rounded-3xl p-4 sm:p-5 shadow-2xl border border-stone-700/80 relative overflow-hidden backdrop-blur-md">
         {/* Close Button */}

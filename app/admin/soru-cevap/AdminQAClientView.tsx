@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HelpCircle } from 'lucide-react';
 import { Question, Product } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
@@ -26,6 +26,10 @@ export default function AdminQAClientView({ initialQuestions, initialProducts }:
     setQuestions(qList);
     setProducts(pList);
   };
+
+  useEffect(() => {
+    loadQuestions();
+  }, []);
 
   const handleAnswerSubmit = async (questionId: string) => {
     if (!answerText.trim()) return;

@@ -71,7 +71,7 @@ export default async function RootLayout({
   const initialCategories = await DataService.getCategories();
 
   return (
-    <html lang={initialLang} dir={isRTL ? 'rtl' : 'ltr'} className={`scroll-smooth bg-white ${isRTL ? 'rtl' : ''}`}>
+    <html lang={initialLang} dir={isRTL ? 'rtl' : 'ltr'} className={`bg-white ${isRTL ? 'rtl' : ''}`}>
       <head>
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -89,7 +89,7 @@ export default async function RootLayout({
                 <Suspense fallback={null}>
                   <Navbar initialCategories={initialCategories} />
                 </Suspense>
-                <main className="flex-1 pb-16 lg:pb-0 transform-gpu bg-white">{children}</main>
+                <main className="flex-1 min-h-[calc(100dvh-4.5rem)] pb-16 lg:pb-0 bg-white">{children}</main>
                 <Footer initialCategories={initialCategories} />
                 <Suspense fallback={null}>
                   <MobileBottomNav />

@@ -13,8 +13,8 @@
 const dhlEnv = process.env.DHL_ECOM_ENV || 'sandbox'; // 'sandbox' | 'production'
 const dhlClientId = process.env.DHL_ECOM_CLIENT_ID || process.env.DHL_API_KEY || '';
 const dhlClientSecret = process.env.DHL_ECOM_CLIENT_SECRET || process.env.DHL_API_SECRET || '';
-const dhlCustomerNumber = process.env.DHL_ECOM_CUSTOMER_NUMBER || process.env.DHL_ACCOUNT_NUMBER || '2316313519';
-const dhlPassword = process.env.DHL_ECOM_PASSWORD || '2316313519..!!';
+const dhlCustomerNumber = process.env.DHL_ECOM_CUSTOMER_NUMBER || process.env.DHL_ACCOUNT_NUMBER || '';
+const dhlPassword = process.env.DHL_ECOM_PASSWORD || '';
 const dhlIdentityType = Number(process.env.DHL_ECOM_IDENTITY_TYPE || 1);
 
 export const DHL_ECOM_BASE_URL = dhlEnv === 'production'

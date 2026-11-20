@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { DataService } from '@/lib/data/store-data';
 import { generateOrderNumber } from '@/lib/utils/format';
-import { initializeIyzicoCheckoutForm } from '@/lib/services/iyzico-service';
+import { initializeIyzicoCheckoutForm, isIyzicoConfigured } from '@/lib/services/iyzico-service';
 import { calculateDynamicShippingFee } from '@/lib/services/dhl-service';
 import { CouponService } from '@/lib/services/coupon-service';
 import { applyRateLimit } from '@/lib/security/rate-limit';
+import { getAuthenticatedSessionUser } from '@/lib/supabase/auth-guard';
+
+const ALLOWED_HOSTS = ['www.otantikosconcept.com', 'otantikosconcept.com', 'localhost:3000', '127.0.0.1:3000'];
 
 export async function POST(request: Request) {
   try {
@@ -25,7 +28,6 @@ export async function POST(request: Request) {
       delivery_type,
       has_gift_wrap,
       gift_note,
-      user_id,
       guest_email,
       guest_name,
       guest_phone,
@@ -34,7 +36,7 @@ export async function POST(request: Request) {
     } = body;
 
     const isOnlineSalesActive = process.env.NEXT_PUBLIC_ONLINE_SALES_ACTIVE === 'true';
-    if (!isOnlineSalesActive) {
+    if (!isOnlineSalesActive || !isIyzicoConfigured) {
       return NextResponse.json({
         success: true,
         isPreLaunch: true,
@@ -150,12 +152,13 @@ export async function POST(request: Request) {
     const verifiedTotalAmount = Math.max(0, calculatedSubtotal - verifiedDiscountAmount) + verifiedShippingFee + verifiedGiftWrapFee;
 
     const orderNumber = generateOrderNumber();
+    const sessionUser = await getAuthenticatedSessionUser();
 
     // Create order with pending payment status first
     const order = await DataService.createOrder({
       order_number: orderNumber,
-      user_id: user_id || null,
-      guest_email: guest_email || null,
+      user_id: sessionUser?.id || null,
+      guest_email: guest_email || sessionUser?.email || null,
       guest_name: guest_name || shipping_address.full_name,
       guest_phone: guest_phone || shipping_address.phone,
       total_amount: verifiedTotalAmount,
@@ -173,11 +176,12 @@ export async function POST(request: Request) {
       payment_status: 'pending',
     });
 
-    // Determine callback URL
-    const host = request.headers.get('host') || 'www.otantikosconcept.com';
-    const proto = request.headers.get('x-forwarded-proto') || 'https';
-    const appUrl = `${proto}://${host}`;
-    const callbackUrl = `${appUrl}/api/iyzico/callback?order_number=${encodeURIComponent(orderNumber)}`;
+    // Determine callback URL securely against allowlisted hosts
+    const rawHost = (request.headers.get('host') || 'www.otantikosconcept.com').toLowerCase();
+    const safeHost = ALLOWED_HOSTS.includes(rawHost) ? rawHost : 'www.otantikosconcept.com';
+    const proto = safeHost.startsWith('localhost') || safeHost.startsWith('127.0.0.1') ? 'http' : 'https';
+    const appUrl = `${proto}://${safeHost}`;
+    const callbackUrl = `${appUrl}/api/iyzico/callback?order_number=${encodeURIComponent(order.order_number)}`;
 
     // Client IP
     const forwarded = request.headers.get('x-forwarded-for');
@@ -263,12 +267,14 @@ export async function POST(request: Request) {
     });
 
     if (!iyzicoRes.success) {
+      await DataService.deleteOrder(order.id).catch(() => {});
       return NextResponse.json({
         error: iyzicoRes.error || 'iyzico ödeme formu başlatılamadı.',
       }, { status: 400 });
     }
 
     if (iyzicoRes.isPreLaunch) {
+      await DataService.deleteOrder(order.id).catch(() => {});
       return NextResponse.json({
         success: true,
         isPreLaunch: true,

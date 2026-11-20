@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Order } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
+import { useAuth } from '@/lib/store/auth-context';
 import { useTranslation } from '@/lib/i18n/language-context';
 import { formatPrice, formatDate } from '@/lib/utils/format';
 
@@ -26,12 +27,20 @@ interface OrderTrackingClientViewProps {
   initialEmail?: string;
 }
 
+interface LiveDhlTrackingInfo {
+  status: string;
+  statusDescription: string;
+  estimatedDelivery?: string;
+  events?: Array<{ date: string; location: string; description: string }>;
+}
+
 export default function OrderTrackingClientView({
   initialOrder = null,
   initialOrderNumber = '',
   initialEmail = '',
 }: OrderTrackingClientViewProps) {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const queryOrderNumber = searchParams?.get('order_number') || searchParams?.get('siparis') || initialOrderNumber || '';
   const queryEmail = searchParams?.get('email') || initialEmail || '';
@@ -41,6 +50,32 @@ export default function OrderTrackingClientView({
   const [order, setOrder] = useState<Order | null>(initialOrder);
   const [hasSearched, setHasSearched] = useState(Boolean(initialOrder));
   const [isLoading, setIsLoading] = useState(false);
+  const [dhlLiveInfo, setDhlLiveInfo] = useState<LiveDhlTrackingInfo | null>(null);
+
+  useEffect(() => {
+    if (user?.email && !email) {
+      setEmail(user.email);
+    }
+  }, [user?.email, email]);
+
+  useEffect(() => {
+    if (!order?.tracking_number) {
+      setDhlLiveInfo(null);
+      return;
+    }
+    let active = true;
+    fetch(`/api/dhl/track?tracking_number=${encodeURIComponent(order.tracking_number)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (active && data && data.statusDescription) {
+          setDhlLiveInfo(data);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [order?.tracking_number]);
 
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -123,11 +158,11 @@ export default function OrderTrackingClientView({
 
             <div>
               <label className="block text-[11px] font-bold text-stone-700 mb-1">
-                {t('tracking.verification', 'E-Posta Adresi veya Alıcı Adı (Güvenlik Doğrulaması)')} *
+                {t('tracking.verification', 'E-Posta Adresi veya Alıcı Adı (Güvenlik Doğrulaması)')} {!user ? '*' : ''}
               </label>
               <input
                 type="text"
-                required
+                required={!user}
                 placeholder="Siparişteki e-posta adresi veya isim"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -233,30 +268,51 @@ export default function OrderTrackingClientView({
                 </div>
 
                 {order.tracking_number && (
-                  <div className="p-4 bg-red-50/40 border border-red-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <Truck className="w-6 h-6 text-[#e60012] shrink-0" />
-                      <div>
-                        <h4 className="text-xs font-bold text-stone-900">
-                          {order.tracking_carrier || 'DHL Kargo'} ile Sevk Edildi
-                        </h4>
-                        <p className="text-[11px] text-stone-600">
-                          Kargo Takip No: <strong className="font-mono">{order.tracking_number}</strong>
-                        </p>
+                  <div className="p-4 bg-red-50/40 border border-red-200 rounded-2xl space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <Truck className="w-6 h-6 text-[#e60012] shrink-0" />
+                        <div>
+                          <h4 className="text-xs font-bold text-stone-900">
+                            {order.tracking_carrier || 'DHL Kargo'} ile Sevk Edildi
+                          </h4>
+                          <p className="text-[11px] text-stone-600">
+                            Kargo Takip No: <strong className="font-mono text-stone-900">{order.tracking_number}</strong>
+                          </p>
+                          {dhlLiveInfo && (
+                            <p className="text-[11px] text-emerald-700 font-semibold mt-0.5">
+                              Canlı Kargo Durumu: {dhlLiveInfo.statusDescription}
+                            </p>
+                          )}
+                        </div>
                       </div>
+                      <a
+                        href={
+                          order.tracking_carrier?.toLowerCase().includes('dhl') || order.tracking_carrier?.toLowerCase().includes('mng') || /^\d{10,14}$/.test(order.tracking_number)
+                            ? `https://kargotakip.mngkargo.com.tr/?k=${encodeURIComponent(order.tracking_number)}`
+                            : `https://www.google.com/search?q=${encodeURIComponent((order.tracking_carrier || 'kargo') + ' ' + order.tracking_number)}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#e60012] hover:bg-[#c90010] text-white font-bold text-xs rounded-xl shadow-xs transition"
+                      >
+                        <span>Kargoyu Canlı Takip Et ↗</span>
+                      </a>
                     </div>
-                    <a
-                      href={
-                        order.tracking_carrier?.toLowerCase().includes('dhl') || order.tracking_carrier?.toLowerCase().includes('mng') || /^\d{10,14}$/.test(order.tracking_number)
-                          ? `https://kargotakip.mngkargo.com.tr/?k=${encodeURIComponent(order.tracking_number)}`
-                          : `https://www.google.com/search?q=${encodeURIComponent((order.tracking_carrier || 'kargo') + ' ' + order.tracking_number)}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#e60012] hover:bg-[#c90010] text-white font-bold text-xs rounded-xl shadow-xs transition"
-                    >
-                      <span>Kargoyu Canlı Takip Et ↗</span>
-                    </a>
+
+                    {dhlLiveInfo?.events && dhlLiveInfo.events.length > 0 && (
+                      <div className="pt-2 border-t border-red-200/60 space-y-1.5">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                          Kargo Hareket Geçmişi
+                        </div>
+                        {dhlLiveInfo.events.map((ev, i) => (
+                          <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] bg-white/80 px-3 py-1.5 rounded-lg border border-red-100">
+                            <span className="font-semibold text-stone-800">{ev.description}</span>
+                            <span className="text-stone-500 font-mono text-[10px]">{ev.location} • {formatDate(ev.date)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 

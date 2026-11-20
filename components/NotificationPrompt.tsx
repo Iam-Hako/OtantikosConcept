@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { Bell, BellRing, X, CheckCircle2, Sparkles, Share, PlusSquare, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -16,6 +17,7 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export default function NotificationPrompt() {
+  const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
   const [showIosGuide, setShowIosGuide] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -259,6 +261,10 @@ export default function NotificationPrompt() {
     // Otherwise, directly trigger enable flow
     handleEnableNotifications();
   };
+
+  if (pathname?.startsWith('/admin') || pathname === '/odeme') {
+    return null;
+  }
 
   return (
     <>

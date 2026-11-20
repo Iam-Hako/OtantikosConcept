@@ -13,6 +13,7 @@ export default function NavigationLoader() {
   const [progress, setProgress] = useState(0);
 
   const prevPathRef = useRef(pathname + (searchParams?.toString() || ''));
+  const prevPathnameOnlyRef = useRef(pathname);
   const finishTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -20,7 +21,13 @@ export default function NavigationLoader() {
   useEffect(() => {
     const currentPath = pathname + (searchParams?.toString() || '');
     if (prevPathRef.current !== currentPath) {
+      const pathnameChanged = prevPathnameOnlyRef.current !== pathname;
       prevPathRef.current = currentPath;
+      prevPathnameOnlyRef.current = pathname;
+
+      if (pathnameChanged && typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+      }
 
       // Complete progress smoothly
       setProgress(100);

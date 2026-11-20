@@ -1,11 +1,47 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { createAdminClient } from '@/lib/supabase/admin';
+
+export async function getAuthenticatedSessionUser(): Promise<any | null> {
+  try {
+    const cookieStore = cookies();
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://tuphsfeowfcyzzciyvav.supabase.co';
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummy';
+
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Read-only in Server Components / Route Handlers
+          }
+        },
+      },
+    });
+
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !user) return null;
+    return user;
+  } catch {
+    return null;
+  }
+}
 
 export async function verifyAdminAuth(): Promise<{ isAuthorized: boolean; user?: any; error?: string }> {
   try {
     const cookieStore = cookies();
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://tuphsfeowfcyzzciyvav.supabase.co';
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummy';
 
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
@@ -38,7 +74,7 @@ export async function verifyAdminAuth(): Promise<{ isAuthorized: boolean; user?:
       return { isAuthorized: true, user };
     }
 
-    // 2. Check verified database profile role
+    // 2. Check verified database profile role (via session client and admin client fallback)
     try {
       const { data: profile } = await supabase
         .from('profiles')
@@ -48,6 +84,18 @@ export async function verifyAdminAuth(): Promise<{ isAuthorized: boolean; user?:
 
       if (profile && profile.role === 'admin') {
         return { isAuthorized: true, user };
+      }
+
+      if (!profile) {
+        const adminClient = createAdminClient();
+        const { data: adminProfile } = await adminClient
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (adminProfile && adminProfile.role === 'admin') {
+          return { isAuthorized: true, user };
+        }
       }
     } catch {
       // Profile table fallback
@@ -63,7 +111,8 @@ export async function verifyAdminAuth(): Promise<{ isAuthorized: boolean; user?:
       return { isAuthorized: true, user };
     }
 
-    return { isAuthorized: false, error: 'Bu işlem için yönetici yetkisi gereklidir.' };
+    // Always attach `user` even when not admin so customer endpoints (like /api/returns) can verify `auth.user.id === userId`
+    return { isAuthorized: false, user, error: 'Bu işlem için yönetici yetkisi gereklidir.' };
   } catch (err: any) {
     return { isAuthorized: false, error: err.message || 'Yetki doğrulama hatası' };
   }

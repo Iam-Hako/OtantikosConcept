@@ -1,16 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useParams, useSearchParams } from 'next/navigation';
 import { 
-  Filter, 
   SlidersHorizontal, 
-  Heart, 
-  ShoppingBag, 
-  Star, 
-  Check, 
   Sparkles, 
   Search,
   X
@@ -18,8 +12,6 @@ import {
 import { Product, Category } from '@/lib/types/ecommerce';
 import { DataService, normalizeTurkish } from '@/lib/data/store-data';
 import ProductCard from '@/components/ProductCard';
-import { useCart } from '@/lib/store/cart-store';
-import { useWishlist } from '@/lib/store/wishlist-store';
 import { formatPrice, safeDecodeURIComponent } from '@/lib/utils/format';
 
 interface CategoryClientViewProps {
@@ -34,65 +26,89 @@ export default function CategoryClientView({ initialProducts, initialCategories,
   const rawSlug = (params?.slug as string) || initialSlug || '';
   const slug = safeDecodeURIComponent(rawSlug);
   const urlSearch = searchParams?.get('ara') || '';
-
-  const { addItem } = useCart();
-  const { toggleFavorite, isFavorite } = useWishlist();
+  const urlSort = searchParams?.get('siralama') || '';
 
   const [allProducts, setAllProducts] = useState<Product[]>(initialProducts);
   const [categories, setCategories] = useState<Category[]>(initialCategories);
-  const initialFoundCategory = initialSlug && initialSlug !== 'tum-urunler'
-    ? initialCategories.find((c) => c.slug === initialSlug || normalizeTurkish(c.name) === normalizeTurkish(initialSlug)) || null
+  const initialFoundCategory = slug && slug !== 'tum-urunler'
+    ? initialCategories.find((c) => c.slug === slug || normalizeTurkish(c.name) === normalizeTurkish(slug)) || null
     : null;
   const [currentCategory, setCurrentCategory] = useState<Category | null>(initialFoundCategory);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Filters & Sorting state
-  const [searchQuery, setSearchQuery] = useState(urlSearch);
-  const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'rating' | 'newest'>('featured');
-  const [onlyInStock, setOnlyInStock] = useState(false);
-  const [maxPrice, setMaxPrice] = useState<number>(50000);
-  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   const maxAvailablePrice = useMemo(() => {
     if (allProducts.length === 0) return 5000;
     return Math.max(...allProducts.map((p) => Number(p.price) || 0), 1000);
   }, [allProducts]);
 
+  // Filters & Sorting state
+  const [searchQuery, setSearchQuery] = useState(urlSearch);
+  const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'rating' | 'newest'>('featured');
+  const [onlyInStock, setOnlyInStock] = useState(false);
+  const [maxPrice, setMaxPrice] = useState<number>(() => {
+    if (initialProducts.length === 0) return 50000;
+    return Math.max(...initialProducts.map((p) => Number(p.price) || 0), 1000);
+  });
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Sync when SSR props update
   useEffect(() => {
-    if (urlSearch) {
-      setSearchQuery(urlSearch);
+    if (initialProducts.length > 0) {
+      setAllProducts(initialProducts);
     }
+  }, [initialProducts]);
+
+  useEffect(() => {
+    if (initialCategories.length > 0) {
+      setCategories(initialCategories);
+    }
+  }, [initialCategories]);
+
+  // Sync URL search query (?ara=...)
+  useEffect(() => {
+    setSearchQuery(urlSearch);
   }, [urlSearch]);
+
+  // Sync URL sort option (?siralama=...)
+  useEffect(() => {
+    if (urlSort && ['featured', 'price-asc', 'price-desc', 'rating', 'newest'].includes(urlSort)) {
+      setSortBy(urlSort as any);
+    }
+  }, [urlSort]);
+
+  // Keep maxPrice ceiling in sync with available catalog prices
+  useEffect(() => {
+    setMaxPrice(maxAvailablePrice);
+  }, [maxAvailablePrice]);
+
+  // Update active category whenever route slug or categories list changes
+  useEffect(() => {
+    if (slug && slug !== 'tum-urunler') {
+      const found = categories.find((c) => c.slug === slug || normalizeTurkish(c.name) === normalizeTurkish(slug));
+      setCurrentCategory(found || null);
+    } else {
+      setCurrentCategory(null);
+    }
+    setIsMobileFilterOpen(false);
+  }, [slug, categories]);
 
   useEffect(() => {
     async function loadData() {
-      try {
-        const [prodList, catList] = await Promise.all([
-          DataService.getPublicProducts(),
-          DataService.getCategories(),
-        ]);
-        setAllProducts(prodList);
-        setCategories(catList);
+      const [prodList, catList] = await Promise.all([
+        DataService.getPublicProducts(),
+        DataService.getCategories(),
+      ]);
+      setAllProducts(prodList);
+      setCategories(catList);
 
-        if (prodList.length > 0) {
-          const highestPrice = Math.max(...prodList.map((p) => Number(p.price) || 0), 1000);
-          setMaxPrice(highestPrice);
-        }
-
-        if (slug && slug !== 'tum-urunler') {
-          const found = catList.find((c) => c.slug === slug || normalizeTurkish(c.name) === normalizeTurkish(slug));
-          setCurrentCategory(found || null);
-        } else {
-          setCurrentCategory(null);
-        }
-      } finally {
-        setIsLoading(false);
+      if (prodList.length > 0) {
+        const highestPrice = Math.max(...prodList.map((p) => Number(p.price) || 0), 1000);
+        setMaxPrice(highestPrice);
       }
     }
     if (initialProducts.length === 0 || initialCategories.length === 0) {
       loadData();
     }
-  }, [slug, initialProducts.length, initialCategories.length]);
+  }, [initialProducts.length, initialCategories.length]);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -102,7 +118,7 @@ export default function CategoryClientView({ initialProducts, initialCategories,
     if (slug && slug !== 'tum-urunler') {
       list = list.filter((p) => 
         p.category?.slug === slug || 
-        p.category_id === currentCategory?.id ||
+        (currentCategory?.id && p.category_id === currentCategory.id) ||
         (p.category?.name && currentCategory?.name && normalizeTurkish(p.category.name) === normalizeTurkish(currentCategory.name))
       );
     }
@@ -342,7 +358,7 @@ export default function CategoryClientView({ initialProducts, initialCategories,
                   onClick={() => {
                     setSearchQuery('');
                     setOnlyInStock(false);
-                    setMaxPrice(1500);
+                    setMaxPrice(maxAvailablePrice);
                   }}
                   className="mt-4 px-4 py-2 bg-[#e60012] hover:bg-[#c90010] text-white text-xs font-bold rounded-lg transition"
                 >
@@ -364,4 +380,3 @@ export default function CategoryClientView({ initialProducts, initialCategories,
     </div>
   );
 }
-

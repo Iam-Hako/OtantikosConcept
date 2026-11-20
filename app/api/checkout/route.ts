@@ -6,6 +6,7 @@ import { calculateDynamicShippingFee } from '@/lib/services/dhl-service';
 import { CouponService } from '@/lib/services/coupon-service';
 import { verifyAdmin } from '@/app/actions/ecommerce-actions';
 import { applyRateLimit } from '@/lib/security/rate-limit';
+import { getAuthenticatedSessionUser } from '@/lib/supabase/auth-guard';
 
 export async function POST(request: Request) {
   try {
@@ -177,7 +178,7 @@ export async function POST(request: Request) {
 
     const order = await DataService.createOrder({
       order_number: orderNumber,
-      user_id: user_id || null,
+      user_id: (await getAuthenticatedSessionUser())?.id || null,
       guest_email: guest_email || null,
       guest_name: guest_name || shipping_address.full_name,
       guest_phone: guest_phone || shipping_address.phone,
