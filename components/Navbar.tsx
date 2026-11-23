@@ -386,7 +386,7 @@ export default function Navbar({ initialCategories = [] }: NavbarProps) {
             {/* Canlı Destek */}
             <li className="shrink-0">
               <a 
-                href="https://wa.me/905077737777" 
+                href="https://wa.me/905374676590" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 hover:text-[#e60012] transition-colors py-1 whitespace-nowrap group text-emerald-600 font-bold"
@@ -559,7 +559,7 @@ export default function Navbar({ initialCategories = [] }: NavbarProps) {
                 </Link>
 
                 <a
-                  href="https://wa.me/905077737777"
+                  href="https://wa.me/905374676590"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-between p-3 bg-emerald-50 text-emerald-800 rounded-xl text-xs font-bold hover:bg-emerald-100 transition"

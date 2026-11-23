@@ -174,3 +174,118 @@ export function convertGoogleDriveVideoUrl(url: string): string {
 
   return trimmed;
 }
+
+export function formatOrderPaymentSummary(
+  paymentMethod?: string | null,
+  paymentStatus?: string | null
+): { label: string; shortLabel: string; badgeClass: string; isPaid: boolean } {
+  const method = (paymentMethod || 'credit_card').toLowerCase().trim();
+  const status = (paymentStatus || 'pending').toLowerCase().trim();
+
+  if (status === 'refunded') {
+    return {
+      label: 'Ücret İade Edildi',
+      shortLabel: 'İade Edildi',
+      badgeClass: 'bg-stone-100 text-stone-700 border-stone-200',
+      isPaid: false,
+    };
+  }
+
+  if (status === 'failed') {
+    return {
+      label: 'Ödeme Başarısız / İptal',
+      shortLabel: 'Ödeme Başarısız',
+      badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
+      isPaid: false,
+    };
+  }
+
+  if (method === 'admin_test') {
+    return {
+      label: status === 'paid' ? 'Yönetici Test Siparişi (Ödendi)' : 'Yönetici Test Siparişi',
+      shortLabel: 'Yönetici Test',
+      badgeClass: 'bg-purple-50 text-purple-800 border-purple-200',
+      isPaid: status === 'paid',
+    };
+  }
+
+  if (method === 'magaza_nakit' || method === 'pickup' || method === 'cash') {
+    return {
+      label: status === 'paid' ? 'Mağazada Nakit / POS ile Ödendi' : 'Mağazada Ödenecek (Nakit / POS)',
+      shortLabel: status === 'paid' ? 'Nakit / POS Ödendi' : 'Mağazada Ödeme',
+      badgeClass: status === 'paid'
+        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+        : 'bg-amber-50 text-amber-800 border-amber-200',
+      isPaid: status === 'paid',
+    };
+  }
+
+  if (method === 'bank_transfer' || method === 'havale' || method === 'eft') {
+    return {
+      label: status === 'paid' ? 'Havale / EFT ile Ödendi' : 'Havale / EFT (Onay Bekliyor)',
+      shortLabel: status === 'paid' ? 'Havale Ödendi' : 'Havale Bekliyor',
+      badgeClass: status === 'paid'
+        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+        : 'bg-amber-50 text-amber-800 border-amber-200',
+      isPaid: status === 'paid',
+    };
+  }
+
+  if (status === 'paid') {
+    return {
+      label: 'Kredi Kartı ile Ödendi (iyzico)',
+      shortLabel: 'Kredi Kartı ile Ödendi',
+      badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      isPaid: true,
+    };
+  }
+
+  return {
+    label: 'Kredi Kartı (Ödeme Bekleniyor)',
+    shortLabel: 'Ödeme Bekleniyor',
+    badgeClass: 'bg-amber-50 text-amber-800 border-amber-200',
+    isPaid: false,
+  };
+}
+
+export function formatOrderStatusLabel(status?: string | null): string {
+  switch (status) {
+    case 'siparis_alindi':
+      return 'Sipariş Alındı';
+    case 'hazirlaniyor':
+      return 'Hazırlanıyor';
+    case 'kargoya_verildi':
+      return 'Kargoya Verildi';
+    case 'teslim_edildi':
+      return 'Teslim Edildi';
+    case 'iptal_edildi':
+      return 'İptal Edildi';
+    default:
+      return String(status || '').replace('_', ' ');
+  }
+}
+
+export function buildCargoTrackingExternalUrl(
+  trackingNumber?: string | null,
+  trackingCarrier?: string | null
+): string {
+  const code = (trackingNumber || '').trim();
+  const carrier = (trackingCarrier || '').toLowerCase();
+  if (!code) return '#';
+  if (carrier.includes('mng') || (carrier.includes('dhl') && /^\d{8,14}$/.test(code))) {
+    return `https://kargotakip.mngkargo.com.tr/?k=${encodeURIComponent(code)}`;
+  }
+  if (carrier.includes('dhl')) {
+    return `https://www.dhl.com/tr-tr/home/tracking.html?tracking-id=${encodeURIComponent(code)}`;
+  }
+  if (carrier.includes('yurti')) {
+    return `https://www.yurticikargo.com/tr/online-servisler/gonderi-sorgula?code=${encodeURIComponent(code)}`;
+  }
+  if (carrier.includes('aras')) {
+    return `https://www.araskargo.com.tr/tr/kargo-takip?kargoTakipNo=${encodeURIComponent(code)}`;
+  }
+  if (carrier.includes('ptt')) {
+    return `https://gonderitakip.ptt.gov.tr/Track/Verify?q=${encodeURIComponent(code)}`;
+  }
+  return `https://www.google.com/search?q=${encodeURIComponent((trackingCarrier || 'kargo') + ' ' + code)}`;
+}

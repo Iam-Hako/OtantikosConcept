@@ -10,24 +10,36 @@
  */
 
 // Yapılandırma ve Ortam Değişkenleri
-const dhlEnv = process.env.DHL_ECOM_ENV || 'sandbox'; // 'sandbox' | 'production'
-const dhlClientId = process.env.DHL_ECOM_CLIENT_ID || process.env.DHL_API_KEY || '';
-const dhlClientSecret = process.env.DHL_ECOM_CLIENT_SECRET || process.env.DHL_API_SECRET || '';
-const dhlCustomerNumber = process.env.DHL_ECOM_CUSTOMER_NUMBER || process.env.DHL_ACCOUNT_NUMBER || '';
-const dhlPassword = process.env.DHL_ECOM_PASSWORD || '';
+const explicitDhlEnv = (process.env.DHL_ECOM_ENV || '').trim().toLowerCase();
+const dhlEnv = explicitDhlEnv || 'production'; // Varsayılan olarak canlı API; sandbox için DHL_ECOM_ENV=sandbox ayarlanabilir
+const dhlClientId = (process.env.DHL_ECOM_CLIENT_ID || process.env.DHL_API_KEY || process.env.DHL_CLIENT_ID || '').trim();
+const dhlClientSecret = (process.env.DHL_ECOM_CLIENT_SECRET || process.env.DHL_API_SECRET || process.env.DHL_CLIENT_SECRET || '').trim();
+const dhlCustomerNumber = (process.env.DHL_ECOM_CUSTOMER_NUMBER || process.env.DHL_ACCOUNT_NUMBER || process.env.DHL_CUSTOMER_NUMBER || '').trim();
+const dhlPassword = (process.env.DHL_ECOM_PASSWORD || process.env.DHL_API_PASSWORD || '').trim();
 const dhlIdentityType = Number(process.env.DHL_ECOM_IDENTITY_TYPE || 1);
 
-export const DHL_ECOM_BASE_URL = dhlEnv === 'production'
-  ? 'https://api.mngkargo.com.tr/mngapi/api'
-  : 'https://testapi.mngkargo.com.tr/mngapi/api';
+const DHL_PROD_URL = 'https://api.mngkargo.com.tr/mngapi/api';
+const DHL_SANDBOX_URL = 'https://testapi.mngkargo.com.tr/mngapi/api';
 
-export const isDhlEcomConfigured = Boolean(dhlClientId && dhlClientSecret);
+export const DHL_ECOM_BASE_URL = dhlEnv === 'sandbox' ? DHL_SANDBOX_URL : DHL_PROD_URL;
+
+export const isDhlEcomConfigured = Boolean(dhlClientId && dhlClientSecret && dhlCustomerNumber && dhlPassword);
+export const isDhlUnifiedTrackingConfigured = Boolean(dhlClientId);
+
+export function getDhlMissingConfigFields(): string[] {
+  const missing: string[] = [];
+  if (!dhlClientId) missing.push('DHL_ECOM_CLIENT_ID / DHL_API_KEY');
+  if (!dhlClientSecret) missing.push('DHL_ECOM_CLIENT_SECRET / DHL_API_SECRET');
+  if (!dhlCustomerNumber) missing.push('DHL_ECOM_CUSTOMER_NUMBER');
+  if (!dhlPassword) missing.push('DHL_ECOM_PASSWORD');
+  return missing;
+}
 
 // Gönderici Firma Bilgisi (Otantikos Concept - Eminönü Tahtakale)
 export const OTANTIKOS_SHIPPER_INFO = {
   companyName: 'OTANTİKOS HEDİYELİK EŞYA OYUNCAK TİCARET LİMİTED ŞİRKETİ',
   contactName: 'Ahmet Bartuğ Tokmak',
-  phone: '05077737777',
+  phone: '05374676590',
   email: 'info@otantikosconcept.com',
   addressLine1: 'Süleymaniye Mah. Uzunçarşı Cad. Tamburacı ve Görenli Han No: 187 / 2G',
   cityName: 'İSTANBUL',
@@ -140,52 +152,64 @@ export function calculateDynamicShippingFee(
 // -------------------------------------------------------------
 interface DhlTokenCache {
   jwt: string;
+  baseUrl: string;
   expiresAt: number;
 }
 let tokenCache: DhlTokenCache | null = null;
 
-export async function getDhlEcomToken(): Promise<string | null> {
+async function requestDhlTokenFromBase(baseUrl: string): Promise<string | null> {
+  const res = await fetch(`${baseUrl}/token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-ibm-client-id': dhlClientId,
+      'x-ibm-client-secret': dhlClientSecret,
+    },
+    body: JSON.stringify({
+      customerNumber: dhlCustomerNumber,
+      password: dhlPassword,
+      identityType: dhlIdentityType,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error(`[DHL eCom Token Hatası - ${baseUrl}]`, res.status, errText);
+    return null;
+  }
+
+  const data = await res.json();
+  return data?.jwt || null;
+}
+
+export async function getDhlEcomToken(): Promise<{ jwt: string; baseUrl: string } | null> {
   // Eğer geçerli önbellek varsa onu kullan (1 dakika pay bırak)
   if (tokenCache && Date.now() < tokenCache.expiresAt - 60000) {
-    return tokenCache.jwt;
+    return { jwt: tokenCache.jwt, baseUrl: tokenCache.baseUrl };
   }
 
   if (!isDhlEcomConfigured) {
     return null;
   }
 
-  try {
-    const res = await fetch(`${DHL_ECOM_BASE_URL}/token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-ibm-client-id': dhlClientId,
-        'x-ibm-client-secret': dhlClientSecret,
-      },
-      body: JSON.stringify({
-        customerNumber: dhlCustomerNumber,
-        password: dhlPassword,
-        identityType: dhlIdentityType,
-      }),
-    });
+  const candidateBases = explicitDhlEnv
+    ? [DHL_ECOM_BASE_URL]
+    : [DHL_PROD_URL, DHL_SANDBOX_URL];
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error('[DHL eCom Token Hatası]', res.status, errText);
-      return null;
+  for (const base of candidateBases) {
+    try {
+      const jwt = await requestDhlTokenFromBase(base);
+      if (jwt) {
+        tokenCache = {
+          jwt,
+          baseUrl: base,
+          expiresAt: Date.now() + 7.5 * 3600 * 1000,
+        };
+        return { jwt, baseUrl: base };
+      }
+    } catch (err) {
+      console.error(`[DHL eCom Token Bağlantı İstisnası - ${base}]`, err);
     }
-
-    const data = await res.json();
-    if (data?.jwt) {
-      // 8 saatlik geçerlilik
-      tokenCache = {
-        jwt: data.jwt,
-        expiresAt: Date.now() + 7.5 * 3600 * 1000,
-      };
-      return data.jwt;
-    }
-  } catch (err) {
-    console.error('[DHL eCom Token Bağlantı İstisnası]', err);
   }
 
   return null;
@@ -279,7 +303,7 @@ function generateSample10x10Zpl(params: {
 ^FO483,46^GB171,535,2^FS
 ^FT637,48^A0R,14,14^FH^FDOTANTIKOS CONCEPT HEDIYELIK^FS
 ^FT619,48^A0R,14,14^FH^FDSuleymaniye Mah. Eminonu FATIH / ISTANBUL^FS
-^FT602,450^A0R,17,19^FH^FDTEL: 05077737777^FS
+^FT602,450^A0R,17,19^FH^FDTEL: 05374676590^FS
 ^FT574,450^A0R,20,19^FH^FDTEL: ${params.phone}^FS
 ^FT574,50^A0R,20,19^FH^FD${params.recipientName.toUpperCase()}^FS
 ^FT533,49^A0R,17,16^FH^FD${params.addressLine.toUpperCase()} [${params.district.toUpperCase()} / ${params.city.toUpperCase()}]^FS
@@ -304,48 +328,28 @@ export async function createDhlShipment(
   const finalDesi = Math.max(1, Math.ceil(params.desi || params.weightInKg || 1));
   const finalKg = Math.max(1, Math.ceil(params.weightInKg || finalDesi));
 
-  // Eğer Client ID / Secret girilmemişse (Sandbox Portal hazırlığı aşamasında)
-  // operasyonel akışın durmaması için eksiksiz ZPL ve simülasyon takip numarası üretilir:
+  // Eksik kimlik bilgisi varsa sessizce sahte barkod üretmek yerine açık teşhis döndür
   if (!isDhlEcomConfigured) {
-    const randomTracking = `9096${Math.floor(10000000 + Math.random() * 90000000)}`;
-    const randomBarcode = `D@6L@${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-    const zplString = generateSample10x10Zpl({
-      orderNumber: cleanOrderNumber,
-      trackingNumber: randomTracking,
-      barcodeText: randomBarcode,
-      recipientName: params.recipientName,
-      city,
-      district,
-      addressLine: params.addressLine,
-      phone: cleanPhone,
-      desi: finalDesi,
-    });
-
+    const missing = getDhlMissingConfigFields();
     return {
-      success: true,
-      trackingNumber: randomTracking,
-      referenceId: cleanOrderNumber,
-      invoiceId: `FM${Math.floor(100000 + Math.random() * 900000)}`,
-      barcode: randomBarcode,
-      zpl: zplString,
-      labelUrl: `https://kargotakip.mngkargo.com.tr/?k=${randomTracking}`,
+      success: false,
       carrier: 'DHL Kargo',
-      isSimulated: true,
-      message: 'DHL eCommerce Sandbox portal bilgileri bekleniyor. Hazır 10x10 ZPL barkod ve simülasyon takip kodu üretildi.',
+      error: `DHL eCommerce TR gönderi oluşturma bilgileri eksik: ${missing.join(', ')}. (Vercel ortam değişkenlerine bu bilgileri ekleyebilir veya takip numarasını elle girebilirsiniz.)`,
     };
   }
 
   // Canlı / Sandbox DHL eCommerce API Çağrısı
   try {
-    const token = await getDhlEcomToken();
-    if (!token) {
+    const authToken = await getDhlEcomToken();
+    if (!authToken) {
       return {
         success: false,
         carrier: 'DHL Kargo',
-        error: 'DHL eCommerce token servisine bağlanılamadı. Lütfen Müşteri No, Şifre ve Client ID bilgilerinizi kontrol edin.',
+        error: 'DHL eCommerce token servisine bağlanılamadı. Müşteri Numarası (DHL_ECOM_CUSTOMER_NUMBER), Şifre (DHL_ECOM_PASSWORD), Client ID ve Client Secret bilgilerini kontrol edin.',
       };
     }
 
+    const { jwt: token, baseUrl: activeBaseUrl } = authToken;
     const commonHeaders = {
       'Authorization': `Bearer ${token}`,
       'x-ibm-client-id': dhlClientId,
@@ -357,7 +361,7 @@ export async function createDhlShipment(
     // Aşama 1: createRecipient (Alıcı Adres Ön Kaydı ve Varış Şube Tespiti)
     // -------------------------------------------------------------
     try {
-      await fetch(`${DHL_ECOM_BASE_URL}/pluscmdapi/createRecipient`, {
+      await fetch(`${activeBaseUrl}/pluscmdapi/createRecipient`, {
         method: 'POST',
         headers: commonHeaders,
         body: JSON.stringify({
@@ -432,19 +436,36 @@ export async function createDhlShipment(
       },
     };
 
-    const orderRes = await fetch(`${DHL_ECOM_BASE_URL}/standardcmdapi/createOrder`, {
+    const orderRes = await fetch(`${activeBaseUrl}/standardcmdapi/createOrder`, {
       method: 'POST',
       headers: commonHeaders,
       body: JSON.stringify(orderPayload),
     });
 
-    if (!orderRes.ok) {
-      const orderErr = await orderRes.text();
-      console.error('[DHL createOrder Hatası]', orderErr);
+    const orderText = await orderRes.text();
+    let orderJson: any = null;
+    try {
+      orderJson = JSON.parse(orderText);
+    } catch {
+      orderJson = null;
+    }
+
+    const orderApiError =
+      orderJson?.error?.description ||
+      orderJson?.errorMessage ||
+      (orderJson?.isSuccess === false ? orderJson?.message : null);
+
+    // Duplicate order error on retry can still proceed to createbarcode
+    const isAlreadyCreatedOrder =
+      typeof orderText === 'string' &&
+      (orderText.toLowerCase().includes('already') || orderText.toLowerCase().includes('mevcut') || orderText.toLowerCase().includes('duplicate'));
+
+    if ((!orderRes.ok || orderApiError) && !isAlreadyCreatedOrder) {
+      console.error('[DHL createOrder Hatası]', orderText);
       return {
         success: false,
         carrier: 'DHL Kargo',
-        error: `DHL createOrder Hatası (${orderRes.status}): ${orderErr}`,
+        error: `DHL createOrder Hatası (${orderRes.status}): ${orderApiError || orderText}`,
       };
     }
 
@@ -453,7 +474,7 @@ export async function createDhlShipment(
     // -------------------------------------------------------------
     const barcodePayload = {
       referenceId: cleanOrderNumber,
-      billOfLandingId: '',
+      billOfLandingId: `IRS-${cleanOrderNumber}`,
       isCOD: params.isCOD ? 1 : 0,
       codAmount: params.isCOD ? Number(params.codAmount || 0) : 0,
       printReferenceBarcodeOnError: 1,
@@ -473,37 +494,54 @@ export async function createDhlShipment(
       ],
     };
 
-    const barcodeRes = await fetch(`${DHL_ECOM_BASE_URL}/barcodecmdapi/createbarcode`, {
+    const barcodeRes = await fetch(`${activeBaseUrl}/barcodecmdapi/createbarcode`, {
       method: 'POST',
       headers: commonHeaders,
       body: JSON.stringify(barcodePayload),
     });
 
-    if (!barcodeRes.ok) {
-      const barcodeErr = await barcodeRes.text();
-      console.error('[DHL createbarcode Hatası]', barcodeErr);
+    const barcodeText = await barcodeRes.text();
+    let barcodeData: any = null;
+    try {
+      barcodeData = JSON.parse(barcodeText);
+    } catch {
+      barcodeData = null;
+    }
+
+    const resultItem = Array.isArray(barcodeData) ? barcodeData[0] : barcodeData;
+    const barcodeApiError =
+      resultItem?.error?.description ||
+      resultItem?.errorMessage ||
+      (resultItem?.isSuccess === false ? resultItem?.message : null);
+
+    if (!barcodeRes.ok || barcodeApiError) {
+      console.error('[DHL createbarcode Hatası]', barcodeText);
       return {
         success: false,
         carrier: 'DHL Kargo',
-        error: `DHL createbarcode Hatası: ${barcodeErr}`,
+        error: `DHL createbarcode Hatası (${barcodeRes.status}): ${barcodeApiError || barcodeText}`,
       };
     }
 
-    const barcodeData = await barcodeRes.json();
-    const resultItem = Array.isArray(barcodeData) ? barcodeData[0] : barcodeData;
-    const trackingNumber = resultItem?.shipmentId || resultItem?.referenceId || cleanOrderNumber;
     const barcodeObj = resultItem?.barcodes?.[0];
     const zplString = barcodeObj?.value || '';
     const visualBarcode = barcodeObj?.barcode || '';
+    const trackingNumber =
+      resultItem?.shipmentId ||
+      resultItem?.trackingNumber ||
+      resultItem?.invoiceId ||
+      visualBarcode ||
+      resultItem?.referenceId ||
+      cleanOrderNumber;
 
     return {
       success: true,
-      trackingNumber,
+      trackingNumber: String(trackingNumber),
       referenceId: cleanOrderNumber,
       invoiceId: resultItem?.invoiceId,
       barcode: visualBarcode,
       zpl: zplString,
-      labelUrl: `https://kargotakip.mngkargo.com.tr/?k=${trackingNumber}`,
+      labelUrl: `https://kargotakip.mngkargo.com.tr/?k=${encodeURIComponent(String(trackingNumber))}`,
       carrier: 'DHL Kargo',
     };
   } catch (err: any) {
@@ -521,20 +559,20 @@ export async function createDhlShipment(
  */
 export async function cancelDhlShipment(referenceId: string, shipmentId?: string): Promise<{ success: boolean; message?: string; error?: string }> {
   if (!isDhlEcomConfigured) {
-    return { success: true, message: 'Simülasyon gönderisi iptal edildi.' };
+    return { success: true, message: 'Yerel gönderi kaydı iptal edildi.' };
   }
 
   try {
-    const token = await getDhlEcomToken();
-    if (!token) return { success: false, error: 'DHL token alınamadı.' };
+    const authToken = await getDhlEcomToken();
+    if (!authToken) return { success: false, error: 'DHL token alınamadı.' };
 
     const cleanRef = referenceId.trim();
     const cleanShipment = (shipmentId || referenceId).trim();
 
-    const res = await fetch(`${DHL_ECOM_BASE_URL}/barcodecmdapi/cancelshipment`, {
+    const res = await fetch(`${authToken.baseUrl}/barcodecmdapi/cancelshipment`, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${authToken.jwt}`,
         'x-ibm-client-id': dhlClientId,
         'x-ibm-client-secret': dhlClientSecret,
         'Content-Type': 'application/json',
@@ -556,77 +594,130 @@ export async function cancelDhlShipment(referenceId: string, shipmentId?: string
   }
 }
 
+function mapMngStatusToOrderStatus(rawStatus: any, rawDesc: string = ''): DhlTrackingResult['status'] {
+  const s = `${String(rawStatus || '')} ${rawDesc}`.toLowerCase();
+  if (s.includes('teslim edildi') || s.includes('delivered') || s === '5') {
+    return 'teslim_edildi';
+  }
+  if (s.includes('dağıtım') || s.includes('dagitim') || s.includes('kurye') || s.includes('out for delivery') || s === '4') {
+    return 'dagitimda';
+  }
+  if (s.includes('hazır') || s.includes('kayıt') || s.includes('pre-transit') || s === '0') {
+    return 'siparis_alindi';
+  }
+  return 'kargoya_verildi';
+}
+
 /**
- * Gönderi Takip Sorgusu (trackshipment)
+ * Gönderi Takip Sorgusu (DHL eCommerce TR / MNG + DHL Unified Tracking API)
  */
 export async function trackDhlShipment(trackingNumberOrRefId: string): Promise<DhlTrackingResult> {
   const cleanCode = trackingNumberOrRefId.trim();
 
-  // Simülasyon
-  if (!isDhlEcomConfigured || cleanCode.startsWith('DHL-') || cleanCode.startsWith('sim-') || cleanCode.startsWith('9096')) {
-    return {
-      success: true,
-      trackingNumber: cleanCode,
-      status: 'kargoya_verildi',
-      statusDescription: 'Gönderi DHL eCommerce Transfer Merkezinde İşlem Gördü',
-      estimatedDelivery: '1-2 İş Günü',
-      isSimulated: true,
-      events: [
-        {
-          timestamp: new Date().toISOString(),
-          location: 'İstanbul Tahtakale DHL Şubesi',
-          description: 'Gönderi kabul edildi, 10x10 barkod okundu ve transfer merkezine sevk edildi.',
-          statusCode: 'PU',
-        },
-        {
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          location: 'Eminönü / İstanbul',
-          description: 'Kargo sipariş verisi oluşturuldu (createOrder/createbarcode).',
-          statusCode: 'CR',
-        },
-      ],
-    };
-  }
+  // 1. Önce DHL eCommerce TR (MNG) API'den sorgula
+  if (isDhlEcomConfigured) {
+    try {
+      const authToken = await getDhlEcomToken();
+      if (authToken) {
+        const res = await fetch(`${authToken.baseUrl}/standardquery/trackshipment/${encodeURIComponent(cleanCode)}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authToken.jwt}`,
+            'x-ibm-client-id': dhlClientId,
+            'x-ibm-client-secret': dhlClientSecret,
+          },
+        });
 
-  try {
-    const token = await getDhlEcomToken();
-    if (!token) throw new Error('DHL token alınamadı');
+        if (res.ok) {
+          const raw = await res.json();
+          const item = Array.isArray(raw) ? raw[0] : raw;
+          if (item && (item.shipmentStatus || item.shipmentStatusExplanation || item.statusDescription || item.shipmentId || item.movements || item.shipmentMovements)) {
+            const rawEvents: any[] =
+              item.shipmentMovements ||
+              item.movements ||
+              item.events ||
+              item.history ||
+              [];
 
-    const res = await fetch(`${DHL_ECOM_BASE_URL}/standardquery/trackshipment/${encodeURIComponent(cleanCode)}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'x-ibm-client-id': dhlClientId,
-        'x-ibm-client-secret': dhlClientSecret,
-      },
-    });
+            const parsedEvents: DhlTrackingEvent[] = Array.isArray(rawEvents)
+              ? rawEvents.map((ev: any) => ({
+                  timestamp: ev.eventDateTime || ev.actionDate || ev.date || ev.timestamp || new Date().toISOString(),
+                  location: ev.location || ev.branchName || ev.unitName || ev.cityName || 'DHL eCommerce TR',
+                  description: ev.description || ev.eventExplanation || ev.actionExplanation || ev.statusExplanation || 'Kargo hareketi',
+                  statusCode: ev.statusCode || ev.eventCode || undefined,
+                }))
+              : [];
 
-    if (!res.ok) {
-      return {
-        success: true,
-        trackingNumber: cleanCode,
-        status: 'kargoya_verildi',
-        statusDescription: 'DHL kargo taşıma sürecindedir.',
-        events: [],
-      };
+            const desc =
+              item.shipmentStatusExplanation ||
+              item.statusDescription ||
+              item.shipmentStatus ||
+              'DHL eCommerce TR güvencesiyle sevkiyat halinde.';
+
+            return {
+              success: true,
+              trackingNumber: String(item.trackingNumber || item.shipmentId || cleanCode),
+              status: mapMngStatusToOrderStatus(item.shipmentStatusCode ?? item.shipmentStatus, desc),
+              statusDescription: desc,
+              estimatedDelivery: item.estimatedDeliveryDate || item.deliveryDate || undefined,
+              events: parsedEvents,
+            };
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[DHL eCom Track uyarısı]', err);
     }
-
-    const data = await res.json();
-    return {
-      success: true,
-      trackingNumber: cleanCode,
-      status: 'kargoya_verildi',
-      statusDescription: data?.statusDescription || 'DHL güvencesiyle sevkiyat halinde.',
-      events: [],
-    };
-  } catch (err: any) {
-    return {
-      success: false,
-      trackingNumber: cleanCode,
-      status: 'kargoya_verildi',
-      statusDescription: 'Takip bilgisi sorgulanırken hata oluştu.',
-      events: [],
-      error: err.message,
-    };
   }
+
+  // 2. DHL Unified Shipment Tracking API (api-eu.dhl.com - tek DHL_API_KEY kullanan entegrasyonlar için)
+  if (isDhlUnifiedTrackingConfigured) {
+    try {
+      const unifiedRes = await fetch(
+        `https://api-eu.dhl.com/track/shipments?trackingNumber=${encodeURIComponent(cleanCode)}&language=tr`,
+        {
+          method: 'GET',
+          headers: {
+            'DHL-API-Key': dhlClientId,
+            'Accept': 'application/json',
+          },
+        }
+      );
+
+      if (unifiedRes.ok) {
+        const unifiedData = await unifiedRes.json();
+        const shipment = unifiedData?.shipments?.[0];
+        if (shipment) {
+          const statusObj = shipment.status || {};
+          const rawEvents: any[] = Array.isArray(shipment.events) ? shipment.events : [];
+          const parsedEvents: DhlTrackingEvent[] = rawEvents.map((ev: any) => ({
+            timestamp: ev.timestamp || new Date().toISOString(),
+            location: ev.location?.address?.addressLocality || ev.location?.address?.countryCode || 'DHL Transfer Merkezi',
+            description: ev.description || ev.status || 'Kargo hareketi',
+            statusCode: ev.statusCode || undefined,
+          }));
+
+          const desc = statusObj.description || statusObj.status || 'DHL taşıma sürecinde.';
+          return {
+            success: true,
+            trackingNumber: String(shipment.id || cleanCode),
+            status: mapMngStatusToOrderStatus(statusObj.statusCode, desc),
+            statusDescription: desc,
+            estimatedDelivery: shipment.estimatedTimeOfDelivery || undefined,
+            events: parsedEvents,
+          };
+        }
+      }
+    } catch (err) {
+      console.warn('[DHL Unified Track uyarısı]', err);
+    }
+  }
+
+  return {
+    success: true,
+    trackingNumber: cleanCode,
+    status: 'kargoya_verildi',
+    statusDescription: 'Kargo takip numarası kaydedildi. Şube kabul ve transfer hareketleri kargo firması sistemine düştükçe burada güncellenecektir.',
+    events: [],
+  };
 }

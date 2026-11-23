@@ -53,7 +53,7 @@ function OrderSuccessContent() {
               <ArrowRight className="w-4 h-4" />
             </Link>
             <a
-              href={`https://wa.me/905077737777?text=${encodeURIComponent('Merhaba, ürünleriniz hakkında bilgi ve sipariş vermek istiyorum.')}`}
+              href={`https://wa.me/905374676590?text=${encodeURIComponent('Merhaba, ürünleriniz hakkında bilgi ve sipariş vermek istiyorum.')}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2"

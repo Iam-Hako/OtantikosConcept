@@ -82,6 +82,91 @@ export function deduplicateOrders(list: Order[]): Order[] {
   return result;
 }
 
+async function hydrateOrderProductSlugs(orders: Order[], supabase?: any): Promise<Order[]> {
+  if (!Array.isArray(orders) || orders.length === 0) return [];
+
+  // First pass: copy joined product.slug if present, or resolve from runtimeProducts
+  const byId = new Map<string, string>();
+  const byName = new Map<string, string>();
+  for (const p of runtimeProducts) {
+    if (p.id && p.slug) byId.set(p.id, p.slug);
+    if (p.name && p.slug) byName.set(normalizeTurkish(p.name), p.slug);
+  }
+
+  let needsDbLookup = false;
+  const missingProdIds = new Set<string>();
+  const missingNames = new Set<string>();
+
+  for (const ord of orders) {
+    if (!Array.isArray(ord.items)) continue;
+    for (const item of ord.items) {
+      const resolved =
+        item.product_slug ||
+        item.product?.slug ||
+        (item.product_id ? byId.get(item.product_id) : undefined) ||
+        (item.product_name ? byName.get(normalizeTurkish(item.product_name)) : undefined);
+      if (resolved) {
+        item.product_slug = resolved;
+      } else {
+        needsDbLookup = true;
+        if (item.product_id && UUID_REGEX.test(item.product_id)) {
+          missingProdIds.add(item.product_id);
+        }
+        if (item.product_name) {
+          missingNames.add(item.product_name);
+        }
+      }
+    }
+  }
+
+  if (needsDbLookup && supabase) {
+    try {
+      if (missingProdIds.size > 0) {
+        const { data: prodByIds } = await supabase
+          .from('products')
+          .select('id, name, slug')
+          .in('id', Array.from(missingProdIds));
+        if (Array.isArray(prodByIds)) {
+          for (const pr of prodByIds) {
+            if (pr.id && pr.slug) byId.set(pr.id, pr.slug);
+            if (pr.name && pr.slug) byName.set(normalizeTurkish(pr.name), pr.slug);
+          }
+        }
+      }
+
+      const stillMissingNames = Array.from(missingNames).filter((nm) => !byName.has(normalizeTurkish(nm)));
+      if (stillMissingNames.length > 0) {
+        const { data: prodByNames } = await supabase
+          .from('products')
+          .select('id, name, slug')
+          .in('name', stillMissingNames);
+        if (Array.isArray(prodByNames)) {
+          for (const pr of prodByNames) {
+            if (pr.id && pr.slug) byId.set(pr.id, pr.slug);
+            if (pr.name && pr.slug) byName.set(normalizeTurkish(pr.name), pr.slug);
+          }
+        }
+      }
+
+      for (const ord of orders) {
+        if (!Array.isArray(ord.items)) continue;
+        for (const item of ord.items) {
+          if (!item.product_slug) {
+            item.product_slug =
+              (item.product_id ? byId.get(item.product_id) : undefined) ||
+              (item.product_name ? byName.get(normalizeTurkish(item.product_name)) : undefined) ||
+              null;
+          }
+        }
+      }
+    } catch {
+      // Ignore slug lookup error
+    }
+  }
+
+  return orders;
+}
+
 export function normalizeTurkish(text: string): string {
   if (!text) return '';
   return text
@@ -876,14 +961,25 @@ export const DataService = {
       const supabase = createClient();
       let query = supabase
         .from('orders')
-        .select('*, items:order_items(*)')
+        .select('*, items:order_items(*, product:products(slug))')
         .order('created_at', { ascending: false });
       
       if (userId) query = query.eq('user_id', userId);
-      const { data, error } = await query;
+      let { data, error } = await query;
+
+      if (error) {
+        let fallbackQuery = supabase
+          .from('orders')
+          .select('*, items:order_items(*)')
+          .order('created_at', { ascending: false });
+        if (userId) fallbackQuery = fallbackQuery.eq('user_id', userId);
+        const fb = await fallbackQuery;
+        data = fb.data as any;
+        error = fb.error;
+      }
       
       if (!error && data) {
-        const cleanList = deduplicateOrders(data as Order[]);
+        const cleanList = await hydrateOrderProductSlugs(deduplicateOrders(data as Order[]), supabase);
         if (!userId && (cleanList.length > 0 || runtimeOrders.length === 0)) {
           runtimeOrders = cleanList;
         }
@@ -921,14 +1017,24 @@ export const DataService = {
 
     try {
       const supabase = createClient();
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('orders')
-        .select('*, items:order_items(*)')
+        .select('*, items:order_items(*, product:products(slug))')
         .eq('order_number', cleanNumber)
         .maybeSingle();
 
+      if (error) {
+        const fb = await supabase
+          .from('orders')
+          .select('*, items:order_items(*)')
+          .eq('order_number', cleanNumber)
+          .maybeSingle();
+        data = fb.data as any;
+        error = fb.error;
+      }
+
       if (!error && data) {
-        const found = data as Order;
+        const [found] = await hydrateOrderProductSlugs([data as Order], supabase);
         if (emailOrName !== undefined) {
           const q = emailOrName.trim().toLowerCase();
           if (!q) return null;
@@ -945,7 +1051,7 @@ export const DataService = {
     }
 
     const orders = await this.getOrders();
-    const found = orders.find(o => o.order_number.toUpperCase() === cleanNumber);
+    const found = orders.find(o => o.order_number.toUpperCase() === cleanNumber || (o.tracking_number || '').toUpperCase() === cleanNumber);
     if (!found) return null;
 
     if (emailOrName !== undefined) {
@@ -968,16 +1074,29 @@ export const DataService = {
     try {
       const supabase = createClient();
       const isUuid = UUID_REGEX.test(cleanId);
-      let query = supabase.from('orders').select('*, items:order_items(*)');
+      let query = supabase.from('orders').select('*, items:order_items(*, product:products(slug))');
       if (isUuid) {
         query = query.eq('id', cleanId.toLowerCase());
       } else {
         query = query.eq('order_number', cleanId.toUpperCase());
       }
-      const { data, error } = await query.maybeSingle();
+      let { data, error } = await query.maybeSingle();
+
+      if (error) {
+        let fbQuery = supabase.from('orders').select('*, items:order_items(*)');
+        if (isUuid) {
+          fbQuery = fbQuery.eq('id', cleanId.toLowerCase());
+        } else {
+          fbQuery = fbQuery.eq('order_number', cleanId.toUpperCase());
+        }
+        const fb = await fbQuery.maybeSingle();
+        data = fb.data as any;
+        error = fb.error;
+      }
 
       if (!error && data) {
-        return data as Order;
+        const [hydrated] = await hydrateOrderProductSlugs([data as Order], supabase);
+        return hydrated;
       }
     } catch {
       // Fallback

@@ -90,13 +90,13 @@ export default function ComingSoonPage() {
             </div>
 
             <a
-              href={`https://wa.me/905077737777?text=${whatsappMessage}`}
+              href={`https://wa.me/905374676590?text=${whatsappMessage}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2"
             >
               <MessageCircle className="w-4 h-4" />
-              <span>WhatsApp Sipariş Hattı (+90 507 773 77 77)</span>
+              <span>WhatsApp Sipariş Hattı (+90 537 467 65 90)</span>
             </a>
           </div>
 

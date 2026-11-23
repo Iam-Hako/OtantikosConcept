@@ -13,13 +13,21 @@ import {
   Gift, 
   MapPin, 
   AlertCircle,
-  FileText
+  FileText,
+  ExternalLink,
+  CreditCard
 } from 'lucide-react';
 import { Order } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
 import { useAuth } from '@/lib/store/auth-context';
 import { useTranslation } from '@/lib/i18n/language-context';
-import { formatPrice, formatDate } from '@/lib/utils/format';
+import {
+  formatPrice,
+  formatDate,
+  formatOrderPaymentSummary,
+  formatOrderStatusLabel,
+  buildCargoTrackingExternalUrl
+} from '@/lib/utils/format';
 
 interface OrderTrackingClientViewProps {
   initialOrder?: Order | null;
@@ -31,7 +39,7 @@ interface LiveDhlTrackingInfo {
   status: string;
   statusDescription: string;
   estimatedDelivery?: string;
-  events?: Array<{ date: string; location: string; description: string }>;
+  events?: Array<{ timestamp?: string; date?: string; location: string; description: string }>;
 }
 
 export default function OrderTrackingClientView({
@@ -51,6 +59,7 @@ export default function OrderTrackingClientView({
   const [hasSearched, setHasSearched] = useState(Boolean(initialOrder));
   const [isLoading, setIsLoading] = useState(false);
   const [dhlLiveInfo, setDhlLiveInfo] = useState<LiveDhlTrackingInfo | null>(null);
+  const [standaloneDhlTrack, setStandaloneDhlTrack] = useState<(LiveDhlTrackingInfo & { trackingNumber: string }) | null>(null);
 
   useEffect(() => {
     if (user?.email && !email) {
@@ -79,21 +88,40 @@ export default function OrderTrackingClientView({
 
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!orderNumber.trim()) return;
+    const queryCode = orderNumber.trim();
+    if (!queryCode) return;
 
     setIsLoading(true);
     setHasSearched(true);
+    setStandaloneDhlTrack(null);
+    const verifyValue = (email || user?.email || '').trim();
     try {
-      const res = await fetch(`/api/orders/track?order_number=${encodeURIComponent(orderNumber.trim())}&email=${encodeURIComponent(email.trim())}`);
+      const res = await fetch(`/api/orders/track?order_number=${encodeURIComponent(queryCode)}&email=${encodeURIComponent(verifyValue)}`);
       const json = await res.json();
       if (res.ok && json.success && json.order) {
         setOrder(json.order);
       } else {
-        const found = await DataService.getOrderByNumber(orderNumber, email);
-        setOrder(found);
+        const found = await DataService.getOrderByNumber(queryCode, verifyValue);
+        if (found) {
+          setOrder(found);
+        } else {
+          setOrder(null);
+          // Fallback: if user typed a cargo tracking number directly, query live DHL tracking
+          const dhlRes = await fetch(`/api/dhl/track?tracking_number=${encodeURIComponent(queryCode)}`);
+          const dhlData = await dhlRes.json();
+          if (dhlRes.ok && dhlData?.statusDescription && Array.isArray(dhlData.events) && dhlData.events.length > 0) {
+            setStandaloneDhlTrack({
+              trackingNumber: dhlData.trackingNumber || queryCode,
+              status: dhlData.status || 'kargoya_verildi',
+              statusDescription: dhlData.statusDescription,
+              estimatedDelivery: dhlData.estimatedDelivery,
+              events: dhlData.events,
+            });
+          }
+        }
       }
     } catch {
-      const found = await DataService.getOrderByNumber(orderNumber, email);
+      const found = await DataService.getOrderByNumber(queryCode, verifyValue);
       setOrder(found);
     } finally {
       setIsLoading(false);
@@ -104,7 +132,7 @@ export default function OrderTrackingClientView({
     if (initialOrderNumber && !initialOrder) {
       handleSearch();
     }
-  }, [initialOrderNumber]);
+  }, [initialOrderNumber, user?.email]);
 
   const getStepIndex = (status: Order['status']) => {
     switch (status) {
@@ -144,7 +172,7 @@ export default function OrderTrackingClientView({
           <form onSubmit={handleSearch} className="space-y-4">
             <div>
               <label className="block text-[11px] font-bold text-stone-700 mb-1">
-                {t('tracking.order_no', 'Sipariş Takip Numarası')} *
+                {t('tracking.order_no', 'Sipariş No (OTN-...) veya Kargo Takip No')} *
               </label>
               <input
                 type="text"
@@ -183,31 +211,65 @@ export default function OrderTrackingClientView({
 
         {hasSearched && (
           <>
-            {!order ? (
+            {!order && standaloneDhlTrack ? (
+              <div className="bg-white rounded-3xl border border-stone-200 p-5 sm:p-8 shadow-2xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
+                  <div>
+                    <div className="text-xs text-stone-400">DHL Kargo Takip No:</div>
+                    <strong className="font-mono text-base text-stone-900">{standaloneDhlTrack.trackingNumber}</strong>
+                    <div className="text-xs text-emerald-700 font-semibold mt-1">{standaloneDhlTrack.statusDescription}</div>
+                  </div>
+                  <a
+                    href={buildCargoTrackingExternalUrl(standaloneDhlTrack.trackingNumber, 'DHL Kargo')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#e60012] hover:bg-[#c90010] text-white font-bold text-xs rounded-xl shadow-xs transition"
+                  >
+                    <span>Kargo Firmasında Sorgula ↗</span>
+                  </a>
+                </div>
+                {standaloneDhlTrack.events && standaloneDhlTrack.events.length > 0 && (
+                  <div className="space-y-1.5">
+                    {standaloneDhlTrack.events.map((ev, i) => (
+                      <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between text-xs bg-stone-50 px-3 py-2 rounded-lg border border-stone-200">
+                        <span className="font-semibold text-stone-800">{ev.description}</span>
+                        <span className="text-stone-500 font-mono text-[11px]">{ev.location} • {formatDate(ev.timestamp || ev.date)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : !order ? (
               <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 sm:p-8 text-center max-w-md mx-auto">
                 <AlertCircle className="w-8 h-8 text-rose-600 mx-auto mb-2" />
                 <h3 className="text-sm font-bold text-stone-900">{t('tracking.not_found', 'Sipariş Bulunamadı')}</h3>
                 <p className="text-xs text-stone-600 mt-1">
-                  {t('tracking.not_found_desc', 'Girdiğiniz sipariş numarası veya e-posta adresi eşleşmedi. Lütfen bilgilerinizi kontrol edip tekrar deneyiniz.')}
+                  {t('tracking.not_found_desc', 'Girdiğiniz sipariş/takip numarası veya e-posta adresi eşleşmedi. Lütfen bilgilerinizi kontrol edip tekrar deneyiniz.')}
                 </p>
               </div>
-            ) : (
+            ) : (() => {
+              const payInfo = formatOrderPaymentSummary(order.payment_method, order.payment_status);
+              return (
               <div className="bg-white rounded-3xl border border-stone-200 p-5 sm:p-10 shadow-2xs space-y-6 sm:space-y-8 animate-slide-up">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 sm:pb-6 border-b border-stone-100">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs text-stone-400">Sipariş No:</span>
                       <strong className="font-mono text-sm sm:text-base text-stone-900">{order.order_number}</strong>
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${payInfo.badgeClass}`}>
+                        <CreditCard className="w-3 h-3 shrink-0" />
+                        <span>{payInfo.label}</span>
+                      </span>
                     </div>
-                    <div className="text-xs text-stone-500 mt-0.5">
+                    <div className="text-xs text-stone-500 mt-1">
                       Sipariş Tarihi: {formatDate(order.created_at)}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-stone-500">Mevcut Durum:</span>
-                    <span className="px-3 py-1 bg-red-50 text-[#e60012] text-xs font-bold rounded-full capitalize border border-red-200">
-                      {order.status.replace('_', ' ')}
+                    <span className="px-3 py-1 bg-red-50 text-[#e60012] text-xs font-bold rounded-full border border-red-200">
+                      {formatOrderStatusLabel(order.status)}
                     </span>
                   </div>
                 </div>
@@ -287,11 +349,7 @@ export default function OrderTrackingClientView({
                         </div>
                       </div>
                       <a
-                        href={
-                          order.tracking_carrier?.toLowerCase().includes('dhl') || order.tracking_carrier?.toLowerCase().includes('mng') || /^\d{10,14}$/.test(order.tracking_number)
-                            ? `https://kargotakip.mngkargo.com.tr/?k=${encodeURIComponent(order.tracking_number)}`
-                            : `https://www.google.com/search?q=${encodeURIComponent((order.tracking_carrier || 'kargo') + ' ' + order.tracking_number)}`
-                        }
+                        href={buildCargoTrackingExternalUrl(order.tracking_number, order.tracking_carrier)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#e60012] hover:bg-[#c90010] text-white font-bold text-xs rounded-xl shadow-xs transition"
@@ -308,7 +366,7 @@ export default function OrderTrackingClientView({
                         {dhlLiveInfo.events.map((ev, i) => (
                           <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] bg-white/80 px-3 py-1.5 rounded-lg border border-red-100">
                             <span className="font-semibold text-stone-800">{ev.description}</span>
-                            <span className="text-stone-500 font-mono text-[10px]">{ev.location} • {formatDate(ev.date)}</span>
+                            <span className="text-stone-500 font-mono text-[10px]">{ev.location} • {formatDate(ev.timestamp || ev.date)}</span>
                           </div>
                         ))}
                       </div>
@@ -356,18 +414,33 @@ export default function OrderTrackingClientView({
                       Sipariş Edilen Ürünler
                     </h4>
                     <div className="divide-y divide-stone-100 bg-stone-50 rounded-xl p-3">
-                      {order.items?.map((item, idx) => (
-                        <div key={idx} className="py-2 flex items-center justify-between text-xs">
-                          <div>
-                            <div className="font-semibold text-stone-900">{item.product_name}</div>
-                            {item.variant_name && (
-                              <div className="text-[10px] text-stone-500">Seçenek: {item.variant_name}</div>
-                            )}
-                            <div className="text-[10px] text-stone-400">{item.quantity} Adet x {formatPrice(item.unit_price || item.price)}</div>
+                      {order.items?.map((item, idx) => {
+                        const slug = item.product_slug || item.product?.slug;
+                        const productHref = slug
+                          ? `/urun/${slug}`
+                          : `/kategori/tum-urunler?ara=${encodeURIComponent(item.product_name)}`;
+                        return (
+                          <div key={idx} className="py-2 flex items-center justify-between text-xs gap-2">
+                            <div className="min-w-0">
+                              <a
+                                href={productHref}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 font-semibold text-stone-900 hover:text-[#e60012] hover:underline transition"
+                                title="Ürünü ayrı sekmede aç"
+                              >
+                                <span className="truncate">{item.product_name}</span>
+                                <ExternalLink className="w-3 h-3 text-stone-400 shrink-0" />
+                              </a>
+                              {item.variant_name && (
+                                <div className="text-[10px] text-stone-500">Seçenek: {item.variant_name}</div>
+                              )}
+                              <div className="text-[10px] text-stone-400">{item.quantity} Adet x {formatPrice(item.unit_price || item.price)}</div>
+                            </div>
+                            <span className="font-bold text-stone-900 shrink-0">{formatPrice(item.total_price || item.total)}</span>
                           </div>
-                          <span className="font-bold text-stone-900">{formatPrice(item.total_price || item.total)}</span>
-                        </div>
-                      ))}
+                        );
+                      })}
 
                       <div className="pt-2 flex justify-between font-bold text-stone-900">
                         <span>Toplam Tutar (KDV Dahil):</span>
@@ -377,7 +450,8 @@ export default function OrderTrackingClientView({
                   </div>
                 </div>
               </div>
-            )}
+              );
+            })()}
           </>
         )}
       </div>

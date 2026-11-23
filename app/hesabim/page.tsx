@@ -18,13 +18,21 @@ import {
   Trash2,
   CheckCircle2,
   Building,
-  Check
+  Check,
+  ExternalLink,
+  CreditCard
 } from 'lucide-react';
 import { useAuth } from '@/lib/store/auth-context';
 import { Order, ReturnRequest, UserAddress } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
 import { TURKISH_PROVINCES } from '@/lib/data/provinces-and-districts';
-import { formatPrice, formatDate } from '@/lib/utils/format';
+import {
+  formatPrice,
+  formatDate,
+  formatOrderPaymentSummary,
+  formatOrderStatusLabel,
+  buildCargoTrackingExternalUrl
+} from '@/lib/utils/format';
 import { toast } from 'sonner';
 import TurkishAddressSelector from '@/components/TurkishAddressSelector';
 
@@ -345,18 +353,26 @@ export default function AccountPage() {
                 </Link>
               </div>
             ) : (
-              orders.map((ord) => (
+              orders.map((ord) => {
+                const payInfo = formatOrderPaymentSummary(ord.payment_method, ord.payment_status);
+                return (
                 <div key={ord.id} className="bg-white rounded-2xl border border-stone-200 p-4 sm:p-6 shadow-2xs space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-stone-100 text-xs">
-                    <div>
-                      <span className="text-stone-400">Sipariş No: </span>
-                      <strong className="font-mono text-stone-900">{ord.order_number}</strong>
-                      <span className="text-stone-400 ml-2 sm:ml-3">{formatDate(ord.created_at)}</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div>
+                        <span className="text-stone-400">Sipariş No: </span>
+                        <strong className="font-mono text-stone-900">{ord.order_number}</strong>
+                        <span className="text-stone-400 ml-2 sm:ml-3">{formatDate(ord.created_at)}</span>
+                      </div>
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${payInfo.badgeClass}`}>
+                        <CreditCard className="w-3 h-3 shrink-0" />
+                        <span>{payInfo.label}</span>
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <span className="px-2.5 py-1 bg-red-50 text-[#e60012] font-bold rounded-full capitalize text-[11px] border border-red-200">
-                        {ord.status.replace('_', ' ')}
+                      <span className="px-2.5 py-1 bg-red-50 text-[#e60012] font-bold rounded-full text-[11px] border border-red-200">
+                        {formatOrderStatusLabel(ord.status)}
                       </span>
 
                       <Link
@@ -382,41 +398,60 @@ export default function AccountPage() {
                         <span className="text-stone-500">
                           {ord.delivery_type === 'magaza_teslim' || ord.delivery_type === 'pickup'
                             ? '🏪 Tahtakale Mağazadan Teslim Siparişi'
+                            : ord.status === 'kargoya_verildi'
+                            ? 'Kargoya verildi — Kargo takip numarası kısa sürede işlenecektir.'
                             : 'Kargo Takip No: Paketiniz kargoya verildiğinde burada görünecektir.'}
                         </span>
                       )}
                     </div>
                     {ord.tracking_number && (
-                      <a
-                        href={
-                          (ord.tracking_carrier || '').toLowerCase().includes('dhl') ||
-                          (ord.tracking_carrier || '').toLowerCase().includes('mng') ||
-                          /^\d{10,14}$/.test(ord.tracking_number)
-                            ? `https://kargotakip.mngkargo.com.tr/?k=${encodeURIComponent(ord.tracking_number)}`
-                            : `https://www.google.com/search?q=${encodeURIComponent((ord.tracking_carrier || 'kargo') + ' ' + ord.tracking_number)}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[11px] font-bold text-[#e60012] hover:underline"
-                      >
-                        Kargo Firmasında Sorgula ↗
-                      </a>
+                      <div className="flex items-center gap-3">
+                        <Link
+                          href={`/siparis-takip?order_number=${encodeURIComponent(ord.order_number)}&email=${encodeURIComponent(ord.guest_email || user?.email || ord.shipping_address?.full_name || '')}`}
+                          className="text-[11px] font-bold text-stone-800 hover:underline"
+                        >
+                          Canlı Hareketler →
+                        </Link>
+                        <a
+                          href={buildCargoTrackingExternalUrl(ord.tracking_number, ord.tracking_carrier)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-bold text-[#e60012] hover:underline"
+                        >
+                          Kargo Firmasında Sorgula ↗
+                        </a>
+                      </div>
                     )}
                   </div>
 
                   {/* Items */}
                   <div className="divide-y divide-stone-100">
-                    {ord.items?.map((item, idx) => (
-                      <div key={idx} className="py-2.5 flex items-center justify-between text-xs">
-                        <div>
-                          <div className="font-bold text-stone-900">{item.product_name}</div>
-                          <div className="text-[11px] text-stone-500">
-                            {item.quantity} Adet {item.variant_name ? `(${item.variant_name})` : ''} • Adet: {formatPrice(item.unit_price || item.price)}
+                    {ord.items?.map((item, idx) => {
+                      const slug = item.product_slug || item.product?.slug;
+                      const productHref = slug
+                        ? `/urun/${slug}`
+                        : `/kategori/tum-urunler?ara=${encodeURIComponent(item.product_name)}`;
+                      return (
+                        <div key={idx} className="py-2.5 flex items-center justify-between text-xs gap-2">
+                          <div className="min-w-0">
+                            <a
+                              href={productHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 font-bold text-stone-900 hover:text-[#e60012] hover:underline transition"
+                              title="Ürünü ayrı sekmede aç"
+                            >
+                              <span className="truncate">{item.product_name}</span>
+                              <ExternalLink className="w-3 h-3 text-stone-400 shrink-0" />
+                            </a>
+                            <div className="text-[11px] text-stone-500">
+                              {item.quantity} Adet {item.variant_name ? `(${item.variant_name})` : ''} • Adet: {formatPrice(item.unit_price || item.price)}
+                            </div>
                           </div>
+                          <span className="font-bold text-stone-900 shrink-0">{formatPrice(item.total_price || item.total)}</span>
                         </div>
-                        <span className="font-bold text-stone-900">{formatPrice(item.total_price || item.total)}</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <div className="pt-3 border-t border-stone-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
@@ -443,7 +478,8 @@ export default function AccountPage() {
                     </div>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         )}

@@ -27,7 +27,7 @@ export default function PreInfoPage() {
             <p><strong>MERSİS No:</strong> 0649134035100001</p>
             <p><strong>Ticaret Sicil No:</strong> 1146371</p>
             <p><strong>İş Yeri Adresi:</strong> Süleymaniye Mah. Uzunçarşı Cad. Tamburacı ve Görenli Han No: 187 / 2G Fatih / İSTANBUL</p>
-            <p><strong>Telefon / WhatsApp:</strong> +90 (507) 773 77 77</p>
+            <p><strong>Telefon / WhatsApp:</strong> +90 (537) 467 65 90</p>
             <p><strong>E-posta:</strong> info@otantikosconcept.com</p>
           </div>
         </div>

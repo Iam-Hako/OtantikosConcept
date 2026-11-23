@@ -117,18 +117,41 @@ export async function GET(request: Request) {
 
     let foundOrder: any = null;
 
+    const queryOrderFromClient = async (client: any) => {
+      const selectWithSlug = '*, items:order_items(*, product:products(slug))';
+      const selectBase = '*, items:order_items(*)';
+
+      const tryFetch = async (col: string, val: string) => {
+        const res1 = await client.from('orders').select(selectWithSlug).eq(col, val).maybeSingle();
+        if (!res1.error) return res1.data;
+        const res2 = await client.from('orders').select(selectBase).eq(col, val).maybeSingle();
+        return !res2.error ? res2.data : null;
+      };
+
+      if (isUuid) {
+        return await tryFetch('id', cleanNumber);
+      }
+      const byOrderNo = await tryFetch('order_number', cleanNumber);
+      if (byOrderNo) return byOrderNo;
+      // Also allow looking up directly by cargo tracking_number
+      const byTrackNo = await tryFetch('tracking_number', cleanRaw);
+      if (byTrackNo) return byTrackNo;
+      if (cleanNumber !== cleanRaw) {
+        return await tryFetch('tracking_number', cleanNumber);
+      }
+      return null;
+    };
+
     // 1. Try Supabase with Admin Client
     try {
       const supabase = createAdminClient();
-      let query = supabase.from('orders').select('*, items:order_items(*)');
-      if (isUuid) {
-        query = query.eq('id', cleanNumber);
-      } else {
-        query = query.eq('order_number', cleanNumber);
-      }
-      const { data, error } = await query.maybeSingle();
-      if (!error && data) {
-        foundOrder = data;
+      foundOrder = await queryOrderFromClient(supabase);
+      if (foundOrder && Array.isArray(foundOrder.items)) {
+        for (const it of foundOrder.items) {
+          if (!it.product_slug && it.product?.slug) {
+            it.product_slug = it.product.slug;
+          }
+        }
       }
     } catch {
       // Fallback
@@ -138,15 +161,13 @@ export async function GET(request: Request) {
     if (!foundOrder) {
       try {
         const serverSupabase = await createServerClient();
-        let query = serverSupabase.from('orders').select('*, items:order_items(*)');
-        if (isUuid) {
-          query = query.eq('id', cleanNumber);
-        } else {
-          query = query.eq('order_number', cleanNumber);
-        }
-        const { data, error } = await query.maybeSingle();
-        if (!error && data) {
-          foundOrder = data;
+        foundOrder = await queryOrderFromClient(serverSupabase);
+        if (foundOrder && Array.isArray(foundOrder.items)) {
+          for (const it of foundOrder.items) {
+            if (!it.product_slug && it.product?.slug) {
+              it.product_slug = it.product.slug;
+            }
+          }
         }
       } catch {
         // Fallback
@@ -160,7 +181,8 @@ export async function GET(request: Request) {
         allOrders.find(
           (o) =>
             o.id.toLowerCase() === cleanNumber.toLowerCase() ||
-            o.order_number.toUpperCase() === cleanNumber.toUpperCase()
+            o.order_number.toUpperCase() === cleanNumber.toUpperCase() ||
+            (o.tracking_number || '').trim().toUpperCase() === cleanNumber.toUpperCase()
         ) || null;
     }
 

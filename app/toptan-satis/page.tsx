@@ -112,13 +112,13 @@ export default function WholesalePage() {
                 Vaktiniz kısıtlı mı? Beklemeden doğrudan WhatsApp hattımızdan toptan fiyat listesini hemen talep edebilirsiniz:
               </p>
               <a
-                href={`https://wa.me/905077737777?text=Merhaba,%20Otantikos%20Concept%20web%20sitenizden%20toptan%20fiyat%20teklifi%20talebinde%20bulundum.%20İsmim:%20${encodeURIComponent(contactName)}.%20Toptan%20ürün%20kataloğu%20ve%20fiyat%20listesini%20paylaşabilir%20misiniz?`}
+                href={`https://wa.me/905374676590?text=Merhaba,%20Otantikos%20Concept%20web%20sitenizden%20toptan%20fiyat%20teklifi%20talebinde%20bulundum.%20İsmim:%20${encodeURIComponent(contactName)}.%20Toptan%20ürün%20kataloğu%20ve%20fiyat%20listesini%20paylaşabilir%20misiniz?`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <MessageSquare className="w-4 h-4" />
-                <span>WhatsApp Sipariş Hattı (+90 507 773 77 77)</span>
+                <span>WhatsApp Sipariş Hattı (+90 537 467 65 90)</span>
               </a>
             </div>
           </div>

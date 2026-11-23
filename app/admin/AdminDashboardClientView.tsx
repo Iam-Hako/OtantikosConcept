@@ -14,11 +14,18 @@ import {
   Zap,
   Printer,
   Calculator,
-  ArrowUpRight
+  ArrowUpRight,
+  ExternalLink
 } from 'lucide-react';
 import { Product, Order, ProfitSummary } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
-import { formatPrice, formatDate } from '@/lib/utils/format';
+import {
+  formatPrice,
+  formatDate,
+  formatOrderPaymentSummary,
+  formatOrderStatusLabel,
+  buildCargoTrackingExternalUrl
+} from '@/lib/utils/format';
 
 export default function AdminDashboardClientView({
   initialProducts = [],
@@ -237,22 +244,37 @@ export default function AdminDashboardClientView({
 
         {/* Mobile Recent Orders Cards (< md) */}
         <div className="md:hidden space-y-2.5">
-          {orders.slice(0, 5).map((ord) => (
+          {orders.slice(0, 5).map((ord) => {
+            const payInfo = formatOrderPaymentSummary(ord.payment_method, ord.payment_status);
+            return (
             <div key={ord.id} className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-xs space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="font-mono font-bold text-stone-900">{ord.order_number}</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 capitalize">
-                  {ord.status.replace('_', ' ')}
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900">
+                  {formatOrderStatusLabel(ord.status)}
                 </span>
               </div>
-              <div className="flex justify-between text-stone-600">
+              <div className="flex justify-between items-center text-stone-600">
                 <span>{ord.shipping_address?.full_name}</span>
                 <strong className="text-amber-700">{formatPrice(ord.total_amount)}</strong>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] text-stone-500">Ödeme:</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${payInfo.badgeClass}`}>
+                  {payInfo.shortLabel}
+                </span>
               </div>
               <div className="flex justify-between items-center text-[11px] text-stone-500">
                 <span>Kargo Takip:</span>
                 {ord.tracking_number ? (
-                  <strong className="font-mono text-stone-900">{ord.tracking_carrier || 'DHL Kargo'}: {ord.tracking_number}</strong>
+                  <a
+                    href={buildCargoTrackingExternalUrl(ord.tracking_number, ord.tracking_carrier)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono font-bold text-stone-900 hover:underline"
+                  >
+                    {ord.tracking_carrier || 'DHL Kargo'}: {ord.tracking_number} ↗
+                  </a>
                 ) : (
                   <span className="italic text-stone-400">Henüz Girilmedi</span>
                 )}
@@ -265,7 +287,8 @@ export default function AdminDashboardClientView({
                 <span>Fiş & Detayları Yönet</span>
               </Link>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Desktop Table (md+) */}
@@ -274,19 +297,45 @@ export default function AdminDashboardClientView({
             <thead>
               <tr className="border-b border-stone-200 text-stone-400 uppercase font-semibold text-[10px]">
                 <th className="pb-3">Sipariş No</th>
-                <th className="pb-3">Müşteri</th>
+                <th className="pb-3">Müşteri & Ürünler</th>
                 <th className="pb-3">Teslimat</th>
                 <th className="pb-3">Kargo Takip No</th>
-                <th className="pb-3">Tutar</th>
+                <th className="pb-3">Tutar & Ödeme</th>
                 <th className="pb-3">Durum</th>
                 <th className="pb-3 text-right">İşlem</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {orders.slice(0, 5).map((ord) => (
+              {orders.slice(0, 5).map((ord) => {
+                const payInfo = formatOrderPaymentSummary(ord.payment_method, ord.payment_status);
+                return (
                 <tr key={ord.id} className="hover:bg-stone-50 transition">
                   <td className="py-3 font-mono font-bold text-stone-900">{ord.order_number}</td>
-                  <td className="py-3">{ord.shipping_address?.full_name}</td>
+                  <td className="py-3 max-w-[230px]">
+                    <div className="font-semibold text-stone-900">{ord.shipping_address?.full_name}</div>
+                    {Array.isArray(ord.items) && ord.items.length > 0 && (
+                      <div className="mt-0.5 flex flex-col gap-0.5">
+                        {ord.items.slice(0, 2).map((it, i) => {
+                          const slug = it.product_slug || it.product?.slug;
+                          const href = slug
+                            ? `/urun/${slug}`
+                            : `/kategori/tum-urunler?ara=${encodeURIComponent(it.product_name)}`;
+                          return (
+                            <a
+                              key={i}
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-800 hover:underline truncate"
+                            >
+                              <span className="truncate">{it.quantity}× {it.product_name}</span>
+                              <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                            </a>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </td>
                   <td className="py-3">
                     <span className="text-[11px] text-stone-600">
                       {ord.delivery_type === 'pickup' || ord.delivery_type === 'magaza_teslim' ? '🏪 Tahtakale Mağaza' : '🚚 Standart Kargo'}
@@ -294,19 +343,29 @@ export default function AdminDashboardClientView({
                   </td>
                   <td className="py-3">
                     {ord.tracking_number ? (
-                      <span className="font-mono font-bold text-stone-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-[11px]">
-                        {ord.tracking_carrier || 'DHL'}: {ord.tracking_number}
-                      </span>
+                      <a
+                        href={buildCargoTrackingExternalUrl(ord.tracking_number, ord.tracking_carrier)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono font-bold text-stone-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-[11px] hover:underline inline-block"
+                      >
+                        {ord.tracking_carrier || 'DHL'}: {ord.tracking_number} ↗
+                      </a>
                     ) : (
                       <Link href={`/admin/siparisler/${ord.id}`} className="text-[11px] font-bold text-amber-700 hover:underline">
                         + Takip No Gir
                       </Link>
                     )}
                   </td>
-                  <td className="py-3 font-bold text-amber-700">{formatPrice(ord.total_amount)}</td>
                   <td className="py-3">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 capitalize">
-                      {ord.status.replace('_', ' ')}
+                    <div className="font-bold text-amber-700">{formatPrice(ord.total_amount)}</div>
+                    <span className={`mt-0.5 inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${payInfo.badgeClass}`}>
+                      {payInfo.shortLabel}
+                    </span>
+                  </td>
+                  <td className="py-3">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                      {formatOrderStatusLabel(ord.status)}
                     </span>
                   </td>
                   <td className="py-3 text-right">
@@ -319,7 +378,8 @@ export default function AdminDashboardClientView({
                     </Link>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

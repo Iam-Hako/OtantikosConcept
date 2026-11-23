@@ -566,7 +566,7 @@ function CheckoutContent() {
               </div>
 
               <a
-                href={`https://wa.me/905077737777?text=${whatsappCartMessage}`}
+                href={`https://wa.me/905374676590?text=${whatsappCartMessage}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"

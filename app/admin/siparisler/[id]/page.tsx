@@ -18,14 +18,28 @@ import {
   Clock,
   Tag,
   XCircle,
-  AlertTriangle
+  AlertTriangle,
+  ExternalLink,
+  RefreshCw
 } from 'lucide-react';
 import { Order } from '@/lib/types/ecommerce';
 import { DataService } from '@/lib/data/store-data';
 import { actionUpdateOrderStatus, actionCancelOrder } from '@/app/actions/ecommerce-actions';
-import { formatPrice, formatDate } from '@/lib/utils/format';
+import {
+  formatPrice,
+  formatDate,
+  formatOrderPaymentSummary,
+  formatOrderStatusLabel,
+  buildCargoTrackingExternalUrl
+} from '@/lib/utils/format';
 import { calculateItemsTotalDesi, calculateDhlShippingCost } from '@/lib/services/dhl-service';
 import { toast } from 'sonner';
+
+interface LiveTrackingState {
+  statusDescription: string;
+  estimatedDelivery?: string;
+  events: Array<{ timestamp: string; location: string; description: string; statusCode?: string }>;
+}
 
 export default function OrderDetailPage() {
   const params = useParams();
@@ -40,6 +54,8 @@ export default function OrderDetailPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isCreatingDhl, setIsCreatingDhl] = useState(false);
   const [zplData, setZplData] = useState<string | null>(null);
+  const [liveTracking, setLiveTracking] = useState<LiveTrackingState | null>(null);
+  const [isCheckingTracking, setIsCheckingTracking] = useState(false);
 
   // Cancellation State
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -122,15 +138,79 @@ export default function OrderDetailPage() {
     toast.success('10×10 ZPL Barkod dosyası indirildi (Termal Yazıcı Uyumlu).');
   };
 
+  const handleCheckLiveTracking = async (codeToCheck?: string) => {
+    const code = (codeToCheck || trackingNumber).trim();
+    if (!code) return;
+    setIsCheckingTracking(true);
+    try {
+      const res = await fetch(`/api/dhl/track?tracking_number=${encodeURIComponent(code)}`);
+      const data = await res.json();
+      if (res.ok && data?.statusDescription) {
+        setLiveTracking({
+          statusDescription: data.statusDescription,
+          estimatedDelivery: data.estimatedDelivery,
+          events: Array.isArray(data.events) ? data.events : [],
+        });
+      }
+    } catch {
+      // Ignore
+    } finally {
+      setIsCheckingTracking(false);
+    }
+  };
+
+  useEffect(() => {
+    if (order?.tracking_number) {
+      handleCheckLiveTracking(order.tracking_number);
+    }
+  }, [order?.tracking_number]);
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!order) return;
 
-    const cleanTracking = trackingNumber.trim();
+    let cleanTracking = trackingNumber.trim();
     const effectiveStatus: Order['status'] =
       cleanTracking && (status === 'siparis_alindi' || status === 'hazirlaniyor')
         ? 'kargoya_verildi'
         : status;
+
+    // If marking as 'kargoya_verildi' with DHL Kargo and no tracking number yet, attempt automatic DHL shipment creation
+    if (
+      effectiveStatus === 'kargoya_verildi' &&
+      !cleanTracking &&
+      trackingCarrier.toLowerCase().includes('dhl') &&
+      order.delivery_type !== 'magaza_teslim'
+    ) {
+      setIsSaving(true);
+      try {
+        const dhlRes = await fetch('/api/dhl/create-shipment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            order_id: order.id,
+            order_number: order.order_number,
+            weight_kg: orderDesi,
+          }),
+        });
+        const dhlJson = await dhlRes.json();
+        if (!dhlRes.ok || !dhlJson.tracking_number) {
+          toast.error(dhlJson.error || 'DHL kargo gönderisi oluşturulamadı. Takip numarasını manuel girebilirsiniz.');
+          setIsSaving(false);
+          return;
+        }
+        cleanTracking = String(dhlJson.tracking_number).trim();
+        setTrackingNumber(cleanTracking);
+        if (dhlJson.zpl) setZplData(dhlJson.zpl);
+        toast.success('DHL gönderisi otomatik oluşturuldu!', {
+          description: `Takip No: ${cleanTracking}`,
+        });
+      } catch {
+        toast.error('DHL servisine bağlanılamadı. Takip numarasını manuel girerek kaydedebilirsiniz.');
+        setIsSaving(false);
+        return;
+      }
+    }
 
     setIsSaving(true);
     const res = await actionUpdateOrderStatus(
@@ -207,6 +287,8 @@ export default function OrderDetailPage() {
     return <div className="p-8 text-center text-xs text-stone-500">Sipariş yükleniyor...</div>;
   }
 
+  const paymentSummary = formatOrderPaymentSummary(order.payment_method, order.payment_status);
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-16">
       
@@ -222,13 +304,16 @@ export default function OrderDetailPage() {
                 Sipariş #{order.order_number}
               </h1>
               <span
-                className={`px-2.5 py-0.5 rounded-full text-xs font-bold capitalize ${
+                className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
                   status === 'iptal_edildi'
                     ? 'bg-rose-100 text-rose-800 border border-rose-200'
                     : 'bg-amber-100 text-amber-900'
                 }`}
               >
-                {status.replace('_', ' ')}
+                {formatOrderStatusLabel(status)}
+              </span>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${paymentSummary.badgeClass}`}>
+                {paymentSummary.label}
               </span>
             </div>
             <p className="text-xs text-stone-500">{formatDate(order.created_at)}</p>
@@ -344,28 +429,57 @@ export default function OrderDetailPage() {
               </button>
             </div>
             {trackingNumber && (
-              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs pt-1 border-t border-stone-200/60">
-                <div className="flex items-center gap-2">
-                  <span className="text-stone-500 font-medium">Taşıyıcı: <strong className="text-stone-800">{trackingCarrier}</strong></span>
-                  <a
-                    href={`https://kargotakip.mngkargo.com.tr/?k=${encodeURIComponent(trackingNumber)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-bold text-amber-700 hover:underline flex items-center gap-1"
+              <div className="mt-2 space-y-2 pt-2 border-t border-stone-200/60">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-stone-500 font-medium">Taşıyıcı: <strong className="text-stone-800">{trackingCarrier}</strong></span>
+                    <a
+                      href={buildCargoTrackingExternalUrl(trackingNumber, trackingCarrier)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-bold text-amber-700 hover:underline flex items-center gap-1"
+                    >
+                      <span>Kargo Canlı Takip ↗</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => handleCheckLiveTracking()}
+                      disabled={isCheckingTracking}
+                      className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-[11px] rounded-lg transition inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${isCheckingTracking ? 'animate-spin' : ''}`} />
+                      <span>Durumu Sorgula</span>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadZpl}
+                    className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-lg transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                    title="Termal yazıcılar için 10x10 ZPL barkod dosyasını indir"
                   >
-                    <span>Kargo Canlı Takip ↗</span>
-                  </a>
+                    <Printer className="w-3.5 h-3.5 text-amber-400" />
+                    <span>10×10 ZPL Barkod İndir</span>
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleDownloadZpl}
-                  className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-lg transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
-                  title="Termal yazıcılar için 10x10 ZPL barkod dosyasını indir"
-                >
-                  <Printer className="w-3.5 h-3.5 text-amber-400" />
-                  <span>10×10 ZPL Barkod İndir</span>
-                </button>
+                {liveTracking && (
+                  <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-[11px] space-y-1.5">
+                    <div className="font-semibold text-stone-800">
+                      Canlı Durum: <span className="text-emerald-700">{liveTracking.statusDescription}</span>
+                    </div>
+                    {liveTracking.events.length > 0 && (
+                      <div className="space-y-1 pt-1 border-t border-stone-200">
+                        {liveTracking.events.map((ev, i) => (
+                          <div key={i} className="flex items-center justify-between text-[10px] text-stone-600">
+                            <span>{ev.description}</span>
+                            <span className="font-mono text-stone-400">{ev.location} • {formatDate(ev.timestamp)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -429,9 +543,12 @@ export default function OrderDetailPage() {
             </div>
           </div>
 
-          <div className="text-right">
+          <div className="text-right space-y-1">
             <div className="font-mono font-black text-lg text-stone-900">{order.order_number}</div>
             <div className="text-[11px] text-stone-500">{formatDate(order.created_at)}</div>
+            <div className="text-[11px] font-bold text-stone-700">
+              Ödeme: {paymentSummary.label}
+            </div>
             {(trackingNumber || order.tracking_number) && (
               <div className="mt-1 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-300 text-amber-950 text-[11px]">
                 <Truck className="w-3.5 h-3.5 text-amber-700" />
@@ -451,7 +568,7 @@ export default function OrderDetailPage() {
             <div className="font-bold text-stone-900">Otantikos Concept</div>
             <div className="text-stone-600">Tahtakale Tanburacı Han</div>
             <div className="text-stone-600">Eminönü / Fatih / İSTANBUL</div>
-            <div className="text-stone-500">Tel: +90 (507) 773 77 77</div>
+            <div className="text-stone-500">Tel: +90 (537) 467 65 90</div>
           </div>
 
           {/* Recipient */}
@@ -484,16 +601,33 @@ export default function OrderDetailPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-200">
-              {order.items?.map((item, idx) => (
-                <tr key={idx}>
-                  <td className="p-2.5 text-stone-500">{idx + 1}</td>
-                  <td className="p-2.5 font-semibold text-stone-900">{item.product_name}</td>
-                  <td className="p-2.5 text-stone-600">{item.variant_name || '-'}</td>
-                  <td className="p-2.5 text-center font-bold text-stone-900">{item.quantity}</td>
-                  <td className="p-2.5 text-right text-stone-600">{formatPrice(item.price)}</td>
-                  <td className="p-2.5 text-right font-bold text-stone-900">{formatPrice(item.total)}</td>
-                </tr>
-              ))}
+              {order.items?.map((item, idx) => {
+                const resolvedSlug = item.product_slug || item.product?.slug;
+                const productHref = resolvedSlug
+                  ? `/urun/${resolvedSlug}`
+                  : `/kategori/tum-urunler?ara=${encodeURIComponent(item.product_name)}`;
+                return (
+                  <tr key={idx}>
+                    <td className="p-2.5 text-stone-500">{idx + 1}</td>
+                    <td className="p-2.5 font-semibold text-stone-900">
+                      <a
+                        href={productHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-stone-900 hover:text-[#e60012] hover:underline transition"
+                        title="Ürünü ayrı sekmede aç"
+                      >
+                        <span>{item.product_name}</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-stone-400 shrink-0 no-print" />
+                      </a>
+                    </td>
+                    <td className="p-2.5 text-stone-600">{item.variant_name || '-'}</td>
+                    <td className="p-2.5 text-center font-bold text-stone-900">{item.quantity}</td>
+                    <td className="p-2.5 text-right text-stone-600">{formatPrice(item.price)}</td>
+                    <td className="p-2.5 text-right font-bold text-stone-900">{formatPrice(item.total)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
             <tfoot className="bg-stone-50 font-bold text-xs border-t border-stone-200">
               <tr>

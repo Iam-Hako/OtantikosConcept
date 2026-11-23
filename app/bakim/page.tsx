@@ -71,7 +71,7 @@ export default function MaintenancePage() {
           {/* Direct Customer Contact Channels */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <a
-              href={`https://wa.me/905077737777?text=${whatsappText}`}
+              href={`https://wa.me/905374676590?text=${whatsappText}`}
               target="_blank"
               rel="noopener noreferrer"
               className="group flex items-start gap-3.5 p-4 rounded-xl bg-emerald-50/70 hover:bg-emerald-50 border border-emerald-200 transition active:scale-[0.99] min-h-[44px]"
@@ -84,7 +84,7 @@ export default function MaintenancePage() {
                   WhatsApp Sipariş & Bilgi Hattı
                 </div>
                 <div className="text-sm font-mono font-bold text-emerald-700 mt-0.5 tabular-nums">
-                  0507 773 77 77
+                  0537 467 65 90
                 </div>
                 <div className="text-xs text-stone-600 mt-1">
                   Perakende ve toptan talepleriniz için hemen yazın.
@@ -93,7 +93,7 @@ export default function MaintenancePage() {
             </a>
 
             <a
-              href="tel:+905077737777"
+              href="tel:+905374676590"
               className="group flex items-start gap-3.5 p-4 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-200 transition active:scale-[0.99] min-h-[44px]"
             >
               <div className="w-10 h-10 rounded-lg bg-stone-900 text-white flex items-center justify-center shrink-0">
@@ -104,7 +104,7 @@ export default function MaintenancePage() {
                   Müşteri Hizmetleri
                 </div>
                 <div className="text-sm font-mono font-bold text-stone-900 mt-0.5 tabular-nums">
-                  0507 773 77 77
+                  0537 467 65 90
                 </div>
                 <div className="text-xs text-stone-600 mt-1 flex items-center gap-1.5 truncate">
                   <Mail className="w-3.5 h-3.5 text-stone-500 shrink-0" />

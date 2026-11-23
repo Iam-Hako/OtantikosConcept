@@ -139,6 +139,8 @@ export interface OrderItem {
   product_id?: string | null;
   variant_id?: string | null;
   product_name: string;
+  product_slug?: string | null;
+  product?: { slug?: string | null } | null;
   variant_name?: string | null;
   price: number;
   unit_price?: number;

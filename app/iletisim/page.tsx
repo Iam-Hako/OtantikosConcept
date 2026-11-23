@@ -129,13 +129,13 @@ export default function ContactPage() {
                 <div className="space-y-1.5">
                   <h4 className="font-bold text-stone-900 text-sm">Telefon & WhatsApp</h4>
                   <div>
-                    <a href="tel:+905077737777" className="text-stone-700 hover:text-[#e60012] font-bold block py-0.5 text-sm">
-                      +90 (507) 773 77 77
+                    <a href="tel:+905374676590" className="text-stone-700 hover:text-[#e60012] font-bold block py-0.5 text-sm">
+                      +90 (537) 467 65 90
                     </a>
                   </div>
                   <div>
                     <a
-                      href="https://wa.me/905077737777?text=Merhaba,%20Otantikos%20Concept%20hakkında%20bilgi%20almak%20istiyorum."
+                      href="https://wa.me/905374676590?text=Merhaba,%20Otantikos%20Concept%20hakkında%20bilgi%20almak%20istiyorum."
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg hover:bg-emerald-100 transition mt-1"

@@ -339,8 +339,8 @@ export default function Footer({ initialCategories = [] }: FooterProps) {
               
               <div className="flex items-center gap-1.5">
                 <Phone className="w-3.5 h-3.5 text-[#e60012] shrink-0" />
-                <a href="tel:+905077737777" className="hover:text-[#e60012] transition font-bold text-stone-800">
-                  0507 773 77 77
+                <a href="tel:+905374676590" className="hover:text-[#e60012] transition font-bold text-stone-800">
+                  0537 467 65 90
                 </a>
               </div>
 

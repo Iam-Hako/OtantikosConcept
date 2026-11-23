@@ -109,7 +109,8 @@ export async function POST(request: Request) {
       district: shipping.district || undefined,
       postalCode: shipping.postal_code || shipping.zip_code || undefined,
       countryCode: 'TR',
-      weightInKg: weight_kg ? Number(weight_kg) : 0.5,
+      desi: order.total_desi || (weight_kg ? Number(weight_kg) : 1),
+      weightInKg: weight_kg ? Number(weight_kg) : 1,
       packageCount: package_count ? Number(package_count) : 1,
       itemDescription: description || 'Otantikos Concept Hediyelik Eşya Siparişi',
     });
@@ -119,7 +120,7 @@ export async function POST(request: Request) {
         {
           error: dhlRes.error || 'DHL kargo gönderisi oluşturulamadı.',
         },
-        { status: 500 }
+        { status: 400 }
       );
     }
 

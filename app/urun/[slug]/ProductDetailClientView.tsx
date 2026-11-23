@@ -696,7 +696,7 @@ export default function ProductDetailClientView({
                 </p>
                 <div className="flex gap-2.5">
                   <a
-                    href={`https://wa.me/905077737777?text=${encodeURIComponent(`Merhaba Otantikos Concept, "${product.name}" ürününüz hakkında mağazadan teslimat veya toptan bilgi almak istiyorum.`)}`}
+                    href={`https://wa.me/905374676590?text=${encodeURIComponent(`Merhaba Otantikos Concept, "${product.name}" ürününüz hakkında mağazadan teslimat veya toptan bilgi almak istiyorum.`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"

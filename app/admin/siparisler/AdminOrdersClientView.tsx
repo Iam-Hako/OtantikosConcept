@@ -10,12 +10,21 @@ import {
   XCircle, 
   AlertTriangle,
   RotateCcw,
-  Trash2
+  Trash2,
+  Truck,
+  ExternalLink,
+  CreditCard
 } from 'lucide-react';
 import { Order } from '@/lib/types/ecommerce';
 import { DataService, normalizeTurkish } from '@/lib/data/store-data';
 import { actionCancelOrder, actionDeleteOrder, actionClearAllOrders } from '@/app/actions/ecommerce-actions';
-import { formatPrice, formatDate } from '@/lib/utils/format';
+import {
+  formatPrice,
+  formatDate,
+  formatOrderPaymentSummary,
+  formatOrderStatusLabel,
+  buildCargoTrackingExternalUrl
+} from '@/lib/utils/format';
 import { toast } from 'sonner';
 
 export default function AdminOrdersClientView({
@@ -40,6 +49,45 @@ export default function AdminOrdersClientView({
   // Clear All Modal State
   const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
   const [isClearingAll, setIsClearingAll] = useState(false);
+  const [creatingDhlOrderId, setCreatingDhlOrderId] = useState<string | null>(null);
+
+  const handleQuickCreateDhl = async (ord: Order) => {
+    setCreatingDhlOrderId(ord.id);
+    try {
+      const response = await fetch('/api/dhl/create-shipment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: ord.id,
+          order_number: ord.order_number,
+          weight_kg: ord.total_desi || 1,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.tracking_number) {
+        throw new Error(data.error || 'DHL kargo kodu oluşturulamadı.');
+      }
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === ord.id
+            ? {
+                ...o,
+                status: 'kargoya_verildi',
+                tracking_number: data.tracking_number,
+                tracking_carrier: 'DHL Kargo',
+              }
+            : o
+        )
+      );
+      toast.success(`#${ord.order_number} için DHL Takip No oluşturuldu!`, {
+        description: `Takip No: ${data.tracking_number}`,
+      });
+    } catch (err: any) {
+      toast.error(err.message || 'DHL kargo gönderisi oluşturulamadı.');
+    } finally {
+      setCreatingDhlOrderId(null);
+    }
+  };
 
   useEffect(() => {
     DataService.getOrders().then((list) => {
@@ -196,7 +244,9 @@ export default function AdminOrdersClientView({
             Kriterlere uygun sipariş bulunamadı.
           </div>
         ) : (
-          filtered.map((ord) => (
+          filtered.map((ord) => {
+            const paymentInfo = formatOrderPaymentSummary(ord.payment_method, ord.payment_status);
+            return (
             <div key={ord.id} className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3">
               <div className="flex items-center justify-between border-b border-stone-100 pb-2.5 text-xs">
                 <div>
@@ -204,7 +254,7 @@ export default function AdminOrdersClientView({
                   <div className="text-[10px] text-stone-400">{formatDate(ord.created_at)}</div>
                 </div>
                 <span
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold capitalize border ${
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
                     ord.status === 'iptal_edildi'
                       ? 'bg-rose-100 text-rose-800 border-rose-200'
                       : ord.status === 'teslim_edildi'
@@ -212,11 +262,11 @@ export default function AdminOrdersClientView({
                       : 'bg-orange-50 text-orange-800 border-orange-200'
                   }`}
                 >
-                  {ord.status.replace('_', ' ')}
+                  {formatOrderStatusLabel(ord.status)}
                 </span>
               </div>
 
-              <div className="text-xs space-y-1 text-stone-700">
+              <div className="text-xs space-y-1.5 text-stone-700">
                 <div className="flex justify-between">
                   <span className="text-stone-400">Müşteri:</span>
                   <strong className="text-stone-900">{ord.shipping_address?.full_name}</strong>
@@ -229,19 +279,67 @@ export default function AdminOrdersClientView({
                   <span className="text-stone-400">Teslimat:</span>
                   <span>{ord.delivery_type === 'magaza_teslim' || ord.delivery_type === 'pickup' ? '🏪 Mağaza Teslim' : `🚚 ${ord.shipping_address?.province || ''}`}</span>
                 </div>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-stone-400">Ödeme:</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${paymentInfo.badgeClass}`}>
+                    {paymentInfo.label}
+                  </span>
+                </div>
+                {Array.isArray(ord.items) && ord.items.length > 0 && (
+                  <div className="pt-1 border-t border-stone-100 space-y-1">
+                    <span className="text-stone-400 text-[10px] font-bold uppercase block">Sipariş Ürünleri:</span>
+                    <div className="flex flex-col gap-1">
+                      {ord.items.map((it, idx) => {
+                        const slug = it.product_slug || it.product?.slug;
+                        const href = slug
+                          ? `/urun/${slug}`
+                          : `/kategori/tum-urunler?ara=${encodeURIComponent(it.product_name)}`;
+                        return (
+                          <a
+                            key={idx}
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-between gap-1 text-[11px] font-semibold text-stone-800 hover:text-[#e60012] hover:underline"
+                          >
+                            <span className="truncate">{it.quantity}× {it.product_name}</span>
+                            <ExternalLink className="w-3 h-3 shrink-0 text-stone-400" />
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-1">
                   <span className="text-stone-400">Kargo Takip No:</span>
                   {ord.tracking_number ? (
-                    <span className="font-mono font-bold text-stone-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-[11px]">
-                      {ord.tracking_carrier || 'DHL Kargo'}: {ord.tracking_number}
-                    </span>
-                  ) : (
-                    <Link
-                      href={`/admin/siparisler/${ord.id}`}
-                      className="text-[11px] font-bold text-amber-700 hover:underline"
+                    <a
+                      href={buildCargoTrackingExternalUrl(ord.tracking_number, ord.tracking_carrier)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono font-bold text-stone-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-[11px] hover:underline"
                     >
-                      + Takip No Gir
-                    </Link>
+                      {ord.tracking_carrier || 'DHL Kargo'}: {ord.tracking_number} ↗
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      {ord.delivery_type !== 'magaza_teslim' && ord.status !== 'iptal_edildi' && (
+                        <button
+                          type="button"
+                          onClick={() => handleQuickCreateDhl(ord)}
+                          disabled={creatingDhlOrderId === ord.id}
+                          className="px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-[10px] rounded transition cursor-pointer"
+                        >
+                          {creatingDhlOrderId === ord.id ? 'Oluşturuluyor...' : 'DHL Kodu Al'}
+                        </button>
+                      )}
+                      <Link
+                        href={`/admin/siparisler/${ord.id}`}
+                        className="text-[11px] font-bold text-amber-700 hover:underline"
+                      >
+                        + Manuel Gir
+                      </Link>
+                    </div>
                   )}
                 </div>
                 <div className="flex justify-between font-bold pt-1 border-t border-stone-100 text-stone-900">
@@ -301,7 +399,8 @@ export default function AdminOrdersClientView({
                 </button>
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -312,16 +411,18 @@ export default function AdminOrdersClientView({
             <thead>
               <tr className="bg-stone-50 border-b border-stone-200 text-stone-500 uppercase font-bold text-[10px] tracking-wider">
                 <th className="py-3.5 px-4">Sipariş No & Tarih</th>
-                <th className="py-3.5 px-4">Müşteri & İletişim</th>
+                <th className="py-3.5 px-4">Müşteri & Ürünler</th>
                 <th className="py-3.5 px-4">Teslimat Türü</th>
-                <th className="py-3.5 px-4">Tutar</th>
+                <th className="py-3.5 px-4">Tutar & Ödeme</th>
                 <th className="py-3.5 px-4">Kargo / Takip</th>
                 <th className="py-3.5 px-4">Durum</th>
                 <th className="py-3.5 px-4 text-right">İşlem</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {filtered.map((ord) => (
+              {filtered.map((ord) => {
+                const paymentInfo = formatOrderPaymentSummary(ord.payment_method, ord.payment_status);
+                return (
                 <tr key={ord.id} className="hover:bg-stone-50 transition">
                   
                   <td className="py-3.5 px-4">
@@ -329,9 +430,37 @@ export default function AdminOrdersClientView({
                     <div className="text-[10px] text-stone-400">{formatDate(ord.created_at)}</div>
                   </td>
 
-                  <td className="py-3.5 px-4">
+                  <td className="py-3.5 px-4 max-w-[260px]">
                     <div className="font-semibold text-stone-900">{ord.shipping_address?.full_name}</div>
                     <div className="text-[10px] text-stone-500">{ord.shipping_address?.phone}</div>
+                    {Array.isArray(ord.items) && ord.items.length > 0 && (
+                      <div className="mt-1.5 flex flex-col gap-0.5">
+                        {ord.items.slice(0, 3).map((it, idx) => {
+                          const slug = it.product_slug || it.product?.slug;
+                          const href = slug
+                            ? `/urun/${slug}`
+                            : `/kategori/tum-urunler?ara=${encodeURIComponent(it.product_name)}`;
+                          return (
+                            <a
+                              key={idx}
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 hover:text-[#e60012] hover:underline truncate"
+                              title="Ürünü ayrı sekmede aç"
+                            >
+                              <span className="truncate">{it.quantity}× {it.product_name}</span>
+                              <ExternalLink className="w-3 h-3 shrink-0" />
+                            </a>
+                          );
+                        })}
+                        {ord.items.length > 3 && (
+                          <Link href={`/admin/siparisler/${ord.id}`} className="text-[10px] text-stone-400 hover:underline">
+                            +{ord.items.length - 3} ürün daha...
+                          </Link>
+                        )}
+                      </div>
+                    )}
                   </td>
 
                   <td className="py-3.5 px-4">
@@ -346,29 +475,53 @@ export default function AdminOrdersClientView({
                     )}
                   </td>
 
-                  <td className="py-3.5 px-4 font-bold text-orange-700">
-                    {formatPrice(ord.total_amount)}
+                  <td className="py-3.5 px-4">
+                    <div className="font-bold text-orange-700">{formatPrice(ord.total_amount)}</div>
+                    <span className={`mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${paymentInfo.badgeClass}`}>
+                      <CreditCard className="w-2.5 h-2.5 shrink-0" />
+                      <span>{paymentInfo.shortLabel}</span>
+                    </span>
                   </td>
 
                   <td className="py-3.5 px-4">
                     {ord.tracking_number ? (
                       <div className="inline-flex flex-col gap-0.5 bg-amber-50/80 border border-amber-200 px-2.5 py-1 rounded-lg text-[11px]">
                         <span className="text-[10px] font-semibold text-amber-900">{ord.tracking_carrier || 'DHL Kargo'}</span>
-                        <strong className="font-mono text-stone-900 select-all">{ord.tracking_number}</strong>
+                        <a
+                          href={buildCargoTrackingExternalUrl(ord.tracking_number, ord.tracking_carrier)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono font-bold text-stone-900 hover:text-[#e60012] hover:underline select-all"
+                        >
+                          {ord.tracking_number} ↗
+                        </a>
                       </div>
                     ) : (
-                      <Link
-                        href={`/admin/siparisler/${ord.id}`}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-amber-50 text-stone-600 hover:text-amber-800 border border-stone-200 hover:border-amber-300 text-[11px] font-bold transition"
-                      >
-                        <span>+ Takip No Gir</span>
-                      </Link>
+                      <div className="flex flex-col items-start gap-1">
+                        {ord.delivery_type !== 'magaza_teslim' && ord.status !== 'iptal_edildi' && (
+                          <button
+                            type="button"
+                            onClick={() => handleQuickCreateDhl(ord)}
+                            disabled={creatingDhlOrderId === ord.id}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-stone-950 text-[11px] font-bold transition cursor-pointer shadow-2xs"
+                          >
+                            <Truck className="w-3 h-3" />
+                            <span>{creatingDhlOrderId === ord.id ? 'Oluşturuluyor...' : 'DHL Kodu Al'}</span>
+                          </button>
+                        )}
+                        <Link
+                          href={`/admin/siparisler/${ord.id}`}
+                          className="text-[11px] font-semibold text-stone-500 hover:text-amber-800 hover:underline"
+                        >
+                          + Manuel Takip No
+                        </Link>
+                      </div>
                     )}
                   </td>
 
                   <td className="py-3.5 px-4">
                     <span
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold capitalize border ${
+                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
                         ord.status === 'iptal_edildi'
                           ? 'bg-rose-100 text-rose-800 border-rose-200'
                           : ord.status === 'teslim_edildi'
@@ -376,7 +529,7 @@ export default function AdminOrdersClientView({
                           : 'bg-orange-50 text-orange-800 border-orange-200'
                       }`}
                     >
-                      {ord.status.replace('_', ' ')}
+                      {formatOrderStatusLabel(ord.status)}
                     </span>
                   </td>
 
@@ -431,7 +584,8 @@ export default function AdminOrdersClientView({
                   </td>
 
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
